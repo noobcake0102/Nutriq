@@ -1404,53 +1404,113 @@ function PantryTab({pantry,setPantry,deletePantryItem,updatePantryQty,notify}){
 }
 
 /* ── MEALS ── */
+INSTRUCTIONS: In your index.html on GitHub, find this function:
+
+  function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
+
+And replace the ENTIRE MealsTab function (everything from that line until the closing }) 
+with the code below. The function ends just before "/* ── SHOP ── */"
+
+════════════════════════════════════════════════════
+REPLACE WITH THIS:
+════════════════════════════════════════════════════
+
 function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
   const[gen,setGen]=useState(false);
   const[stat,setStat]=useState("");
   const[day,setDay]=useState(0);
+  const[showPrefs,setShowPrefs]=useState(false);
+  const[cuisines,setCuisines]=useState(goals.meal_cuisines||[]);
+  const[mealPrefs,setMealPrefs]=useState(goals.meal_preferences||{});
   const DAYS=["Mon","Tue","Wed"];
-  const FULL=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const CUISINES=["Italian","Mexican","Asian","Mediterranean","American","Indian","Middle Eastern","Greek","Japanese","Thai","French","Healthy"];
+  const MEAL_TYPES=["Breakfast","Quick Breakfast","Lunch","Meal Prep Lunch","Dinner","Quick Dinner","Snack","Smoothie"];
+  const toggleCuisine=c=>setCuisines(cs=>cs.includes(c)?cs.filter(x=>x!==c):[...cs,c]);
+  const toggleMealType=t=>setMealPrefs(mp=>{const n={...mp};if(n[t])delete n[t];else n[t]=1;return n;});
+  const setMealCount=(t,v)=>setMealPrefs(mp=>({...mp,[t]:Math.max(1,Math.min(7,+v||1))}));
 
   const generate=async()=>{
-    setGen(true);setStat("Analyzing your pantry…");setMeal(null);
+    setGen(true);setStat("Analyzing your pantry...");setMeal(null);
     const ps=pantry.map(i=>{const d=du(i.expiry);return `- ${i.name} (${i.qty} ${i.unit}${d!==null?`, expires in ${d} days`:""})`;}).join("\n");
+    const cuisineStr=cuisines.length?`Preferred cuisines: ${cuisines.join(", ")}.`:"";
+    const mealPrefStr=Object.keys(mealPrefs).length?`Meal schedule this week: ${Object.entries(mealPrefs).map(([k,v])=>`${v}x ${k}`).join(", ")}.`:"";
     const sys=`You are a nutritionist. Respond with ONLY a raw JSON object. Absolutely no markdown, no backticks, no code fences, no explanation. Just raw JSON. Keep ALL text fields under 6 words. Structure:
 {"days":[{"day":"Monday","meals":{"breakfast":{"name":"...","description":"...","uses_pantry":["..."],"calories":400,"protein":30,"carbs":45,"fat":12},"lunch":{"name":"...","description":"...","uses_pantry":[],"calories":500,"protein":35,"carbs":55,"fat":15},"dinner":{"name":"...","description":"...","uses_pantry":["..."],"calories":600,"protein":45,"carbs":60,"fat":20},"snack":{"name":"...","description":"...","uses_pantry":[],"calories":150,"protein":8,"carbs":18,"fat":5}},"total_calories":1650,"total_protein":118,"total_carbs":178,"total_fat":52}],"shopping_list":[{"item":"...","quantity":"...","reason":"...","priority":"high"}],"strategy":"..."}`;
-    const cuisineStr=goals.meal_cuisines?.length?`Preferred cuisines: ${goals.meal_cuisines.join(", ")}.`:"";
-    const mealPrefStr=goals.meal_preferences&&Object.keys(goals.meal_preferences).length?`Meal schedule per week: ${Object.entries(goals.meal_preferences).map(([k,v])=>`${v}x ${k}`).join(", ")}.`:"";
     const usr=`3-day meal plan (Monday, Tuesday, Wednesday) for ${goals.householdSize} people. Targets: ${macros.calories} cal, ${macros.protein}g protein, ${macros.carbs}g carbs, ${macros.fat}g fat. Goal: ${goals.goalType}. Diet: ${goals.diet}. Allergies: ${goals.allergies.join(",")||"none"}. ${cuisineStr} ${mealPrefStr} Be extremely brief. Pantry:\n${ps.split("\n").slice(0,8).join("\n")}`;
     let full="";
     try{
-      setStat("Crafting your plan…");
+      setStat("Crafting your plan...");
       await streamClaude(sys,usr,c=>{full+=c;});
       const cleaned=full.replace(/```json/g,"").replace(/```/g,"").trim();
       const parsed=JSON.parse(cleaned);
       setMeal(parsed);setShop(parsed.shopping_list||[]);
-      notify("✓ Your meal plan is ready!");
-    }catch(e){notify("Generation failed — try again","err");console.error(e,full);}
+      notify("Your meal plan is ready!");
+    }catch(e){notify("Generation failed - try again","err");console.error(e,full);}
     setGen(false);setStat("");
   };
 
   const d=meal?.days?.[day],mn=d?.meals;
+  const hasMealPrefs=Object.keys(mealPrefs).length>0;
+
   return(
     <div className="page">
       <div className="page-label">AI Planner</div>
       <h1 className="page-title">Weekly meals</h1>
-      <p className="page-sub">Pantry-first · {macros.calories} kcal target</p>
+
+      <div className="card" style={{marginBottom:14}}>
+        <button style={{width:"100%",background:"none",border:"none",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",padding:0,fontFamily:"'DM Sans',system-ui,sans-serif"}} onClick={()=>setShowPrefs(!showPrefs)}>
+          <div>
+            <div style={{fontWeight:500,fontSize:14,color:"var(--plum)",textAlign:"left"}}>This week's preferences</div>
+            <div style={{fontSize:12,color:"var(--muted)",marginTop:2,textAlign:"left"}}>
+              {hasMealPrefs?Object.entries(mealPrefs).map(([k,v])=>`${v}x ${k}`).join(" · "):"Tap to set meal preferences"}
+              {cuisines.length>0&&` · ${cuisines.slice(0,2).join(", ")}${cuisines.length>2?" +more":""}`}
+            </div>
+          </div>
+          <span style={{fontSize:18,color:"var(--muted2)",display:"inline-block",transform:showPrefs?"rotate(180deg)":"none",transition:"transform .2s"}}>v</span>
+        </button>
+
+        {showPrefs&&(
+          <div style={{marginTop:14,borderTop:"1px solid var(--border)",paddingTop:14}}>
+            <div className="section-label" style={{marginBottom:8}}>Cuisine preferences</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:16}}>
+              {CUISINES.map(c=>(
+                <button key={c} className={`chip${cuisines.includes(c)?" on":""}`} onClick={()=>toggleCuisine(c)}>{c}</button>
+              ))}
+            </div>
+            <div className="section-label" style={{marginBottom:8}}>Meals this week</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {MEAL_TYPES.map(t=>(
+                <div key={t} style={{display:"flex",alignItems:"center",gap:10}}>
+                  <button className={`chip${mealPrefs[t]?" on":""}`} style={{flex:1,textAlign:"left",borderRadius:10}} onClick={()=>toggleMealType(t)}>{t}</button>
+                  {mealPrefs[t]&&(
+                    <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                      <button className="qty-btn" style={{width:30,height:30,fontSize:16}} onClick={()=>setMealCount(t,mealPrefs[t]-1)}>-</button>
+                      <span style={{fontSize:15,fontWeight:500,color:"var(--plum)",minWidth:20,textAlign:"center"}}>{mealPrefs[t]}</span>
+                      <button className="qty-btn" style={{width:30,height:30,fontSize:16}} onClick={()=>setMealCount(t,mealPrefs[t]+1)}>+</button>
+                      <span style={{fontSize:11,color:"var(--muted)"}}>/ wk</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       <button className="btn-generate" onClick={generate} disabled={gen}>
         {gen?<span style={{display:"flex",alignItems:"center",gap:8}}><span className="spin"/>  {stat}</span>:"Generate this week's plan"}
       </button>
+
       {meal&&(
         <>
-          {meal.strategy&&<div className="strat-card"><span style={{fontSize:18,flexShrink:0}}>✦</span><p>{meal.strategy}</p></div>}
+          {meal.strategy&&<div className="strat-card"><span style={{fontSize:18,flexShrink:0}}>*</span><p>{meal.strategy}</p></div>}
           <div className="chips" style={{marginBottom:14}}>
             {DAYS.map((dn,i)=><button key={dn} className={`day-btn${day===i?" on":""}`} onClick={()=>setDay(i)}>{dn}</button>)}
           </div>
           {d&&(
             <div className="day-totals">
-              {[["🔥",d.total_calories,"cal"],["💪",d.total_protein+"g","protein"],["🌾",d.total_carbs+"g","carbs"],["🫒",d.total_fat+"g","fat"]].map(([ic,v,lb])=>(
+              {[["cal",d.total_calories,"cal"],["prot",d.total_protein+"g","protein"],["carb",d.total_carbs+"g","carbs"],["fat",d.total_fat+"g","fat"]].map(([ic,v,lb])=>(
                 <div key={lb} className="day-total-cell">
-                  <span style={{fontSize:16}}>{ic}</span>
                   <div style={{fontWeight:500,fontSize:14,color:"var(--text)"}}>{v}</div>
                   <div style={{fontSize:10,color:"var(--muted)"}}>{lb}</div>
                 </div>
@@ -1480,11 +1540,12 @@ function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
           )}
         </>
       )}
+
       {!meal&&!gen&&(
         <div className="empty">
           <div className="empty-icon">{I.meals("#b0a0be")}</div>
           <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:22,color:"var(--plum)",marginBottom:8}}>No plan yet</div>
-          <p>Nutriq will prioritize items close to expiry and build a full week around your <strong style={{color:"var(--plum2)"}}>{macros.calories} kcal</strong> target.</p>
+          <p>Set your preferences above, then generate a plan built around your <strong style={{color:"var(--plum2)"}}>{macros.calories} kcal</strong> target.</p>
         </div>
       )}
     </div>
