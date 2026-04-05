@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<title>Nutriq</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/zxing-wasm@1.2.8/dist/iife/reader/index.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --cream:#faf8f5;
+  --warm:#f4efe8;
+  --blush:#fdf0f4;
+  --card:#ffffff;
+  --border:#ece5dc;
+  --border2:#e0d5e8;
+  --plum:#4a1a6e;
+  --plum2:#6b2fa0;
+  --plum3:#8b4fc0;
+  --plumL:#f5eef9;
+  --plumLL:#faf5fd;
+  --rose:#d4537e;
+  --roseL:#fbeaf0;
+  --blushD:#c2809a;
+  --sage:#7a9e6e;
+  --sageL:#eef4eb;
+  --text:#2a1a3a;
+  --muted:#8a7898;
+  --muted2:#b0a0be;
+  --red:#b5344a;
+  --orange:#c2780a;
+  --gold:#c9a227;
+}
+html,body{
+  background:var(--cream);
+  color:var(--text);
+  font-family:'DM Sans',system-ui,sans-serif;
+  font-size:16px;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+#root{
+  max-width:430px;
+  margin:0 auto;
+  min-height:100vh;
+  background:var(--cream);
+  position:relative;
+  overflow-x:hidden;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:0;height:0;}
+
+/* ── ANIMATIONS ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes scanLine{0%,100%{top:15%}50%{top:78%}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── HEADER ── */
+.hdr{
+  position:sticky;top:0;z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px;
+  background:rgba(250,248,245,0.92);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.hdr-logo{display:flex;align-items:center;gap:10px;}
+.logo-bloom{width:34px;height:34px;flex-shrink:0;}
+.logo-text-wrap{}
+.logo-name{
+  font-family:'Cormorant Garamond',Georgia,serif;
+  font-size:22px;font-weight:600;color:var(--plum);
+  letter-spacing:-.3px;line-height:1;
+}
+.logo-tag{
+  font-size:9px;color:var(--muted);
+  letter-spacing:.8px;text-transform:uppercase;
+  font-weight:300;margin-top:1px;
+}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.expiry-chip{
+  display:flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:500;color:var(--orange);
+  background:#fdf5e6;border:1px solid #e8c97044;
+  border-radius:20px;padding:4px 10px;
+}
+.expiry-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--orange);
+  animation:pulse 1.4s infinite;
+}
+.member-av{
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:500;
+  border:2px solid transparent;
+  flex-shrink:0;
+}
+
+/* ── BOTTOM NAV ── */
+.nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:430px;
+  display:flex;
+  background:rgba(250,248,245,0.96);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--border);
+  z-index:200;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.nb{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:10px 6px 12px;
+  background:none;border:none;border-top:2px solid transparent;
+  color:var(--muted2);cursor:pointer;
+  font-family:'DM Sans',system-ui,sans-serif;
+  font-size:9px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;
+  transition:color .18s,border-color .18s;
+}
+.nb.on{color:var(--plum);border-top-color:var(--plum);}
+.nb svg{width:20px;height:20px;}
+
+/* ── PAGE ── */
+.page{
+  padding:22px 18px;
+  padding-bottom:100px;
+  animation:fadeUp .25s ease;
+  min-height:calc(100vh - 58px);
+}
+.page-label{
+  font-size:10px;font-weight:500;letter-spacing:2px;
+  color:var(--muted);text-transform:uppercase;margin-bottom:5px;
+}
+.page-title{
+  font-family:'Cormorant Garamond',Georgia,serif;
+  font-size:30px;font-weight:600;color:var(--text);
+  letter-spacing:-.5px;margin-bottom:4px;line-height:1.1;
+}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:20px;}
+
+/* ── CARDS ── */
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:16px;
+  margin-bottom:12px;
+  box-shadow:0 1px 4px rgba(74,26,110,.05);
+}
+.card-title{
+  font-size:13px;font-weight:500;color:var(--plum);
+  margin-bottom:12px;letter-spacing:.1px;
+}
+.section-label{
+  font-size:10px;font-weight:500;color:var(--muted);
+  text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;
+}
+
+/* ── INPUTS ── */
+input,select,textarea{
+  background:var(--warm);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:11px 14px;
+  color:var(--text);
+  font-family:'DM Sans',system-ui,sans-serif;
+  font-size:14px;
+  outline:none;
+  width:100%;
+  -webkit-appearance:none;
+  transition:border-color .15s;
+}
+input:focus,select:focus{border-color:var(--plum3);}
+input::placeholder{color:var(--muted2);}
+input[type=date]{color:var(--muted);}
+.input-label{
+  font-size:11px;font-weight:500;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.6px;
+  display:block;margin-bottom:5px;
+}
+
+/* ── BUTTONS ── */
+.btn-full{
+  width:100%;
+  background:linear-gradient(135deg,var(--plum2),var(--plum));
+  border:none;border-radius:14px;
+  padding:15px;
+  color:#fff;font-weight:500;font-size:15px;
+  cursor:pointer;
+  font-family:'Cormorant Garamond',Georgia,serif;
+  letter-spacing:.2px;font-size:16px;
+  box-shadow:0 4px 18px rgba(107,47,160,.3);
+  transition:opacity .15s,transform .1s;
+}
+.btn-full:active{opacity:.9;transform:scale(.99);}
+.btn-full.red{background:linear-gradient(135deg,#c0392b,#922b21);}
+.btn-full.blue{background:linear-gradient(135deg,#3a6fa0,#2c5380);}
+.btn-full:disabled{opacity:.45;cursor:not-allowed;}
+.btn-sm{
+  background:var(--plumL);
+  border:1px solid var(--plum3)44;
+  border-radius:10px;
+  padding:7px 14px;
+  color:var(--plum2);
+  font-size:12px;font-weight:500;
+  cursor:pointer;
+  font-family:'DM Sans',system-ui,sans-serif;
+  white-space:nowrap;
+  transition:background .15s;
+}
+.btn-sm:hover{background:var(--plumLL);}
+.btn-ghost{
+  width:100%;
+  background:none;
+  border:1px dashed var(--border2);
+  border-radius:12px;
+  padding:11px;
+  color:var(--muted);
+  font-size:13px;cursor:pointer;
+  font-family:'DM Sans',system-ui,sans-serif;
+  margin-bottom:12px;
+  transition:border-color .15s;
+}
+.btn-ghost:hover{border-color:var(--plum3);}
+
+/* ── CHIPS ── */
+.chips{
+  display:flex;flex-wrap:nowrap;overflow-x:auto;
+  gap:6px;margin-bottom:14px;padding-bottom:2px;
+}
+.chips.wrap{flex-wrap:wrap;overflow-x:visible;}
+.chip{
+  flex-shrink:0;
+  background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:6px 14px;font-size:12px;font-weight:400;
+  color:var(--muted);cursor:pointer;white-space:nowrap;
+  font-family:'DM Sans',system-ui,sans-serif;
+  transition:all .15s;
+}
+.chip.on{background:var(--plumL);border-color:var(--plum3);color:var(--plum2);font-weight:500;}
+.chip.red{background:var(--roseL);border-color:var(--rose)66;color:var(--rose);font-weight:500;}
+
+/* ── SEG CONTROL ── */
+.seg{
+  display:flex;background:var(--warm);border:1px solid var(--border);
+  border-radius:14px;padding:4px;gap:4px;margin-bottom:16px;
+}
+.seg-btn{
+  flex:1;padding:10px;border-radius:10px;border:none;
+  background:none;color:var(--muted);cursor:pointer;
+  font-family:'DM Sans',system-ui,sans-serif;font-size:13px;font-weight:500;
+  transition:all .15s;
+}
+.seg-btn.on{
+  background:var(--card);color:var(--plum2);
+  box-shadow:0 1px 6px rgba(74,26,110,.12);
+}
+.seg-btn.red.on{color:var(--red);}
+
+/* ── VIEWFINDER ── */
+.vf{
+  position:relative;height:210px;
+  background:#1a0f24;border-radius:20px;
+  overflow:hidden;margin-bottom:14px;
+  box-shadow:0 6px 24px rgba(74,26,110,.25);
+}
+.vf video{width:100%;height:100%;object-fit:cover;}
+.vf-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+.vf-frame{position:relative;width:220px;height:130px;}
+.vf-corner{position:absolute;width:22px;height:22px;border-color:#e8c0f0;border-style:solid;}
+.vf-scan{position:absolute;left:0;right:0;height:1.5px;background:linear-gradient(to right,transparent,#e8c0f0,transparent);animation:scanLine 2.2s ease-in-out infinite;}
+.vf-hint{font-size:12px;color:#e8c0f088;letter-spacing:.8px;}
+.vf-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;}
+.vf-stop{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.5);border:none;border-radius:8px;padding:6px 10px;color:#fff;cursor:pointer;font-size:12px;}
+
+/* ── PANTRY ROW ── */
+.prow{
+  display:flex;align-items:center;gap:12px;
+  background:var(--card);border-radius:16px;padding:13px 14px;
+  border:1px solid var(--border);border-left:3px solid var(--border);
+  margin-bottom:8px;
+  box-shadow:0 1px 3px rgba(74,26,110,.04);
+  transition:transform .1s;
+}
+.prow:active{transform:scale(.995);}
+.prow-icon{
+  width:42px;height:42px;border-radius:12px;
+  background:var(--plumLL);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.prow-icon svg{width:20px;height:20px;}
+.prow-name{font-weight:500;font-size:14px;color:var(--text);margin-bottom:2px;}
+.prow-meta{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--muted);margin-bottom:5px;}
+.macro-pill{
+  background:var(--warm);border:1px solid var(--border);
+  border-radius:6px;padding:2px 7px;font-size:10px;color:var(--muted);
+}
+.qty-tag{
+  background:var(--plumL);border:1px solid var(--plum3)33;
+  border-radius:8px;padding:3px 9px;font-size:12px;
+  color:var(--plum2);font-weight:500;white-space:nowrap;
+}
+.btn-use{
+  background:var(--sageL);border:1px solid var(--sage)55;
+  border-radius:8px;padding:5px 11px;color:var(--sage);
+  font-size:12px;font-weight:500;cursor:pointer;
+  font-family:'DM Sans',system-ui,sans-serif;
+}
+.btn-del{
+  background:none;border:1px solid var(--border);
+  border-radius:8px;padding:5px 9px;color:var(--muted2);
+  font-size:12px;cursor:pointer;
+}
+
+/* ── RESULT CARD ── */
+.result-card{
+  background:var(--card);
+  border:1px solid var(--plum3)44;
+  border-radius:18px;padding:16px;
+  margin-bottom:14px;
+  box-shadow:0 3px 16px rgba(107,47,160,.1);
+  animation:fadeUp .2s ease;
+}
+.result-icon{
+  width:50px;height:50px;border-radius:14px;
+  background:var(--plumLL);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.result-icon svg{width:24px;height:24px;}
+.macro-grid{display:flex;gap:8px;margin-bottom:14px;}
+.macro-box{
+  flex:1;background:var(--warm);border:1px solid var(--border);
+  border-radius:10px;padding:9px 6px;text-align:center;
+}
+.macro-val{font-weight:500;font-size:15px;color:var(--plum2);}
+.macro-lbl{font-size:10px;color:var(--muted);margin-top:2px;}
+.qty-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.qty-btn{
+  width:38px;height:38px;
+  background:var(--warm);border:1px solid var(--border);border-radius:10px;
+  color:var(--text);font-size:20px;font-weight:300;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .12s;
+}
+.qty-btn:hover{background:var(--plumLL);}
+.qty-num{font-size:20px;font-weight:500;min-width:32px;text-align:center;color:var(--plum);}
+
+/* ── ALERT ── */
+.alert{
+  background:#fef7ed;border:1px solid #e8c97066;
+  border-radius:12px;padding:12px 14px;
+  margin-bottom:14px;font-size:13px;color:#8a5a0a;
+}
+
+/* ── STAT ROW ── */
+.stat-row{display:flex;gap:8px;margin-bottom:20px;}
+.stat-pill{
+  background:var(--plumLL);border:1px solid var(--plum3)22;
+  border-radius:20px;padding:5px 13px;
+  font-size:12px;color:var(--plum);
+}
+
+/* ── BMR CARD ── */
+.bmr-card{
+  background:var(--plumL);
+  border:1px solid var(--plum3)33;
+  border-radius:18px;padding:18px;margin-bottom:14px;
+}
+.bmr-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.bmr-val{
+  font-family:'Cormorant Garamond',Georgia,serif;
+  font-size:32px;font-weight:600;color:var(--plum);line-height:1;
+}
+.bmr-unit{font-size:14px;font-weight:400;color:var(--muted);}
+.macro-target-row{
+  display:flex;border:1px solid var(--border2);
+  border-radius:12px;overflow:hidden;margin-bottom:12px;
+  background:var(--card);
+}
+.macro-target-cell{flex:1;padding:11px 6px;text-align:center;}
+.macro-target-cell+.macro-target-cell{border-left:1px solid var(--border2);}
+.mtv{font-weight:500;font-size:16px;margin-bottom:2px;}
+.mtl{font-size:10px;color:var(--muted);}
+
+/* ── ACTIVITY ROW ── */
+.act-row{
+  display:flex;align-items:center;gap:12px;
+  background:var(--warm);border:1px solid var(--border);border-radius:12px;
+  padding:11px 14px;cursor:pointer;width:100%;
+  font-family:'DM Sans',system-ui,sans-serif;margin-bottom:6px;
+  transition:all .15s;
+}
+.act-row.on{background:var(--plumLL);border-color:var(--plum3)55;}
+
+/* ── GOAL / PILL BTNS ── */
+.pill-btn{
+  background:var(--warm);border:1px solid var(--border);border-radius:20px;
+  padding:7px 16px;color:var(--muted);cursor:pointer;
+  font-family:'DM Sans',system-ui,sans-serif;font-size:13px;font-weight:400;
+  transition:all .15s;
+}
+.pill-btn.on{background:var(--plumL);border-color:var(--plum3);color:var(--plum2);font-weight:500;}
+.goal-btn{
+  flex:1;background:var(--warm);border:1px solid var(--border);border-radius:12px;
+  padding:11px 6px;color:var(--muted);cursor:pointer;
+  font-family:'DM Sans',system-ui,sans-serif;font-size:13px;
+  transition:all .15s;
+}
+.goal-btn.on{background:var(--plumL);border-color:var(--plum3);color:var(--plum2);font-weight:500;}
+
+/* ── WEIGHT CHART ── */
+.sparkline{display:flex;align-items:flex-end;gap:4px;height:56px;margin-bottom:14px;}
+.spark-bar{width:12px;border-radius:3px;transition:height .4s;}
+.spark-lbl{font-size:8px;color:var(--muted2);margin-top:3px;}
+
+/* ── MEALS ── */
+.btn-generate{
+  width:100%;
+  background:linear-gradient(135deg,var(--plum2),var(--plum));
+  border:none;border-radius:16px;padding:18px;
+  color:#fff;font-weight:500;
+  font-family:'Cormorant Garamond',Georgia,serif;
+  font-size:18px;letter-spacing:.2px;
+  cursor:pointer;margin-bottom:18px;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  box-shadow:0 6px 24px rgba(107,47,160,.32);
+  transition:opacity .15s;
+}
+.btn-generate:disabled{opacity:.55;cursor:not-allowed;}
+.strat-card{
+  display:flex;gap:10px;align-items:flex-start;
+  background:var(--plumLL);border:1px solid var(--plum3)22;
+  border-radius:14px;padding:14px;margin-bottom:16px;
+  font-size:13px;line-height:1.6;color:var(--plum);
+}
+.day-btn{
+  flex-shrink:0;background:var(--card);border:1px solid var(--border);
+  border-radius:20px;padding:7px 15px;color:var(--muted);
+  cursor:pointer;font-size:13px;font-weight:400;
+  font-family:'DM Sans',system-ui,sans-serif;
+  transition:all .15s;
+}
+.day-btn.on{background:var(--plumL);border-color:var(--plum3);color:var(--plum2);font-weight:500;}
+.day-totals{display:flex;gap:8px;margin-bottom:16px;}
+.day-total-cell{
+  flex:1;background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:10px 6px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+.meal-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:15px;margin-bottom:10px;
+  box-shadow:0 1px 4px rgba(74,26,110,.05);
+}
+.meal-type{
+  font-size:9px;font-weight:500;letter-spacing:2px;
+  text-transform:uppercase;color:var(--rose);margin-bottom:6px;
+}
+.meal-name{
+  font-family:'Cormorant Garamond',Georgia,serif;
+  font-size:18px;font-weight:500;color:var(--text);margin-bottom:5px;
+}
+.meal-desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:8px;}
+.uses-chip{
+  background:var(--sageL);border:1px solid var(--sage)44;
+  border-radius:6px;padding:2px 8px;font-size:11px;color:var(--sage);
+}
+.pantry-tag{font-size:11px;color:var(--muted);}
+
+/* ── SHOP ── */
+.store-btn{
+  flex:1;min-width:78px;background:var(--card);
+  border:1px solid var(--border);border-radius:11px;
+  padding:9px 8px;color:var(--muted);cursor:pointer;
+  font-family:'DM Sans',system-ui,sans-serif;font-size:12px;font-weight:400;
+  transition:all .15s;
+}
+.store-btn.on{background:var(--plumL);border-color:var(--plum3);color:var(--plum2);font-weight:500;}
+.shop-summary{
+  display:flex;background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:16px;margin-bottom:16px;
+}
+.sum-cell{flex:1;text-align:center;}
+.sum-val{font-size:22px;font-weight:500;color:var(--text);font-family:'Cormorant Garamond',Georgia,serif;}
+.sum-lbl{font-size:11px;color:var(--muted);margin-top:2px;}
+.shop-row{
+  display:flex;align-items:center;gap:12px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:13px;padding:12px 14px;cursor:pointer;
+  margin-bottom:7px;transition:opacity .2s;
+}
+.shop-row.done{opacity:.4;}
+.check-ring{
+  width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border2);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:500;transition:all .18s;color:transparent;
+}
+.check-ring.on{background:var(--sage);border-color:var(--sage);color:#fff;}
+.urgent-tag{
+  background:var(--roseL);border:1px solid var(--rose)44;
+  border-radius:6px;padding:2px 8px;font-size:10px;color:var(--rose);font-weight:500;
+}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+  background:var(--plum);
+  border-radius:14px;padding:12px 22px;
+  color:#fff;font-size:14px;font-weight:400;
+  z-index:999;white-space:nowrap;
+  box-shadow:0 8px 28px rgba(74,26,110,.4);
+  animation:fadeUp .25s ease;
+}
+.toast.err{background:var(--red);}
+
+/* ── SPINNER ── */
+.spin{
+  width:16px;height:16px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
+  animation:spin .7s linear infinite;display:inline-block;
+}
+
+/* ── MANUAL FORM ── */
+.manual-form{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+/* ── EMPTY STATE ── */
+.empty{
+  text-align:center;padding:50px 20px;
+  color:var(--muted);font-size:14px;line-height:1.7;
+}
+.empty-icon{margin-bottom:16px;opacity:.4;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback} = React;
+
+/* ── DB ── */
+const DB={
+  get:(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}},
+  set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+};
+
+/* ── BMR ── */
+function calcBMR({weight,height,age,sex}){
+  if(!weight||!height||!age)return 0;
+  const w=weight*.453592,h=height*2.54;
+  return sex==="female"?10*w+6.25*h-5*age-161:10*w+6.25*h-5*age+5;
+}
+const ACT={
+  sedentary:{label:"Sedentary",desc:"Desk job, little exercise",mult:1.2},
+  light:{label:"Lightly active",desc:"1–3 days/week",mult:1.375},
+  moderate:{label:"Moderately active",desc:"3–5 days/week",mult:1.55},
+  active:{label:"Very active",desc:"6–7 days/week",mult:1.725},
+  athlete:{label:"Athlete",desc:"2× training/day",mult:1.9},
+};
+function calcMacros(tdee,diet,gt){
+  const cal=Math.round(tdee+({lose:-500,maintain:0,gain:300}[gt]||0));
+  const sp={balanced:{p:.25,c:.5,f:.25},keto:{p:.3,c:.05,f:.65},"high-protein":{p:.4,c:.35,f:.25},"low-carb":{p:.3,c:.2,f:.5},vegan:{p:.2,c:.55,f:.25},vegetarian:{p:.22,c:.53,f:.25},mediterranean:{p:.25,c:.45,f:.3},paleo:{p:.35,c:.25,f:.4}};
+  const r=sp[diet]||sp.balanced;
+  return{calories:cal,protein:Math.round(cal*r.p/4),carbs:Math.round(cal*r.c/4),fat:Math.round(cal*r.f/9)};
+}
+
+/* ── DATA ── */
+const NOW=Date.now();
+const FD={
+  "021130126026":{name:"Whole Milk (1 gal)",brand:"Lucerne",cal:150,pro:8,carb:12,fat:8,cat:"Dairy",perish:true,price:4.99},
+  "036800401556":{name:"Large Eggs (12ct)",brand:"Great Value",cal:70,pro:6,carb:0,fat:5,cat:"Dairy",perish:true,price:3.49},
+  "024000163756":{name:"Chicken Breast 2lb",brand:"Tyson",cal:130,pro:26,carb:0,fat:3,cat:"Meat",perish:true,price:8.99},
+  "070038640844":{name:"Greek Yogurt",brand:"Chobani",cal:90,pro:17,carb:6,fat:0,cat:"Dairy",perish:true,price:1.99},
+  "041497026135":{name:"Brown Rice 2lb",brand:"Store Brand",cal:210,pro:5,carb:44,fat:2,cat:"Grains",perish:false,price:2.49},
+  "041497014132":{name:"Pasta 1lb",brand:"Barilla",cal:200,pro:7,carb:42,fat:1,cat:"Grains",perish:false,price:1.79},
+  "038000138416":{name:"Corn Flakes",brand:"Kellogg's",cal:100,pro:2,carb:24,fat:0,cat:"Breakfast",perish:false,price:3.99},
+  "028400090315":{name:"Doritos",brand:"Frito-Lay",cal:140,pro:2,carb:18,fat:7,cat:"Snacks",perish:false,price:4.49},
+};
+const SP=[
+  {id:"p1",...FD["021130126026"],qty:1,unit:"gallon",added:NOW-2*864e5,expiry:NOW+5*864e5,by:"Alex"},
+  {id:"p2",...FD["036800401556"],qty:2,unit:"dozen",added:NOW-864e5,expiry:NOW+10*864e5,by:"Alex"},
+  {id:"p3",...FD["024000163756"],qty:2,unit:"lbs",added:NOW,expiry:NOW+3*864e5,by:"Jordan"},
+  {id:"p4",...FD["070038640844"],qty:4,unit:"cups",added:NOW,expiry:NOW+7*864e5,by:"Alex"},
+  {id:"p5",...FD["041497026135"],qty:1,unit:"bag",added:NOW,expiry:null,by:"Jordan"},
+  {id:"p6",...FD["041497014132"],qty:3,unit:"boxes",added:NOW,expiry:null,by:"Alex"},
+  {id:"p7",...FD["038000138416"],qty:1,unit:"box",added:NOW-5*864e5,expiry:NOW+60*864e5,by:"Jordan"},
+];
+const MBRS=[
+  {id:"u1",name:"Alex",color:"#9b72cf"},
+  {id:"u2",name:"Jordan",color:"#d4a0e8"},
+];
+const DG={weight:150,goalWeight:135,height:65,age:34,sex:"female",activity:"moderate",goalType:"lose",diet:"balanced",allergies:[],householdSize:2};
+const du=d=>d?Math.ceil((d-Date.now())/864e5):null;
+const uc=d=>d===null?null:d<=2?"#b5344a":d<=5?"#c2780a":d<=10?"#c9a227":"#7a9e6e";
+
+/* ── BARCODE LOOKUP ── */
+async function lookupBarcode(code){
+  const loc=FD[code.trim()];
+  if(loc)return{name:loc.name,brand:loc.brand,calories:loc.cal,protein:loc.pro,carbs:loc.carb,fat:loc.fat,category:loc.cat,perishable:loc.perish,price:loc.price};
+  try{
+    const res=await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
+    const j=await res.json();
+    if(j.status===1){
+      const p=j.product;
+      return{name:p.product_name||`Product ${code.slice(-4)}`,brand:p.brands||"",calories:Math.round(p.nutriments?.["energy-kcal_100g"]||0),protein:Math.round(p.nutriments?.proteins_100g||0),carbs:Math.round(p.nutriments?.carbohydrates_100g||0),fat:Math.round(p.nutriments?.fat_100g||0),category:"Other",perishable:false,price:0};
+    }
+  }catch{}
+  return{name:`Product ${code.slice(-4)}`,brand:"",calories:0,protein:0,carbs:0,fat:0,category:"Other",perishable:false,price:0};
+}
+
+/* ── CLAUDE STREAM ── */
+async function streamClaude(sys,usr,cb){
+  // Calls our Netlify function proxy — keeps API key secret
+  const res=await fetch("/api/claude",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({system:sys,messages:[{role:"user",content:usr}]})
+  });
+  if(!res.ok){
+    const err=await res.text();
+    throw new Error("API error: "+err);
+  }
+  const data=await res.json();
+  // Extract text from response content blocks
+  if(data.content&&data.content.length>0){
+    for(const block of data.content){
+      if(block.type==="text"&&block.text){
+        cb(block.text);
+      }
+    }
+  } else if(data.error){
+    throw new Error(data.error.message||"Claude API error");
+  }
+}
+
+/* ── SVG ICONS (custom, no emoji) ── */
+const I={
+  scan:(c="#8b4fc0")=><svg viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8V5a2 2 0 012-2h2M19 3h2a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M8 21H5a2 2 0 01-2-2v-3"/><line x1="7" y1="12" x2="17" y2="12"/></svg>,
+  pantry:(c="#8b4fc0")=><svg viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>,
+  meals:(c="#8b4fc0")=><svg viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>,
+  shop:(c="#8b4fc0")=><svg viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>,
+  goals:(c="#8b4fc0")=><svg viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+  dairy:(c="#9b72cf")=><svg viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round"><path d="M8 2h8l2 4v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6z"/><path d="M6 6h12"/><path d="M10 11c0 1.1.9 2 2 2s2-.9 2-2"/></svg>,
+  meat:(c="#c2809a")=><svg viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/><path d="M8 12c0-2.2 1.8-4 4-4s4 1.8 4 4-1.8 4-4 4-4-1.8-4-4z"/></svg>,
+  grains:(c="#c9a227")=><svg viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round"><path d="M12 2l2 5h5l-4 3 2 5-5-3-5 3 2-5-4-3h5z"/></svg>,
+  produce:(c="#7a9e6e")=><svg viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round"><path d="M12 22V12M12 12C12 7 7 4 3 6c0 4 4 8 9 6M12 12c0-5 5-8 9-6 0 4-4 8-9 6"/></svg>,
+  snacks:(c="#d4537e")=><svg viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M7 8V6a5 5 0 0110 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>,
+  other:(c="#b0a0be")=><svg viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="12" cy="12" r="3"/></svg>,
+};
+
+const CAT_ICON={Dairy:I.dairy,Meat:I.meat,Grains:I.grains,Produce:I.produce,Snacks:I.snacks,Breakfast:I.grains,Beverages:I.dairy,Frozen:I.other,Canned:I.other,Other:I.other};
+
+/* ── BLOOM LOGO SVG ── */
+const BloomLogo=()=>(
+  <svg className="logo-bloom" viewBox="0 0 34 34" fill="none">
+    <ellipse cx="17" cy="6" rx="5" ry="8" fill="#e8a4c8" opacity=".9"/>
+    <ellipse cx="17" cy="6" rx="5" ry="8" fill="#d4a0e8" opacity=".85" transform="rotate(72 17 17)"/>
+    <ellipse cx="17" cy="6" rx="5" ry="8" fill="#b87fd4" opacity=".8" transform="rotate(144 17 17)"/>
+    <ellipse cx="17" cy="6" rx="5" ry="8" fill="#9b72cf" opacity=".85" transform="rotate(216 17 17)"/>
+    <ellipse cx="17" cy="6" rx="5" ry="8" fill="#c9a0dc" opacity=".9" transform="rotate(288 17 17)"/>
+    <circle cx="17" cy="17" r="5" fill="#4a1a6e"/>
+    <circle cx="17" cy="17" r="2.2" fill="#faf5fd"/>
+  </svg>
+);
+
+/* ── ROOT APP ── */
+function App(){
+  const[tab,setTab]=useState("scan");
+  const[pantry,setPantry]=useState(()=>DB.get("nq_p",SP));
+  const[goals,setGoals]=useState(()=>DB.get("nq_g",DG));
+  const[weights,setWeights]=useState(()=>DB.get("nq_w",[]));
+  const[meal,setMeal]=useState(()=>DB.get("nq_m",null));
+  const[shop,setShop]=useState(()=>DB.get("nq_s",[]));
+  const[toast,setToast]=useState(null);
+  useEffect(()=>DB.set("nq_p",pantry),[pantry]);
+  useEffect(()=>DB.set("nq_g",goals),[goals]);
+  useEffect(()=>DB.set("nq_w",weights),[weights]);
+  useEffect(()=>DB.set("nq_m",meal),[meal]);
+  useEffect(()=>DB.set("nq_s",shop),[shop]);
+  const notify=(msg,type="ok")=>{setToast({msg,type});setTimeout(()=>setToast(null),3000);};
+  const exp=pantry.filter(i=>{const d=du(i.expiry);return d!==null&&d<=5;});
+  const bmr=calcBMR(goals),tdee=Math.round(bmr*(ACT[goals.activity]?.mult||1.55)),macros=calcMacros(tdee,goals.diet,goals.goalType);
+
+  const TABS=[
+    {id:"scan",label:"Scan",icon:(on)=>I.scan(on?"#4a1a6e":"#c0b0d0")},
+    {id:"pantry",label:"Pantry",icon:(on)=>I.pantry(on?"#4a1a6e":"#c0b0d0")},
+    {id:"meals",label:"Meals",icon:(on)=>I.meals(on?"#4a1a6e":"#c0b0d0")},
+    {id:"shop",label:"Shop",icon:(on)=>I.shop(on?"#4a1a6e":"#c0b0d0")},
+    {id:"goals",label:"Goals",icon:(on)=>I.goals(on?"#4a1a6e":"#c0b0d0")},
+  ];
+
+  return(
+    <div>
+      {/* HEADER */}
+      <div className="hdr">
+        <div className="hdr-logo">
+          <BloomLogo/>
+          <div className="logo-text-wrap">
+            <div className="logo-name">Nutriq</div>
+            <div className="logo-tag">Feed your family better, without the mental math.</div>
+          </div>
+        </div>
+        <div className="hdr-right">
+          {exp.length>0&&<div className="expiry-chip"><span className="expiry-dot"/>{exp.length} expiring</div>}
+          <div style={{display:"flex",gap:3}}>
+            {MBRS.map(m=><div key={m.id} className="member-av" style={{background:m.color+"22",borderColor:m.color}}>{m.name[0]}</div>)}
+          </div>
+        </div>
+      </div>
+
+      {/* CONTENT */}
+      {tab==="scan"   &&<ScannerTab pantry={pantry} setPantry={setPantry} notify={notify}/>}
+      {tab==="pantry" &&<PantryTab  pantry={pantry} setPantry={setPantry} notify={notify}/>}
+      {tab==="meals"  &&<MealsTab   pantry={pantry} goals={goals} macros={macros} meal={meal} setMeal={setMeal} setShop={setShop} setTab={setTab} notify={notify}/>}
+      {tab==="shop"   &&<ShopTab    shop={shop} notify={notify}/>}
+      {tab==="goals"  &&<GoalsTab   goals={goals} setGoals={setGoals} weights={weights} setWeights={setWeights} macros={macros} tdee={tdee} bmr={bmr} notify={notify}/>}
+
+      {/* NAV */}
+      <div className="nav">
+        {TABS.map(t=><button key={t.id} className={`nb${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)}>{t.icon(tab===t.id)}<span>{t.label}</span></button>)}
+      </div>
+
+      {toast&&<div className={`toast${toast.type==="err"?" err":""}`}>{toast.msg}</div>}
+    </div>
+  );
+}
+
+/* ── SCANNER ── */
+function ScannerTab({pantry,setPantry,notify}){
+  const[mode,setMode]=useState("add");
+  const[scanning,setScanning]=useState(false);
+  const[code,setCode]=useState("");
+  const[result,setResult]=useState(null);
+  const[loading,setLoading]=useState(false);
+  const[qty,setQty]=useState(1);
+  const[unit,setUnit]=useState("item");
+  const[expiry,setExpiry]=useState("");
+  const[manual,setManual]=useState(false);
+  const[mf,setMf]=useState({name:"",brand:"",calories:"",protein:"",carbs:"",fat:"",category:"Other"});
+  const[camErr,setCamErr]=useState("");
+  const[scanStatus,setScanStatus]=useState("Point camera at a barcode");
+  const videoRef=useRef(null);
+  const streamRef=useRef(null);
+  const rafRef=useRef(null);
+  const scanningRef=useRef(false);
+
+  const stopCamera=useCallback(()=>{
+    scanningRef.current=false;
+    if(rafRef.current){cancelAnimationFrame(rafRef.current);rafRef.current=null;}
+    if(streamRef.current){streamRef.current.getTracks().forEach(t=>t.stop());streamRef.current=null;}
+    setScanning(false);
+  },[]);
+
+  const startCamera=useCallback(async()=>{
+    setCamErr("");setScanStatus("Opening camera…");setScanning(true);
+    scanningRef.current=true;
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({
+        audio:false,
+        video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},
+      });
+      streamRef.current=stream;
+      const vid=videoRef.current;
+      vid.srcObject=stream;
+      vid.setAttribute("playsinline","");
+      vid.muted=true;
+      await vid.play();
+      setScanStatus("Point camera at a barcode");
+
+      // Use zxing-wasm to decode frames from a canvas
+      const canvas=document.createElement("canvas");
+      const ctx=canvas.getContext("2d",{willReadFrequently:true});
+      let frameN=0;
+
+      const tick=async()=>{
+        if(!scanningRef.current)return;
+        frameN++;
+        // Scan every 10th frame ~6fps — good balance of speed vs battery
+        if(frameN%10===0&&vid.readyState>=2&&vid.videoWidth>0){
+          canvas.width=vid.videoWidth;
+          canvas.height=vid.videoHeight;
+          ctx.drawImage(vid,0,0);
+          try{
+            const blob=await new Promise(res=>canvas.toBlob(res,"image/jpeg",0.8));
+            if(blob&&window.ZXingWASM){
+              const results=await window.ZXingWASM.readBarcodes(blob,{
+                formats:["EAN-13","EAN-8","UPC-A","UPC-E","Code128","Code39","QRCode"],
+                tryHarder:true,
+              });
+              if(results&&results.length>0&&results[0].text){
+                const txt=results[0].text;
+                stopCamera();
+                setCode(txt);
+                doLookup(txt);
+                return;
+              }
+            }
+          }catch(e){}
+        }
+        rafRef.current=requestAnimationFrame(tick);
+      };
+      rafRef.current=requestAnimationFrame(tick);
+
+    }catch(err){
+      setScanning(false);scanningRef.current=false;
+      if(err.name==="NotAllowedError")setCamErr("Camera permission denied. In Safari: Settings → Safari → Camera → Allow.");
+      else if(err.name==="NotFoundError")setCamErr("No camera found on this device.");
+      else setCamErr("Camera error: "+err.message);
+    }
+  },[]);
+
+  useEffect(()=>()=>stopCamera(),[]);
+
+  const doLookup=async c=>{
+    if(!c.trim())return;
+    setLoading(true);setResult(null);
+    setResult(await lookupBarcode(c.trim()));
+    setLoading(false);
+  };
+
+  const confirm=()=>{
+    const item=manual?{name:mf.name,brand:mf.brand,calories:+mf.calories,protein:+mf.protein,carbs:+mf.carbs,fat:+mf.fat,category:mf.category,perishable:!!expiry,price:0}:result;
+    if(!item)return;
+    if(mode==="add"){
+      const ex=pantry.find(p=>p.name===item.name);
+      if(ex){setPantry(p=>p.map(i=>i.id===ex.id?{...i,qty:i.qty+qty}:i));notify(`✓ Updated: ${item.name}`);}
+      else{setPantry(p=>[...p,{id:Date.now()+"", ...item,qty,unit,added:Date.now(),expiry:expiry?new Date(expiry).getTime():null,by:"Alex"}]);notify(`✓ Added: ${item.name}`);}
+    }else{
+      const ex=pantry.find(p=>p.name===item.name);
+      if(!ex){notify("Not in pantry","err");return;}
+      setPantry(p=>p.map(i=>i.id===ex.id?{...i,qty:Math.max(0,i.qty-qty)}:i).filter(i=>i.qty>0));
+      notify(`✓ Used: ${item.name}`);
+    }
+    setResult(null);setCode("");setExpiry("");setQty(1);
+  };
+
+  return(
+    <div className="page">
+      <div className="page-label">Scanner</div>
+      <h1 className="page-title">Add or use items</h1>
+
+      <div className="seg">
+        <button className={`seg-btn${mode==="add"?" on":""}`} onClick={()=>setMode("add")}>+ Add to pantry</button>
+        <button className={`seg-btn red${mode==="use"?" on":""}`} onClick={()=>setMode("use")}>− Mark as used</button>
+      </div>
+
+      {/* CAMERA */}
+      <div className="vf">
+        {scanning?(
+          <>
+            <video ref={videoRef} style={{width:"100%",height:"100%",objectFit:"cover"}} playsInline muted autoPlay/>
+            <div className="vf-overlay">
+              <div className="vf-frame">
+                <div className="vf-corner" style={{top:0,left:0,borderWidth:"2.5px 0 0 2.5px"}}/>
+                <div className="vf-corner" style={{top:0,right:0,borderWidth:"2.5px 2.5px 0 0"}}/>
+                <div className="vf-corner" style={{bottom:0,left:0,borderWidth:"0 0 2.5px 2.5px"}}/>
+                <div className="vf-corner" style={{bottom:0,right:0,borderWidth:"0 2.5px 2.5px 0"}}/>
+                <div className="vf-scan"/>
+              </div>
+              <div className="vf-hint">{scanStatus}</div>
+            </div>
+            <button className="vf-stop" onClick={stopCamera}>✕ Stop</button>
+          </>
+        ):(
+          <div className="vf-placeholder">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6b2f9a66" strokeWidth="1.5" strokeLinecap="round"><path d="M3 8V5a2 2 0 012-2h2M19 3h2a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M8 21H5a2 2 0 01-2-2v-3"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+            <button className="btn-full" style={{width:"auto",padding:"13px 28px",fontSize:15}} onClick={startCamera}>
+              Tap to scan barcode
+            </button>
+            {camErr&&<p style={{fontSize:12,color:"#c2780a",marginTop:8,textAlign:"center",padding:"0 16px"}}>{camErr}</p>}
+          </div>
+        )}
+      </div>
+
+      {/* MANUAL CODE ENTRY */}
+      <div style={{display:"flex",gap:8,marginBottom:8}}>
+        <input style={{flex:1,fontFamily:"monospace"}} placeholder="Or type barcode number…" value={code}
+          onChange={e=>setCode(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&doLookup(code)}/>
+        <button className="btn-sm" style={{padding:"0 18px",height:46,display:"flex",alignItems:"center",gap:6,borderRadius:12}} onClick={()=>doLookup(code)} disabled={loading}>
+          {loading?<span className="spin" style={{width:12,height:12,borderTopColor:"#6b2f9a",borderColor:"#d4a0e8"}}/>:"Look up"}
+        </button>
+      </div>
+
+      <p className="section-label" style={{marginBottom:8}}>Sample items to test</p>
+      <div className="chips" style={{marginBottom:20}}>
+        {Object.entries(FD).slice(0,7).map(([bc,f])=>(
+          <button key={bc} className="chip" onClick={()=>{setCode(bc);doLookup(bc);}}>
+            {f.name.split(" ").slice(0,2).join(" ")}
+          </button>
+        ))}
+      </div>
+
+      {/* RESULT */}
+      {result&&(
+        <div className="result-card">
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
+            <div className="result-icon">{(CAT_ICON[result.category]||I.other)()}</div>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:500,fontSize:16,color:"var(--text)",marginBottom:2}}>{result.name}</div>
+              <div style={{fontSize:13,color:"var(--muted)"}}>{result.brand}{result.price>0&&<span style={{marginLeft:8,color:"var(--sage)",fontWeight:500}}>${result.price.toFixed(2)}</span>}</div>
+            </div>
+          </div>
+          <div className="macro-grid">
+            {[["Cal",result.calories,""],["Protein",result.protein,"g"],["Carbs",result.carbs,"g"],["Fat",result.fat,"g"]].map(([k,v,u])=>(
+              <div key={k} className="macro-box"><div className="macro-val">{v}{u}</div><div className="macro-lbl">{k}</div></div>
+            ))}
+          </div>
+          <div className="qty-row">
+            <button className="qty-btn" onClick={()=>setQty(q=>Math.max(1,q-1))}>−</button>
+            <span className="qty-num">{qty}</span>
+            <button className="qty-btn" onClick={()=>setQty(q=>q+1)}>+</button>
+            <input style={{flex:1}} value={unit} onChange={e=>setUnit(e.target.value)} placeholder="unit"/>
+          </div>
+          {mode==="add"&&(
+            <div style={{marginBottom:12}}>
+              <label className="input-label">Expiry date (optional)</label>
+              <input type="date" value={expiry} onChange={e=>setExpiry(e.target.value)}/>
+            </div>
+          )}
+          <button className={`btn-full${mode==="use"?" red":""}`} onClick={confirm}>
+            {mode==="add"?"Add to pantry":"Mark as used"}
+          </button>
+        </div>
+      )}
+
+      <button className="btn-ghost" onClick={()=>setManual(!manual)}>
+        {manual?"▲ Hide manual entry":"Add item manually"}
+      </button>
+      {manual&&(
+        <div className="manual-form">
+          <div><label className="input-label">Item name *</label><input value={mf.name} onChange={e=>setMf(m=>({...m,name:e.target.value}))}/></div>
+          <div><label className="input-label">Brand</label><input value={mf.brand} onChange={e=>setMf(m=>({...m,brand:e.target.value}))}/></div>
+          <div className="form-row">
+            <div><label className="input-label">Calories</label><input type="number" value={mf.calories} onChange={e=>setMf(m=>({...m,calories:e.target.value}))}/></div>
+            <div><label className="input-label">Protein (g)</label><input type="number" value={mf.protein} onChange={e=>setMf(m=>({...m,protein:e.target.value}))}/></div>
+          </div>
+          <div className="form-row">
+            <div><label className="input-label">Carbs (g)</label><input type="number" value={mf.carbs} onChange={e=>setMf(m=>({...m,carbs:e.target.value}))}/></div>
+            <div><label className="input-label">Fat (g)</label><input type="number" value={mf.fat} onChange={e=>setMf(m=>({...m,fat:e.target.value}))}/></div>
+          </div>
+          <div><label className="input-label">Category</label>
+            <select value={mf.category} onChange={e=>setMf(m=>({...m,category:e.target.value}))}>
+              {Object.keys(CAT_ICON).map(c=><option key={c}>{c}</option>)}
+            </select>
+          </div>
+          <div><label className="input-label">Expiry date</label><input type="date" value={expiry} onChange={e=>setExpiry(e.target.value)}/></div>
+          <button className="btn-full" onClick={confirm} disabled={!mf.name}>Add to pantry</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── PANTRY ── */
+function PantryTab({pantry,setPantry,notify}){
+  const[search,setSearch]=useState("");
+  const[cat,setCat]=useState("all");
+  const[sort,setSort]=useState("expiry");
+  const cats=["all",...new Set(pantry.map(i=>i.category))];
+  const filtered=pantry
+    .filter(i=>cat==="all"||i.category===cat)
+    .filter(i=>i.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a,b)=>sort==="expiry"?(du(a.expiry)??999)-(du(b.expiry)??999):sort==="name"?a.name.localeCompare(b.name):b.added-a.added);
+  const urgent=pantry.filter(i=>{const d=du(i.expiry);return d!==null&&d<=3;});
+  return(
+    <div className="page">
+      <div className="page-label">Inventory</div>
+      <h1 className="page-title">Your pantry</h1>
+      <div className="stat-row">
+        <div className="stat-pill"><span style={{fontWeight:500,color:"var(--plum2)"}}>{pantry.length}</span> items</div>
+        <div className="stat-pill"><span style={{fontWeight:500,color:"var(--orange)"}}>{urgent.length}</span> expiring soon</div>
+      </div>
+      {urgent.length>0&&<div className="alert">Use these soon — {urgent.map(i=>i.name).join(", ")}</div>}
+      <div style={{display:"flex",gap:8,marginBottom:12}}>
+        <div style={{flex:1,display:"flex",alignItems:"center",gap:8,background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,padding:"0 12px"}}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.8" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input style={{flex:1,background:"none",border:"none",padding:"11px 0",fontSize:14,outline:"none"}} placeholder="Search pantry…" value={search} onChange={e=>setSearch(e.target.value)}/>
+        </div>
+        <select style={{width:"auto"}} value={sort} onChange={e=>setSort(e.target.value)}>
+          <option value="expiry">Expiry</option>
+          <option value="name">Name</option>
+          <option value="added">Added</option>
+        </select>
+      </div>
+      <div className="chips">
+        {cats.map(c=><button key={c} className={`chip${cat===c?" on":""}`} onClick={()=>setCat(c)}>{c==="all"?"All items":c}</button>)}
+      </div>
+      {filtered.map(item=>{
+        const days=du(item.expiry),color=uc(days);
+        return(
+          <div key={item.id} className="prow" style={{borderLeftColor:color||"var(--border)"}}>
+            <div className="prow-icon">{(CAT_ICON[item.category]||I.other)()}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div className="prow-name">{item.name}</div>
+              <div className="prow-meta">
+                <span>{item.brand}</span>
+                {days!==null&&<span style={{color,fontWeight:500}}>{days<=0?"Expired":`${days}d left`}</span>}
+                {item.price>0&&<span style={{color:"var(--sage)"}}>${item.price.toFixed(2)}</span>}
+              </div>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                {[`${item.calories} cal`,`P ${item.protein}g`,`C ${item.carbs}g`,`F ${item.fat}g`].map(t=><span key={t} className="macro-pill">{t}</span>)}
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
+              <div className="qty-tag">{item.qty} {item.unit}</div>
+              <div style={{display:"flex",gap:4}}>
+                <button className="btn-use" onClick={()=>{setPantry(p=>p.map(i=>i.id===item.id?{...i,qty:Math.max(0,i.qty-1)}:i).filter(i=>i.qty>0));notify("✓ Used");}}>Use</button>
+                <button className="btn-del" onClick={()=>{setPantry(p=>p.filter(i=>i.id!==item.id));notify("Removed");}}>✕</button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+      {filtered.length===0&&<div className="empty"><div className="empty-icon">{I.pantry("#b0a0be")}</div>Nothing found — scan something!</div>}
+    </div>
+  );
+}
+
+/* ── MEALS ── */
+function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
+  const[gen,setGen]=useState(false);
+  const[stat,setStat]=useState("");
+  const[day,setDay]=useState(0);
+  const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  const FULL=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+
+  const generate=async()=>{
+    setGen(true);setStat("Analyzing your pantry…");setMeal(null);
+    const ps=pantry.map(i=>{const d=du(i.expiry);return `- ${i.name} (${i.qty} ${i.unit}${d!==null?`, expires in ${d} days`:""})`;}).join("\n");
+    const sys=`You are a nutritionist. Respond with ONLY a raw JSON object. No markdown. No backticks. No code fences. No explanation. Just the JSON. Be concise, keep descriptions under 8 words. Structure:
+{"days":[{"day":"Monday","meals":{"breakfast":{"name":"...","description":"...","uses_pantry":["..."],"calories":400,"protein":30,"carbs":45,"fat":12},"lunch":{"name":"...","description":"...","uses_pantry":[],"calories":500,"protein":35,"carbs":55,"fat":15},"dinner":{"name":"...","description":"...","uses_pantry":["..."],"calories":600,"protein":45,"carbs":60,"fat":20},"snack":{"name":"...","description":"...","uses_pantry":[],"calories":150,"protein":8,"carbs":18,"fat":5}},"total_calories":1650,"total_protein":118,"total_carbs":178,"total_fat":52}],"shopping_list":[{"item":"...","quantity":"...","reason":"...","priority":"high"}],"strategy":"..."}`;
+    const usr=`7-day meal plan for ${goals.householdSize} people. Targets: ${macros.calories} cal, ${macros.protein}g protein, ${macros.carbs}g carbs, ${macros.fat}g fat. Goal: ${goals.goalType}. Diet: ${goals.diet}. Allergies: ${goals.allergies.join(",")||"none"}. Keep all text very short. Pantry (use expiring first, max 10 items):\n${ps.split("\n").slice(0,10).join("\n")}`;
+    let full="";
+    try{
+      setStat("Crafting your plan…");
+      await streamClaude(sys,usr,c=>{full+=c;});
+      const cleaned=full.replace(/```json/g,"").replace(/```/g,"").trim();
+      const parsed=JSON.parse(cleaned);
+      setMeal(parsed);setShop(parsed.shopping_list||[]);
+      notify("✓ Your meal plan is ready!");
+    }catch(e){notify("Generation failed — try again","err");console.error(e,full);}
+    setGen(false);setStat("");
+  };
+
+  const d=meal?.days?.[day],mn=d?.meals;
+  return(
+    <div className="page">
+      <div className="page-label">AI Planner</div>
+      <h1 className="page-title">Weekly meals</h1>
+      <p className="page-sub">Pantry-first · {macros.calories} kcal target</p>
+      <button className="btn-generate" onClick={generate} disabled={gen}>
+        {gen?<span style={{display:"flex",alignItems:"center",gap:8}}><span className="spin"/>  {stat}</span>:"Generate this week's plan"}
+      </button>
+      {meal&&(
+        <>
+          {meal.strategy&&<div className="strat-card"><span style={{fontSize:18,flexShrink:0}}>✦</span><p>{meal.strategy}</p></div>}
+          <div className="chips" style={{marginBottom:14}}>
+            {DAYS.map((dn,i)=><button key={dn} className={`day-btn${day===i?" on":""}`} onClick={()=>setDay(i)}>{dn}</button>)}
+          </div>
+          {d&&(
+            <div className="day-totals">
+              {[["🔥",d.total_calories,"cal"],["💪",d.total_protein+"g","protein"],["🌾",d.total_carbs+"g","carbs"],["🫒",d.total_fat+"g","fat"]].map(([ic,v,lb])=>(
+                <div key={lb} className="day-total-cell">
+                  <span style={{fontSize:16}}>{ic}</span>
+                  <div style={{fontWeight:500,fontSize:14,color:"var(--text)"}}>{v}</div>
+                  <div style={{fontSize:10,color:"var(--muted)"}}>{lb}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {mn&&Object.entries(mn).map(([mt,m])=>(
+            <div key={mt} className="meal-card">
+              <div className="meal-type">{mt}</div>
+              <div className="meal-name">{m.name}</div>
+              <div className="meal-desc">{m.description}</div>
+              {m.uses_pantry?.length>0&&(
+                <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:5,marginBottom:8}}>
+                  <span className="pantry-tag">Uses:</span>
+                  {m.uses_pantry.map(x=><span key={x} className="uses-chip">{x}</span>)}
+                </div>
+              )}
+              <div style={{display:"flex",gap:12,fontSize:12,color:"var(--muted)"}}>
+                <span>{m.calories} cal</span><span>P {m.protein}g</span><span>C {m.carbs}g</span><span>F {m.fat}g</span>
+              </div>
+            </div>
+          ))}
+          {meal.shopping_list?.length>0&&(
+            <button className="btn-full blue" style={{marginTop:8}} onClick={()=>setTab("shop")}>
+              View shopping list ({meal.shopping_list.length} items)
+            </button>
+          )}
+        </>
+      )}
+      {!meal&&!gen&&(
+        <div className="empty">
+          <div className="empty-icon">{I.meals("#b0a0be")}</div>
+          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:22,color:"var(--plum)",marginBottom:8}}>No plan yet</div>
+          <p>Nutriq will prioritize items close to expiry and build a full week around your <strong style={{color:"var(--plum2)"}}>{macros.calories} kcal</strong> target.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── SHOP ── */
+function ShopTab({shop,notify}){
+  const[store,setStore]=useState("kroger");
+  const[method,setMethod]=useState("pickup");
+  const[checked,setChk]=useState({});
+  const[ordered,setOrd]=useState(false);
+  const toggle=i=>setChk(c=>({...c,[i]:!c[i]}));
+  const unc=shop.filter((_,i)=>!checked[i]);
+  if(ordered)return(
+    <div className="page">
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"80px 20px",textAlign:"center"}}>
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--sage)" strokeWidth="1.5" strokeLinecap="round" style={{marginBottom:20}}><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:28,color:"var(--plum)",marginBottom:8}}>Order placed!</div>
+        <p style={{color:"var(--muted)",fontSize:14}}>Submitted to {store} for {method}.</p>
+        <button className="btn-full" style={{maxWidth:200,marginTop:24}} onClick={()=>setOrd(false)}>New list</button>
+      </div>
+    </div>
+  );
+  return(
+    <div className="page">
+      <div className="page-label">Grocery</div>
+      <h1 className="page-title">Shopping list</h1>
+      <p className="page-sub">From your meal plan</p>
+      {shop.length===0?(
+        <div className="empty">
+          <div className="empty-icon">{I.shop("#b0a0be")}</div>
+          <p>Generate a meal plan first to build your shopping list.</p>
+        </div>
+      ):(
+        <>
+          <div style={{marginBottom:16}}>
+            <div className="section-label">Choose store</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {[["kroger","Kroger"],["walmart","Walmart"],["instacart","Instacart"],["whole_foods","Whole Foods"]].map(([k,l])=>(
+                <button key={k} className={`store-btn${store===k?" on":""}`} onClick={()=>setStore(k)}>{l}</button>
+              ))}
+            </div>
+          </div>
+          <div className="seg">
+            <button className={`seg-btn${method==="pickup"?" on":""}`} onClick={()=>setMethod("pickup")}>Pickup</button>
+            <button className={`seg-btn${method==="delivery"?" on":""}`} onClick={()=>setMethod("delivery")}>Delivery</button>
+          </div>
+          <div className="shop-summary">
+            <div className="sum-cell"><div className="sum-val">{shop.length}</div><div className="sum-lbl">total</div></div>
+            <div className="sum-cell"><div className="sum-val" style={{color:"var(--red)"}}>{shop.filter(i=>i.priority==="high").length}</div><div className="sum-lbl">urgent</div></div>
+            <div className="sum-cell"><div className="sum-val" style={{color:"var(--sage)"}}>{Object.values(checked).filter(Boolean).length}</div><div className="sum-lbl">checked</div></div>
+            <div className="sum-cell"><div className="sum-val" style={{color:"var(--plum)"}}>{unc.length}</div><div className="sum-lbl">remaining</div></div>
+          </div>
+          {shop.map((item,i)=>(
+            <div key={i} className={`shop-row${checked[i]?" done":""}`} onClick={()=>toggle(i)}>
+              <div className={`check-ring${checked[i]?" on":""}`}>{checked[i]?"✓":""}</div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:500,fontSize:14,color:checked[i]?"var(--muted2)":"var(--text)",textDecoration:checked[i]?"line-through":"none"}}>{item.item}</div>
+                <div style={{fontSize:12,color:"var(--muted)",marginTop:2}}>{item.quantity} · {item.reason}</div>
+              </div>
+              {item.priority==="high"&&!checked[i]&&<span className="urgent-tag">urgent</span>}
+            </div>
+          ))}
+          <button className="btn-full" style={{marginTop:4}} onClick={()=>setOrd(true)} disabled={unc.length===0}>
+            Place order · {unc.length} item{unc.length!==1?"s":""}
+          </button>
+          <p style={{textAlign:"center",color:"var(--muted2)",fontSize:12,marginTop:8}}>{store} API · {method}</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── GOALS ── */
+function GoalsTab({goals,setGoals,weights,setWeights,macros,tdee,bmr,notify}){
+  const[wt,setWt]=useState("");
+  const[wd,setWd]=useState(new Date().toISOString().split("T")[0]);
+  const up=(k,v)=>setGoals(g=>({...g,[k]:v}));
+  const logW=()=>{if(!wt)return;setWeights(w=>[...w,{date:wd,weight:+wt}].sort((a,b)=>new Date(a.date)-new Date(b.date)));setWt("");notify("✓ Weight logged");};
+  const latest=weights.length>0?weights[weights.length-1].weight:null;
+  const change=weights.length>1?(weights[weights.length-1].weight-weights[0].weight).toFixed(1):null;
+  const toGoal=latest&&goals.goalWeight?(latest-goals.goalWeight).toFixed(1):null;
+  return(
+    <div className="page">
+      <div className="page-label">Nutrition</div>
+      <h1 className="page-title">Goals & body</h1>
+
+      {/* BMR */}
+      <div className="bmr-card">
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}>
+          <div><div className="bmr-label">Resting metabolic rate</div><div className="bmr-val">{Math.round(bmr)} <span className="bmr-unit">kcal/day</span></div></div>
+          <div style={{textAlign:"right"}}><div className="bmr-label">Daily target</div><div className="bmr-val" style={{color:"var(--rose)"}}>{macros.calories} <span className="bmr-unit">kcal</span></div></div>
+        </div>
+        <div className="macro-target-row">
+          {[{l:"Protein",v:macros.protein+"g",c:"var(--sage)"},{l:"Carbs",v:macros.carbs+"g",c:"var(--plum2)"},{l:"Fat",v:macros.fat+"g",c:"var(--gold)"}].map(m=>(
+            <div key={m.l} className="macro-target-cell"><div className="mtv" style={{color:m.c}}>{m.v}</div><div className="mtl">{m.l}</div></div>
+          ))}
+        </div>
+        <p style={{fontSize:12,color:"var(--muted)",lineHeight:1.6}}>Mifflin-St Jeor · {goals.diet} split · {goals.goalType==="lose"?"−500 kcal deficit":goals.goalType==="gain"?"+300 kcal surplus":"maintenance"}</p>
+      </div>
+
+      {/* WEIGHT */}
+      <div className="card">
+        <div className="card-title">Weight log</div>
+        {latest&&(
+          <div style={{display:"flex",alignItems:"baseline",gap:14,marginBottom:12}}>
+            <span style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:42,fontWeight:600,color:"var(--plum)"}}>{latest}<span style={{fontSize:16,fontWeight:400,color:"var(--muted)"}}>lbs</span></span>
+            <div>
+              {change!==null&&<div style={{fontSize:13,fontWeight:500,color:+change<0?"var(--sage)":"var(--orange)"}}>{+change<0?"▼":"▲"} {Math.abs(change)} lbs</div>}
+              {toGoal&&<div style={{fontSize:12,color:"var(--muted)"}}>{+toGoal>0?`${toGoal} lbs to goal`:"Goal reached!"}</div>}
+            </div>
+          </div>
+        )}
+        {weights.length>1&&(
+          <div className="sparkline">
+            {(()=>{const pts=weights.slice(-10),mn=Math.min(...pts.map(p=>p.weight)),mx=Math.max(...pts.map(p=>p.weight)),range=mx-mn||1;return pts.map((p,i,a)=>{const h=((p.weight-mn)/range)*40+8;return(<div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}><div className="spark-bar" style={{height:h,background:i===a.length-1?"var(--plum2)":"var(--plum3)55"}}/><span className="spark-lbl">{p.date.slice(5)}</span></div>);});})()}
+          </div>
+        )}
+        <div style={{display:"flex",gap:8}}>
+          <input style={{width:90}} type="number" placeholder="lbs" value={wt} onChange={e=>setWt(e.target.value)}/>
+          <input style={{flex:1}} type="date" value={wd} onChange={e=>setWd(e.target.value)}/>
+          <button className="btn-sm" style={{padding:"0 18px"}} onClick={logW}>Log</button>
+        </div>
+      </div>
+
+      {/* METRICS */}
+      <div className="card">
+        <div className="card-title">Body metrics</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+          {[["Current weight (lbs)","weight"],["Goal weight (lbs)","goalWeight"],["Height (inches)","height"],["Age","age"]].map(([lbl,k])=>(
+            <div key={k}><label className="input-label">{lbl}</label><input type="number" value={goals[k]||""} onChange={e=>up(k,+e.target.value)}/></div>
+          ))}
+        </div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <span className="input-label" style={{margin:0}}>Biological sex</span>
+          <div style={{display:"flex",gap:6}}>
+            {["female","male"].map(sv=><button key={sv} className={`pill-btn${goals.sex===sv?" on":""}`} onClick={()=>up("sex",sv)}>{sv==="female"?"Female":"Male"}</button>)}
+          </div>
+        </div>
+      </div>
+
+      {/* ACTIVITY */}
+      <div className="card">
+        <div className="card-title">Activity level</div>
+        {Object.entries(ACT).map(([k,a])=>(
+          <button key={k} className={`act-row${goals.activity===k?" on":""}`} onClick={()=>up("activity",k)}>
+            <div style={{fontWeight:500,fontSize:13,flex:1,textAlign:"left",color:"var(--text)"}}>{a.label}</div>
+            <div style={{fontSize:12,color:"var(--muted)",flex:2,textAlign:"left"}}>{a.desc}</div>
+            <div style={{fontSize:12,fontWeight:500,color:goals.activity===k?"var(--plum2)":"var(--muted2)"}}>×{a.mult}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* GOAL */}
+      <div className="card">
+        <div className="card-title">Goal</div>
+        <div style={{display:"flex",gap:8}}>
+          {[["lose","Lose weight"],["maintain","Maintain"],["gain","Build muscle"]].map(([k,l])=>(
+            <button key={k} className={`goal-btn${goals.goalType===k?" on":""}`} onClick={()=>up("goalType",k)}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* DIET */}
+      <div className="card">
+        <div className="card-title">Diet style</div>
+        <div className="chips wrap">
+          {["balanced","keto","high-protein","low-carb","vegan","vegetarian","mediterranean","paleo"].map(d=>(
+            <button key={d} className={`chip${goals.diet===d?" on":""}`} onClick={()=>up("diet",d)}>{d}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* ALLERGIES */}
+      <div className="card">
+        <div className="card-title">Allergies & intolerances</div>
+        <div className="chips wrap">
+          {["gluten","dairy","nuts","shellfish","eggs","soy","fish","sesame"].map(a=>(
+            <button key={a} className={`chip${goals.allergies.includes(a)?" red":""}`}
+              onClick={()=>up("allergies",goals.allergies.includes(a)?goals.allergies.filter(x=>x!==a):[...goals.allergies,a])}>{a}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* HOUSEHOLD */}
+      <div className="card">
+        <div className="card-title">Household size</div>
+        <div style={{display:"flex",alignItems:"center",gap:14}}>
+          <button className="qty-btn" onClick={()=>up("householdSize",Math.max(1,goals.householdSize-1))}>−</button>
+          <span style={{fontSize:24,fontWeight:500,color:"var(--plum)",fontFamily:"'Cormorant Garamond',Georgia,serif",minWidth:32,textAlign:"center"}}>{goals.householdSize}</span>
+          <button className="qty-btn" onClick={()=>up("householdSize",goals.householdSize+1)}>+</button>
+          <span style={{fontSize:13,color:"var(--muted)"}}>people</span>
+        </div>
+      </div>
+
+      <button className="btn-full" onClick={()=>notify("✓ Goals saved — macros recalculated")}>Save goals</button>
+    </div>
+  );
+}
+
+ReactDOM.render(React.createElement(App), document.getElementById("root"));
+</script>
+</body>
+</html>
