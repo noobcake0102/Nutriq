@@ -795,12 +795,8 @@ function Onboarding({user,onComplete}){
 
       // Upsert profile with name — this is the key flag that marks onboarding complete
       await supa.from("profiles").upsert({
-        id:user.id,
-        household_id:hid,
-        name:name,
-        role:"owner"
-      },{onConflict:"id"});
-
+  id:user.id,household_id:hid,name:name,role:"owner",onboarding_complete:true
+},{onConflict:"id"});
       // Save goals
       await supa.from("goals").upsert({
         user_id:user.id,
@@ -978,7 +974,11 @@ function App(){
 
   const loadProfile=async(uid)=>{
     // Check localStorage flag first — skips onboarding check on every navigation
-     const onboarded=localStorage.getItem("nq_onboarded_"+uid);
+     const{data,error}=await supa.from("profiles").select("*").eq("id",uid).maybeSingle();
+if(!data||!data.onboarding_complete){
+  setNeedsOnboard(true);
+  return;
+}
     if(onboarded==="true"){
       // Double-check goals exist in DB — if not, still show onboarding
       const{data:checkGoals}=await supa.from("goals").select("id").eq("user_id",uid).maybeSingle();
@@ -1106,9 +1106,8 @@ function App(){
   // Needs onboarding
   if(needsOnboard)return <Onboarding user={session.user} onComplete={async(g)=>{
     console.log("onComplete called, setting needsOnboard=false");
-    localStorage.setItem("nq_onboarded_"+session.user.id,"true");
-    setGoals(g);
-    setNeedsOnboard(false);
+  setGoals(g);
+setNeedsOnboard(false);
     // Don't reload profile - that re-triggers onboarding check
   }}/>;
 
@@ -1125,7 +1124,7 @@ function App(){
         <div className="hdr-right">
           {exp.length>0&&<div className="expiry-chip"><span className="expiry-dot"/>{exp.length} expiring</div>}
           <div style={{display:"flex",alignItems:"center",gap:6}}>
-            <div style={{width:28,height:28,borderRadius:"50%",background:"var(--plumL)",border:"1.5px solid var(--plum3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,color:"var(--plum2)",cursor:"pointer"}} onClick={()=>{localStorage.removeItem("nq_onboarded_"+session.user.id);supa.auth.signOut();}} title="Sign out">
+            <div style={{width:28,height:28,borderRadius:"50%",background:"var(--plumL)",border:"1.5px solid var(--plum3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,color:"var(--plum2)",cursor:"pointer"}} onClick={()=>{supa.auth.signOut();}} title="Sign out">
               {userName[0]?.toUpperCase()||"?"}
             </div>
           </div>
