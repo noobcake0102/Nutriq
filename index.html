@@ -820,11 +820,16 @@ function Onboarding({user,onComplete}){
         updated_at:new Date().toISOString()
       },{onConflict:"user_id"});
 
-     console.log("Onboarding complete - profile saved, calling onComplete");
+     localStorage.setItem("nq_onboarded_"+user.id,"true");
+      onComplete({...g,name,meal_cuisines:cuisines,meal_preferences:mealPrefs});
+    }catch(e){
+      console.error("Onboarding error:",e);
       localStorage.setItem("nq_onboarded_"+user.id,"true");
       onComplete({...g,name,meal_cuisines:cuisines,meal_preferences:mealPrefs});
+    }
     setLoading(false);
   };
+    
 
   const steps=[
     /* STEP 0 — Welcome */
