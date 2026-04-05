@@ -781,16 +781,51 @@ function Onboarding({user,onComplete}){
   const finish=async()=>{
     setLoading(true);
     try{
-      const{data:profile}=await supa.from("profiles").select("household_id").eq("id",user.id).single();
-      const hid=profile?.household_id;
-      await supa.from("profiles").update({name}).eq("id",user.id);
+      // Get or create household for this user
+      let hid=null;
+      const{data:existingProfile}=await supa.from("profiles").select("household_id").eq("id",user.id).single();
+      
+      if(existingProfile?.household_id){
+        hid=existingProfile.household_id;
+      } else {
+        // Create household if trigger didn't do it
+        const{data:newHousehold}=await supa.from("households").insert({name:`${name}'s Household`}).select().single();
+        hid=newHousehold?.id;
+      }
+
+      // Upsert profile with name — this is the key flag that marks onboarding complete
+      await supa.from("profiles").upsert({
+        id:user.id,
+        household_id:hid,
+        name:name,
+        role:"owner"
+      },{onConflict:"id"});
+
+      // Save goals
       await supa.from("goals").upsert({
-        user_id:user.id,household_id:hid,
-        ...g,meal_cuisines:cuisines,meal_preferences:mealPrefs,
+        user_id:user.id,
+        household_id:hid,
+        weight:g.weight,
+        goal_weight:g.goalWeight,
+        height:g.height,
+        age:g.age,
+        sex:g.sex,
+        activity:g.activity,
+        goal_type:g.goalType,
+        diet:g.diet,
+        allergies:g.allergies,
+        household_size:g.householdSize,
+        meal_cuisines:cuisines,
+        meal_preferences:mealPrefs,
         updated_at:new Date().toISOString()
       },{onConflict:"user_id"});
+
       onComplete({...g,name,meal_cuisines:cuisines,meal_preferences:mealPrefs});
-    }catch(e){console.error(e);}
+    }catch(e){
+      console.error("Onboarding error:",e);
+      // Even if DB save fails, let them into the app
+      onComplete({...g,name,meal_cuisines:cuisines,meal_preferences:mealPrefs});
+    }
     setLoading(false);
   };
 
@@ -940,14 +975,31 @@ function App(){
   },[]);
 
   const loadProfile=async(uid)=>{
-    const{data}=await supa.from("profiles").select("*").eq("id",uid).single();
-    if(!data||!data.name){setNeedsOnboard(true);return;}
-    setProfile(data);
-    const{data:g}=await supa.from("goals").select("*").eq("user_id",uid).single();
-    if(g){
-      setGoals({weight:g.weight,goalWeight:g.goal_weight,height:g.height,age:g.age,sex:g.sex,activity:g.activity,goalType:g.goal_type,diet:g.diet,allergies:g.allergies||[],householdSize:g.household_size,meal_cuisines:g.meal_cuisines||[],meal_preferences:g.meal_preferences||{}});
+    const{data,error}=await supa.from("profiles").select("*").eq("id",uid).maybeSingle();
+    // Only send to onboarding if profile truly has no name set
+    if(!data||!data.name){
+      setNeedsOnboard(true);
+      return;
     }
-    loadPantry(data.household_id);
+    setProfile(data);
+    const{data:g}=await supa.from("goals").select("*").eq("user_id",uid).maybeSingle();
+    if(g){
+      setGoals({
+        weight:g.weight,
+        goalWeight:g.goal_weight,
+        height:g.height,
+        age:g.age,
+        sex:g.sex,
+        activity:g.activity,
+        goalType:g.goal_type,
+        diet:g.diet,
+        allergies:g.allergies||[],
+        householdSize:g.household_size,
+        meal_cuisines:g.meal_cuisines||[],
+        meal_preferences:g.meal_preferences||{}
+      });
+    }
+    if(data.household_id)loadPantry(data.household_id);
     loadWeights(uid);
   };
 
