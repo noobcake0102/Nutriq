@@ -12,6 +12,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/zxing-wasm@1.2.8/dist/iife/reader/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -543,6 +544,39 @@ input[type=date]{color:var(--muted);}
   color:var(--muted);font-size:14px;line-height:1.7;
 }
 .empty-icon{margin-bottom:16px;opacity:.4;}
+
+/* ── ONBOARDING ── */
+.ob-wrap{min-height:100vh;display:flex;flex-direction:column;background:var(--cream);padding:0;}
+.ob-hero{
+  background:linear-gradient(160deg,var(--plumL) 0%,var(--blush) 100%);
+  padding:60px 28px 40px;text-align:center;
+}
+.ob-bloom{width:64px;height:64px;margin:0 auto 16px;}
+.ob-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:36px;font-weight:600;color:var(--plum);margin-bottom:6px;}
+.ob-sub{font-size:14px;color:var(--muted);line-height:1.6;}
+.ob-body{flex:1;padding:28px 20px;display:flex;flex-direction:column;gap:0;}
+.ob-step{font-size:11px;font-weight:500;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:20px;}
+.ob-progress{display:flex;gap:6px;margin-bottom:28px;}
+.ob-dot{flex:1;height:3px;border-radius:3px;background:var(--border);transition:background .3s;}
+.ob-dot.on{background:var(--plum2);}
+.ob-field{margin-bottom:16px;}
+.ob-label{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:6px;}
+.ob-input{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 16px;color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:15px;outline:none;width:100%;transition:border-color .15s;}
+.ob-input:focus{border-color:var(--plum3);}
+.ob-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.ob-next{width:100%;background:linear-gradient(135deg,var(--plum2),var(--plum));border:none;border-radius:14px;padding:16px;color:#fff;font-weight:500;font-size:16px;cursor:pointer;font-family:'Cormorant Garamond',Georgia,serif;letter-spacing:.2px;box-shadow:0 4px 18px rgba(107,47,160,.3);margin-top:auto;transition:opacity .15s;}
+.ob-next:disabled{opacity:.4;cursor:not-allowed;}
+.ob-back{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:12px 0;font-family:'DM Sans',system-ui,sans-serif;}
+.ob-sel-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.ob-sel-btn{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:8px 16px;font-size:13px;color:var(--muted);cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;transition:all .15s;}
+.ob-sel-btn.on{background:var(--plumL);border-color:var(--plum3);color:var(--plum2);font-weight:500;}
+.auth-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;background:var(--cream);}
+.auth-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px 24px;box-shadow:0 4px 24px rgba(74,26,110,.08);}
+.auth-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:600;color:var(--plum);margin-bottom:6px;text-align:center;}
+.auth-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:24px;}
+.auth-switch{font-size:13px;color:var(--muted);text-align:center;margin-top:16px;}
+.auth-switch span{color:var(--plum2);cursor:pointer;font-weight:500;}
+.auth-err{background:var(--roseL);border:1px solid var(--rose)44;border-radius:10px;padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:14px;}
 </style>
 </head>
 <body>
@@ -550,7 +584,12 @@ input[type=date]{color:var(--muted);}
 <script type="text/babel">
 const {useState,useEffect,useRef,useCallback} = React;
 
-/* ── DB ── */
+/* ── SUPABASE ── */
+const SUPA_URL = "https://lefzeekulgswdezozhcm.supabase.co";
+const SUPA_KEY = "sb_publishable_0-JLi16Gc3MePWi_lrdMSA_ux_HD0ES";
+const supa = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+
+/* ── DB (localStorage fallback) ── */
 const DB={
   get:(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}},
   set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
@@ -675,8 +714,210 @@ const BloomLogo=()=>(
   </svg>
 );
 
+/* ── AUTH SCREEN ── */
+function AuthScreen({onAuth}){
+  const[mode,setMode]=useState("login");
+  const[email,setEmail]=useState("");
+  const[pass,setPass]=useState("");
+  const[loading,setLoading]=useState(false);
+  const[err,setErr]=useState("");
+
+  const submit=async()=>{
+    setErr("");setLoading(true);
+    try{
+      if(mode==="login"){
+        const{error}=await supa.auth.signInWithPassword({email,password:pass});
+        if(error)throw error;
+      } else {
+        const{error}=await supa.auth.signUp({email,password:pass});
+        if(error)throw error;
+      }
+    }catch(e){setErr(e.message);}
+    setLoading(false);
+  };
+
+  return(
+    <div className="auth-wrap">
+      <div style={{textAlign:"center",marginBottom:28}}>
+        <BloomLogo/>
+        <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:32,fontWeight:600,color:"var(--plum)",marginTop:10}}>Nutriq</div>
+        <div style={{fontSize:13,color:"var(--muted)",marginTop:4}}>Feed your family better, without the mental math.</div>
+      </div>
+      <div className="auth-card">
+        <div className="auth-title">{mode==="login"?"Welcome back":"Create account"}</div>
+        <div className="auth-sub">{mode==="login"?"Sign in to your pantry":"Start your free account"}</div>
+        {err&&<div className="auth-err">{err}</div>}
+        <div className="ob-field"><label className="ob-label">Email</label><input className="ob-input" type="email" placeholder="you@email.com" value={email} onChange={e=>setEmail(e.target.value)}/></div>
+        <div className="ob-field"><label className="ob-label">Password</label><input className="ob-input" type="password" placeholder="••••••••" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()}/></div>
+        <button className="ob-next" onClick={submit} disabled={loading||!email||!pass}>
+          {loading?<span className="spin"/>:mode==="login"?"Sign in":"Create account"}
+        </button>
+        <div className="auth-switch">
+          {mode==="login"?"Don't have an account? ":"Already have an account? "}
+          <span onClick={()=>{setMode(mode==="login"?"signup":"login");setErr("");}}>{mode==="login"?"Sign up":"Sign in"}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── ONBOARDING ── */
+const CUISINES=["Italian","Mexican","Asian","Mediterranean","American","Indian","Middle Eastern","Greek","Japanese","Thai","French","Healthy"];
+const MEAL_TYPES=["Breakfast","Quick Breakfast","Lunch","Meal Prep Lunch","Dinner","Quick Dinner","Snack","Smoothie"];
+
+function Onboarding({user,onComplete}){
+  const[step,setStep]=useState(0);
+  const[name,setName]=useState("");
+  const[g,setG]=useState({...DG});
+  const[cuisines,setCuisines]=useState([]);
+  const[mealPrefs,setMealPrefs]=useState({});
+  const[loading,setLoading]=useState(false);
+  const up=(k,v)=>setG(x=>({...x,[k]:v}));
+  const bmr=calcBMR(g),tdee=Math.round(bmr*(ACT[g.activity]?.mult||1.55)),macros=calcMacros(tdee,g.diet,g.goalType);
+  const toggleCuisine=c=>setCuisines(cs=>cs.includes(c)?cs.filter(x=>x!==c):[...cs,c]);
+  const toggleMealType=t=>setMealPrefs(mp=>{const n={...mp};if(n[t])delete n[t];else n[t]=1;return n;});
+  const setMealCount=(t,v)=>setMealPrefs(mp=>({...mp,[t]:Math.max(1,Math.min(7,+v||1))}));
+
+  const finish=async()=>{
+    setLoading(true);
+    try{
+      const{data:profile}=await supa.from("profiles").select("household_id").eq("id",user.id).single();
+      const hid=profile?.household_id;
+      await supa.from("profiles").update({name}).eq("id",user.id);
+      await supa.from("goals").upsert({
+        user_id:user.id,household_id:hid,
+        ...g,meal_cuisines:cuisines,meal_preferences:mealPrefs,
+        updated_at:new Date().toISOString()
+      },{onConflict:"user_id"});
+      onComplete({...g,name,meal_cuisines:cuisines,meal_preferences:mealPrefs});
+    }catch(e){console.error(e);}
+    setLoading(false);
+  };
+
+  const steps=[
+    /* STEP 0 — Welcome */
+    <div key={0} className="ob-body">
+      <div className="ob-step">Step 1 of 4 — About you</div>
+      <div className="ob-progress">{[0,1,2,3].map(i=><div key={i} className={`ob-dot${i<=0?" on":""}`}/>)}</div>
+      <div className="ob-field"><label className="ob-label">Your first name</label><input className="ob-input" placeholder="e.g. Sarah" value={name} onChange={e=>setName(e.target.value)} autoFocus/></div>
+      <div className="ob-grid">
+        <div className="ob-field"><label className="ob-label">Current weight (lbs)</label><input className="ob-input" type="number" value={g.weight||""} onChange={e=>up("weight",+e.target.value)}/></div>
+        <div className="ob-field"><label className="ob-label">Goal weight (lbs)</label><input className="ob-input" type="number" value={g.goalWeight||""} onChange={e=>up("goalWeight",+e.target.value)}/></div>
+        <div className="ob-field"><label className="ob-label">Height (inches)</label><input className="ob-input" type="number" value={g.height||""} onChange={e=>up("height",+e.target.value)}/></div>
+        <div className="ob-field"><label className="ob-label">Age</label><input className="ob-input" type="number" value={g.age||""} onChange={e=>up("age",+e.target.value)}/></div>
+      </div>
+      <div className="ob-field"><label className="ob-label">Biological sex</label>
+        <div style={{display:"flex",gap:8}}>
+          {["female","male"].map(s=><button key={s} className={`ob-sel-btn${g.sex===s?" on":""}`} onClick={()=>up("sex",s)}>{s==="female"?"♀ Female":"♂ Male"}</button>)}
+        </div>
+      </div>
+      <div className="ob-field"><label className="ob-label">Household size</label>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <button className="qty-btn" onClick={()=>up("householdSize",Math.max(1,g.householdSize-1))}>−</button>
+          <span style={{fontSize:22,fontWeight:500,color:"var(--plum)",minWidth:28,textAlign:"center"}}>{g.householdSize}</span>
+          <button className="qty-btn" onClick={()=>up("householdSize",g.householdSize+1)}>+</button>
+          <span style={{fontSize:13,color:"var(--muted)"}}>people</span>
+        </div>
+      </div>
+      <button className="ob-next" onClick={()=>setStep(1)} disabled={!name||!g.weight||!g.height||!g.age}>Continue</button>
+    </div>,
+
+    /* STEP 1 — Goals & Activity */
+    <div key={1} className="ob-body">
+      <div className="ob-step">Step 2 of 4 — Your goals</div>
+      <div className="ob-progress">{[0,1,2,3].map(i=><div key={i} className={`ob-dot${i<=1?" on":""}`}/>)}</div>
+      {bmr>0&&<div style={{background:"var(--plumLL)",border:"1px solid var(--plum3)22",borderRadius:14,padding:14,marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div><div style={{fontSize:10,color:"var(--muted)",textTransform:"uppercase",letterSpacing:1}}>Your daily target</div><div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:28,fontWeight:600,color:"var(--plum)"}}>{macros.calories} <span style={{fontSize:14,fontWeight:400,color:"var(--muted)"}}>kcal</span></div></div>
+        <div style={{textAlign:"right",fontSize:12,color:"var(--muted)",lineHeight:1.8}}><div>P: {macros.protein}g</div><div>C: {macros.carbs}g</div><div>F: {macros.fat}g</div></div>
+      </div>}
+      <div className="ob-field"><label className="ob-label">Goal</label>
+        <div style={{display:"flex",gap:8}}>
+          {[["lose","🔽 Lose"],["maintain","⚖️ Maintain"],["gain","🔼 Gain"]].map(([k,l])=><button key={k} className={`ob-sel-btn${g.goalType===k?" on":""}`} onClick={()=>up("goalType",k)}>{l}</button>)}
+        </div>
+      </div>
+      <div className="ob-field"><label className="ob-label">Activity level</label>
+        {Object.entries(ACT).map(([k,a])=><button key={k} className={`act-row${g.activity===k?" on":""}`} onClick={()=>up("activity",k)}>
+          <div style={{fontWeight:500,fontSize:13,flex:1,textAlign:"left"}}>{a.label}</div>
+          <div style={{fontSize:12,color:"var(--muted)",flex:2,textAlign:"left"}}>{a.desc}</div>
+          <div style={{fontSize:12,fontWeight:500,color:g.activity===k?"var(--plum2)":"var(--muted2)"}}>×{a.mult}</div>
+        </button>)}
+      </div>
+      <div style={{display:"flex",gap:8,marginTop:8}}>
+        <button className="ob-back" onClick={()=>setStep(0)}>← Back</button>
+        <button className="ob-next" onClick={()=>setStep(2)}>Continue</button>
+      </div>
+    </div>,
+
+    /* STEP 2 — Diet & Allergies */
+    <div key={2} className="ob-body">
+      <div className="ob-step">Step 3 of 4 — Diet & allergies</div>
+      <div className="ob-progress">{[0,1,2,3].map(i=><div key={i} className={`ob-dot${i<=2?" on":""}`}/>)}</div>
+      <div className="ob-field"><label className="ob-label">Diet style</label>
+        <div className="ob-sel-grid">
+          {["balanced","keto","high-protein","low-carb","vegan","vegetarian","mediterranean","paleo"].map(d=><button key={d} className={`ob-sel-btn${g.diet===d?" on":""}`} onClick={()=>up("diet",d)}>{d}</button>)}
+        </div>
+      </div>
+      <div className="ob-field"><label className="ob-label">Allergies & intolerances</label>
+        <div className="ob-sel-grid">
+          {["gluten","dairy","nuts","shellfish","eggs","soy","fish","sesame"].map(a=><button key={a} className={`ob-sel-btn${g.allergies.includes(a)?" on":""}`} onClick={()=>up("allergies",g.allergies.includes(a)?g.allergies.filter(x=>x!==a):[...g.allergies,a])}>{a}</button>)}
+        </div>
+      </div>
+      <div style={{display:"flex",gap:8,marginTop:8}}>
+        <button className="ob-back" onClick={()=>setStep(1)}>← Back</button>
+        <button className="ob-next" onClick={()=>setStep(3)}>Continue</button>
+      </div>
+    </div>,
+
+    /* STEP 3 — Meal Preferences */
+    <div key={3} className="ob-body">
+      <div className="ob-step">Step 4 of 4 — Meal preferences</div>
+      <div className="ob-progress">{[0,1,2,3].map(i=><div key={i} className={`ob-dot${i<=3?" on":""}`}/>)}</div>
+      <div className="ob-field"><label className="ob-label">Favorite cuisines</label>
+        <div className="ob-sel-grid">
+          {CUISINES.map(c=><button key={c} className={`ob-sel-btn${cuisines.includes(c)?" on":""}`} onClick={()=>toggleCuisine(c)}>{c}</button>)}
+        </div>
+      </div>
+      <div className="ob-field"><label className="ob-label">Which meals do you want planned? Tap to add, set how many per week.</label>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:8}}>
+          {MEAL_TYPES.map(t=>(
+            <div key={t} style={{display:"flex",alignItems:"center",gap:10}}>
+              <button className={`ob-sel-btn${mealPrefs[t]?" on":""}`} style={{flex:1,textAlign:"left"}} onClick={()=>toggleMealType(t)}>{t}</button>
+              {mealPrefs[t]&&<div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                <button className="qty-btn" onClick={()=>setMealCount(t,mealPrefs[t]-1)}>−</button>
+                <span style={{fontSize:15,fontWeight:500,color:"var(--plum)",minWidth:20,textAlign:"center"}}>{mealPrefs[t]}</span>
+                <button className="qty-btn" onClick={()=>setMealCount(t,mealPrefs[t]+1)}>+</button>
+                <span style={{fontSize:11,color:"var(--muted)"}}>/ wk</span>
+              </div>}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{display:"flex",gap:8,marginTop:8}}>
+        <button className="ob-back" onClick={()=>setStep(2)}>← Back</button>
+        <button className="ob-next" onClick={finish} disabled={loading||Object.keys(mealPrefs).length===0}>
+          {loading?<span className="spin"/>:"Let's get cooking →"}
+        </button>
+      </div>
+    </div>,
+  ];
+
+  return(
+    <div className="ob-wrap">
+      <div className="ob-hero">
+        <BloomLogo/>
+        <div className="ob-title">Welcome to Nutriq</div>
+        <div className="ob-sub">Feed your family better,<br/>without the mental math.</div>
+      </div>
+      {steps[step]}
+    </div>
+  );
+}
+
 /* ── ROOT APP ── */
 function App(){
+  const[session,setSession]=useState(undefined);
+  const[profile,setProfile]=useState(null);
+  const[needsOnboard,setNeedsOnboard]=useState(false);
   const[tab,setTab]=useState("scan");
   const[pantry,setPantry]=useState(()=>DB.get("nq_p",SP));
   const[goals,setGoals]=useState(()=>DB.get("nq_g",DG));
@@ -684,14 +925,77 @@ function App(){
   const[meal,setMeal]=useState(()=>DB.get("nq_m",null));
   const[shop,setShop]=useState(()=>DB.get("nq_s",[]));
   const[toast,setToast]=useState(null);
+
+  useEffect(()=>{
+    supa.auth.getSession().then(({data:{session}})=>{
+      setSession(session);
+      if(session)loadProfile(session.user.id);
+    });
+    const{data:{subscription}}=supa.auth.onAuthStateChange((_,session)=>{
+      setSession(session);
+      if(session)loadProfile(session.user.id);
+      else{setProfile(null);setNeedsOnboard(false);}
+    });
+    return()=>subscription.unsubscribe();
+  },[]);
+
+  const loadProfile=async(uid)=>{
+    const{data}=await supa.from("profiles").select("*").eq("id",uid).single();
+    if(!data||!data.name){setNeedsOnboard(true);return;}
+    setProfile(data);
+    const{data:g}=await supa.from("goals").select("*").eq("user_id",uid).single();
+    if(g){
+      setGoals({weight:g.weight,goalWeight:g.goal_weight,height:g.height,age:g.age,sex:g.sex,activity:g.activity,goalType:g.goal_type,diet:g.diet,allergies:g.allergies||[],householdSize:g.household_size,meal_cuisines:g.meal_cuisines||[],meal_preferences:g.meal_preferences||{}});
+    }
+    loadPantry(data.household_id);
+    loadWeights(uid);
+  };
+
+  const loadPantry=async(hid)=>{
+    const{data}=await supa.from("pantry_items").select("*").eq("household_id",hid).order("created_at",{ascending:false});
+    if(data&&data.length>0)setPantry(data.map(i=>({id:i.id,name:i.name,brand:i.brand,calories:i.calories,protein:i.protein,carbs:i.carbs,fat:i.fat,category:i.category,perishable:i.perishable,price:i.price,qty:i.qty,unit:i.unit,expiry:i.expiry?new Date(i.expiry).getTime():null,by:i.added_by,added:new Date(i.created_at).getTime()})));
+  };
+
+  const loadWeights=async(uid)=>{
+    const{data}=await supa.from("weight_logs").select("*").eq("user_id",uid).order("logged_at",{ascending:true});
+    if(data)setWeights(data.map(w=>({date:w.logged_at,weight:w.weight})));
+  };
+
+  const saveGoals=async(g)=>{
+    if(!session)return;
+    const{data:prof}=await supa.from("profiles").select("household_id").eq("id",session.user.id).single();
+    await supa.from("goals").upsert({user_id:session.user.id,household_id:prof?.household_id,weight:g.weight,goal_weight:g.goalWeight,height:g.height,age:g.age,sex:g.sex,activity:g.activity,goal_type:g.goalType,diet:g.diet,allergies:g.allergies,household_size:g.householdSize,meal_cuisines:g.meal_cuisines||[],meal_preferences:g.meal_preferences||{},updated_at:new Date().toISOString()},{onConflict:"user_id"});
+  };
+
+  const savePantryItem=async(item)=>{
+    if(!session)return item;
+    const{data:prof}=await supa.from("profiles").select("household_id").eq("id",session.user.id).single();
+    const{data}=await supa.from("pantry_items").insert({household_id:prof?.household_id,name:item.name,brand:item.brand,calories:item.calories,protein:item.protein,carbs:item.carbs,fat:item.fat,category:item.category,perishable:item.perishable,price:item.price||0,qty:item.qty,unit:item.unit,expiry:item.expiry?new Date(item.expiry).toISOString():null,added_by:item.by||"Me"}).select().single();
+    return data?{...item,id:data.id}:item;
+  };
+
+  const deletePantryItem=async(id)=>{
+    if(session)await supa.from("pantry_items").delete().eq("id",id);
+  };
+
+  const updatePantryQty=async(id,qty)=>{
+    if(session)await supa.from("pantry_items").update({qty}).eq("id",id);
+  };
+
+  const logWeight=async(w,date)=>{
+    if(!session)return;
+    await supa.from("weight_logs").insert({user_id:session.user.id,weight:w,logged_at:date});
+  };
+
   useEffect(()=>DB.set("nq_p",pantry),[pantry]);
   useEffect(()=>DB.set("nq_g",goals),[goals]);
-  useEffect(()=>DB.set("nq_w",weights),[weights]);
   useEffect(()=>DB.set("nq_m",meal),[meal]);
   useEffect(()=>DB.set("nq_s",shop),[shop]);
+
   const notify=(msg,type="ok")=>{setToast({msg,type});setTimeout(()=>setToast(null),3000);};
   const exp=pantry.filter(i=>{const d=du(i.expiry);return d!==null&&d<=5;});
   const bmr=calcBMR(goals),tdee=Math.round(bmr*(ACT[goals.activity]?.mult||1.55)),macros=calcMacros(tdee,goals.diet,goals.goalType);
+  const userName=profile?.name||session?.user?.email?.split("@")[0]||"";
 
   const TABS=[
     {id:"scan",label:"Scan",icon:(on)=>I.scan(on?"#4a1a6e":"#c0b0d0")},
@@ -701,9 +1005,21 @@ function App(){
     {id:"goals",label:"Goals",icon:(on)=>I.goals(on?"#4a1a6e":"#c0b0d0")},
   ];
 
+  // Loading
+  if(session===undefined)return(
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--cream)"}}>
+      <div style={{textAlign:"center"}}><BloomLogo/><div style={{marginTop:12,color:"var(--muted)",fontSize:14}}>Loading…</div></div>
+    </div>
+  );
+
+  // Not logged in
+  if(!session)return <AuthScreen onAuth={()=>{}}/>;
+
+  // Needs onboarding
+  if(needsOnboard)return <Onboarding user={session.user} onComplete={async(g)=>{setGoals(g);setNeedsOnboard(false);await loadProfile(session.user.id);}}/>;
+
   return(
     <div>
-      {/* HEADER */}
       <div className="hdr">
         <div className="hdr-logo">
           <BloomLogo/>
@@ -714,20 +1030,20 @@ function App(){
         </div>
         <div className="hdr-right">
           {exp.length>0&&<div className="expiry-chip"><span className="expiry-dot"/>{exp.length} expiring</div>}
-          <div style={{display:"flex",gap:3}}>
-            {MBRS.map(m=><div key={m.id} className="member-av" style={{background:m.color+"22",borderColor:m.color}}>{m.name[0]}</div>)}
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <div style={{width:28,height:28,borderRadius:"50%",background:"var(--plumL)",border:"1.5px solid var(--plum3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,color:"var(--plum2)",cursor:"pointer"}} onClick={()=>supa.auth.signOut()} title="Sign out">
+              {userName[0]?.toUpperCase()||"?"}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* CONTENT */}
-      {tab==="scan"   &&<ScannerTab pantry={pantry} setPantry={setPantry} notify={notify}/>}
-      {tab==="pantry" &&<PantryTab  pantry={pantry} setPantry={setPantry} notify={notify}/>}
+      {tab==="scan"   &&<ScannerTab pantry={pantry} setPantry={setPantry} savePantryItem={savePantryItem} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify}/>}
+      {tab==="pantry" &&<PantryTab  pantry={pantry} setPantry={setPantry} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify}/>}
       {tab==="meals"  &&<MealsTab   pantry={pantry} goals={goals} macros={macros} meal={meal} setMeal={setMeal} setShop={setShop} setTab={setTab} notify={notify}/>}
       {tab==="shop"   &&<ShopTab    shop={shop} notify={notify}/>}
-      {tab==="goals"  &&<GoalsTab   goals={goals} setGoals={setGoals} weights={weights} setWeights={setWeights} macros={macros} tdee={tdee} bmr={bmr} notify={notify}/>}
+      {tab==="goals"  &&<GoalsTab   goals={goals} setGoals={setGoals} weights={weights} setWeights={setWeights} macros={macros} tdee={tdee} bmr={bmr} logWeight={logWeight} saveGoals={saveGoals} notify={notify}/>}
 
-      {/* NAV */}
       <div className="nav">
         {TABS.map(t=><button key={t.id} className={`nb${tab===t.id?" on":""}`} onClick={()=>setTab(t.id)}>{t.icon(tab===t.id)}<span>{t.label}</span></button>)}
       </div>
@@ -738,7 +1054,7 @@ function App(){
 }
 
 /* ── SCANNER ── */
-function ScannerTab({pantry,setPantry,notify}){
+function ScannerTab({pantry,setPantry,savePantryItem,deletePantryItem,updatePantryQty,notify}){
   const[mode,setMode]=useState("add");
   const[scanning,setScanning]=useState(false);
   const[code,setCode]=useState("");
@@ -965,7 +1281,7 @@ function ScannerTab({pantry,setPantry,notify}){
 }
 
 /* ── PANTRY ── */
-function PantryTab({pantry,setPantry,notify}){
+function PantryTab({pantry,setPantry,deletePantryItem,updatePantryQty,notify}){
   const[search,setSearch]=useState("");
   const[cat,setCat]=useState("all");
   const[sort,setSort]=useState("expiry");
@@ -1042,7 +1358,9 @@ function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
     const ps=pantry.map(i=>{const d=du(i.expiry);return `- ${i.name} (${i.qty} ${i.unit}${d!==null?`, expires in ${d} days`:""})`;}).join("\n");
     const sys=`You are a nutritionist. Respond with ONLY a raw JSON object. Absolutely no markdown, no backticks, no code fences, no explanation. Just raw JSON. Keep ALL text fields under 6 words. Structure:
 {"days":[{"day":"Monday","meals":{"breakfast":{"name":"...","description":"...","uses_pantry":["..."],"calories":400,"protein":30,"carbs":45,"fat":12},"lunch":{"name":"...","description":"...","uses_pantry":[],"calories":500,"protein":35,"carbs":55,"fat":15},"dinner":{"name":"...","description":"...","uses_pantry":["..."],"calories":600,"protein":45,"carbs":60,"fat":20},"snack":{"name":"...","description":"...","uses_pantry":[],"calories":150,"protein":8,"carbs":18,"fat":5}},"total_calories":1650,"total_protein":118,"total_carbs":178,"total_fat":52}],"shopping_list":[{"item":"...","quantity":"...","reason":"...","priority":"high"}],"strategy":"..."}`;
-    const usr=`3-day meal plan (Monday, Tuesday, Wednesday only) for ${goals.householdSize} people. Targets: ${macros.calories} cal, ${macros.protein}g protein, ${macros.carbs}g carbs, ${macros.fat}g fat. Goal: ${goals.goalType}. Diet: ${goals.diet}. Allergies: ${goals.allergies.join(",")||"none"}. Be extremely brief. Pantry:\n${ps.split("\n").slice(0,8).join("\n")}`;
+    const cuisineStr=goals.meal_cuisines?.length?`Preferred cuisines: ${goals.meal_cuisines.join(", ")}.`:"";
+    const mealPrefStr=goals.meal_preferences&&Object.keys(goals.meal_preferences).length?`Meal schedule per week: ${Object.entries(goals.meal_preferences).map(([k,v])=>`${v}x ${k}`).join(", ")}.`:"";
+    const usr=`3-day meal plan (Monday, Tuesday, Wednesday) for ${goals.householdSize} people. Targets: ${macros.calories} cal, ${macros.protein}g protein, ${macros.carbs}g carbs, ${macros.fat}g fat. Goal: ${goals.goalType}. Diet: ${goals.diet}. Allergies: ${goals.allergies.join(",")||"none"}. ${cuisineStr} ${mealPrefStr} Be extremely brief. Pantry:\n${ps.split("\n").slice(0,8).join("\n")}`;
     let full="";
     try{
       setStat("Crafting your plan…");
@@ -1184,11 +1502,11 @@ function ShopTab({shop,notify}){
 }
 
 /* ── GOALS ── */
-function GoalsTab({goals,setGoals,weights,setWeights,macros,tdee,bmr,notify}){
+function GoalsTab({goals,setGoals,weights,setWeights,macros,tdee,bmr,logWeight,saveGoals,notify}){
   const[wt,setWt]=useState("");
   const[wd,setWd]=useState(new Date().toISOString().split("T")[0]);
   const up=(k,v)=>setGoals(g=>({...g,[k]:v}));
-  const logW=()=>{if(!wt)return;setWeights(w=>[...w,{date:wd,weight:+wt}].sort((a,b)=>new Date(a.date)-new Date(b.date)));setWt("");notify("✓ Weight logged");};
+  const logW=async()=>{if(!wt)return;const entry={date:wd,weight:+wt};setWeights(w=>[...w,entry].sort((a,b)=>new Date(a.date)-new Date(b.date)));setWt("");if(logWeight)await logWeight(+wt,wd);notify("✓ Weight logged");};
   const latest=weights.length>0?weights[weights.length-1].weight:null;
   const change=weights.length>1?(weights[weights.length-1].weight-weights[0].weight).toFixed(1):null;
   const toGoal=latest&&goals.goalWeight?(latest-goals.goalWeight).toFixed(1):null;
@@ -1305,7 +1623,7 @@ function GoalsTab({goals,setGoals,weights,setWeights,macros,tdee,bmr,notify}){
         </div>
       </div>
 
-      <button className="btn-full" onClick={()=>notify("✓ Goals saved — macros recalculated")}>Save goals</button>
+      <button className="btn-full" onClick={async()=>{if(saveGoals)await saveGoals(goals);notify("✓ Goals saved — macros recalculated");}}>Save goals</button>
     </div>
   );
 }
