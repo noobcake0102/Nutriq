@@ -820,10 +820,10 @@ function Onboarding({user,onComplete}){
         updated_at:new Date().toISOString()
       },{onConflict:"user_id"});
 
+      console.log("Onboarding complete - profile saved, calling onComplete");
       onComplete({...g,name,meal_cuisines:cuisines,meal_preferences:mealPrefs});
     }catch(e){
       console.error("Onboarding error:",e);
-      // Even if DB save fails, let them into the app
       onComplete({...g,name,meal_cuisines:cuisines,meal_preferences:mealPrefs});
     }
     setLoading(false);
@@ -1069,7 +1069,12 @@ function App(){
   if(!session)return <AuthScreen onAuth={()=>{}}/>;
 
   // Needs onboarding
-  if(needsOnboard)return <Onboarding user={session.user} onComplete={async(g)=>{setGoals(g);setNeedsOnboard(false);await loadProfile(session.user.id);}}/>;
+  if(needsOnboard)return <Onboarding user={session.user} onComplete={async(g)=>{
+    console.log("onComplete called, setting needsOnboard=false");
+    setGoals(g);
+    setNeedsOnboard(false);
+    // Don't reload profile - that re-triggers onboarding check
+  }}/>;
 
   return(
     <div>
