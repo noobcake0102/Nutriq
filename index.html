@@ -978,8 +978,15 @@ function App(){
 
   const loadProfile=async(uid)=>{
     // Check localStorage flag first — skips onboarding check on every navigation
-    const onboarded=localStorage.getItem("nq_onboarded_"+uid);
+     const onboarded=localStorage.getItem("nq_onboarded_"+uid);
     if(onboarded==="true"){
+      // Double-check goals exist in DB — if not, still show onboarding
+      const{data:checkGoals}=await supa.from("goals").select("id").eq("user_id",uid).maybeSingle();
+      if(!checkGoals){
+        localStorage.removeItem("nq_onboarded_"+uid);
+        setNeedsOnboard(true);
+        return;
+      }
       const{data}=await supa.from("profiles").select("*").eq("id",uid).maybeSingle();
       if(data)setProfile(data);
       const{data:g}=await supa.from("goals").select("*").eq("user_id",uid).maybeSingle();
@@ -1027,8 +1034,25 @@ function App(){
 
   const saveGoals=async(g)=>{
     if(!session)return;
-    const{data:prof}=await supa.from("profiles").select("household_id").eq("id",session.user.id).single();
-    await supa.from("goals").upsert({user_id:session.user.id,household_id:prof?.household_id,weight:g.weight,goal_weight:g.goalWeight,height:g.height,age:g.age,sex:g.sex,activity:g.activity,goal_type:g.goalType,diet:g.diet,allergies:g.allergies,household_size:g.householdSize,meal_cuisines:g.meal_cuisines||[],meal_preferences:g.meal_preferences||{},updated_at:new Date().toISOString()},{onConflict:"user_id"});
+    const{data:prof}=await supa.from("profiles").select("household_id").eq("id",session.user.id).maybeSingle();
+    const{error}=await supa.from("goals").upsert({
+      user_id:session.user.id,
+      household_id:prof?.household_id,
+      weight:g.weight||0,
+      goal_weight:g.goalWeight||0,
+      height:g.height||0,
+      age:g.age||0,
+      sex:g.sex||"female",
+      activity:g.activity||"moderate",
+      goal_type:g.goalType||"lose",
+      diet:g.diet||"balanced",
+      allergies:g.allergies||[],
+      household_size:g.householdSize||1,
+      meal_cuisines:g.meal_cuisines||[],
+      meal_preferences:g.meal_preferences||{},
+      updated_at:new Date().toISOString()
+    },{onConflict:"user_id",ignoreDuplicates:false});
+    if(error)console.error("saveGoals error:",error);
   };
 
   const savePantryItem=async(item)=>{
