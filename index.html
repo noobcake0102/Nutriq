@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
 <title>Nutriq</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -16,266 +16,62 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --cream:#faf8f5;
-  --warm:#f4efe8;
-  --blush:#fdf0f4;
-  --card:#ffffff;
-  --border:#ece5dc;
-  --border2:#e0d5e8;
-  --plum:#4a1a6e;
-  --plum2:#6b2fa0;
-  --plum3:#8b4fc0;
-  --plumL:#f5eef9;
-  --plumLL:#faf5fd;
-  --rose:#d4537e;
-  --roseL:#fbeaf0;
-  --blushD:#c2809a;
-  --sage:#7a9e6e;
-  --sageL:#eef4eb;
-  --text:#2a1a3a;
-  --muted:#8a7898;
-  --muted2:#b0a0be;
-  --red:#b5344a;
-  --orange:#c2780a;
-  --gold:#c9a227;
+  --cream:#faf8f5;--warm:#f4efe8;--blush:#fdf0f4;--card:#ffffff;
+  --border:#ece5dc;--border2:#e0d5e8;--plum:#4a1a6e;--plum2:#6b2fa0;
+  --plum3:#8b4fc0;--plumL:#f5eef9;--plumLL:#faf5fd;--rose:#d4537e;
+  --roseL:#fbeaf0;--blushD:#c2809a;--sage:#7a9e6e;--sageL:#eef4eb;
+  --text:#2a1a3a;--muted:#8a7898;--muted2:#b0a0be;--red:#b5344a;
+  --orange:#c2780a;--gold:#c9a227;
 }
-html,body{
-  background:var(--cream);
-  color:var(--text);
-  font-family:'DM Sans',system-ui,sans-serif;
-  font-size:16px;
-  min-height:100vh;
-  -webkit-font-smoothing:antialiased;
-}
-#root{
-  max-width:430px;
-  margin:0 auto;
-  min-height:100vh;
-  background:var(--cream);
-  position:relative;
-  overflow-x:hidden;
-}
-
-/* ── SCROLLBAR ── */
+html,body{background:var(--cream);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:16px;min-height:100vh;-webkit-font-smoothing:antialiased;}
+#root{max-width:430px;margin:0 auto;min-height:100vh;background:var(--cream);position:relative;overflow-x:hidden;}
 ::-webkit-scrollbar{width:0;height:0;}
-
-/* ── ANIMATIONS ── */
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes scanLine{0%,100%{top:15%}50%{top:78%}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-
-/* ── HEADER ── */
-.hdr{
-  position:sticky;top:0;z-index:200;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 20px;
-  background:rgba(250,248,245,0.92);
-  backdrop-filter:blur(20px);
-  -webkit-backdrop-filter:blur(20px);
-  border-bottom:1px solid var(--border);
-}
+.hdr{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(250,248,245,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
 .hdr-logo{display:flex;align-items:center;gap:10px;}
 .logo-bloom{width:34px;height:34px;flex-shrink:0;}
-.logo-text-wrap{}
-.logo-name{
-  font-family:'Cormorant Garamond',Georgia,serif;
-  font-size:22px;font-weight:600;color:var(--plum);
-  letter-spacing:-.3px;line-height:1;
-}
-.logo-tag{
-  font-size:9px;color:var(--muted);
-  letter-spacing:.8px;text-transform:uppercase;
-  font-weight:300;margin-top:1px;
-}
+.logo-name{font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:600;color:var(--plum);letter-spacing:-.3px;line-height:1;}
+.logo-tag{font-size:9px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;font-weight:300;margin-top:1px;}
 .hdr-right{display:flex;align-items:center;gap:8px;}
-.expiry-chip{
-  display:flex;align-items:center;gap:4px;
-  font-size:11px;font-weight:500;color:var(--orange);
-  background:#fdf5e6;border:1px solid #e8c97044;
-  border-radius:20px;padding:4px 10px;
-}
-.expiry-dot{
-  width:5px;height:5px;border-radius:50%;
-  background:var(--orange);
-  animation:pulse 1.4s infinite;
-}
-.member-av{
-  width:28px;height:28px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:14px;font-weight:500;
-  border:2px solid transparent;
-  flex-shrink:0;
-}
-
-/* ── BOTTOM NAV ── */
-.nav{
-  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
-  width:100%;max-width:430px;
-  display:flex;
-  background:rgba(250,248,245,0.96);
-  backdrop-filter:blur(20px);
-  -webkit-backdrop-filter:blur(20px);
-  border-top:1px solid var(--border);
-  z-index:200;
-  padding-bottom:env(safe-area-inset-bottom);
-}
-.nb{
-  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
-  padding:10px 6px 12px;
-  background:none;border:none;border-top:2px solid transparent;
-  color:var(--muted2);cursor:pointer;
-  font-family:'DM Sans',system-ui,sans-serif;
-  font-size:9px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;
-  transition:color .18s,border-color .18s;
-}
+.expiry-chip{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:500;color:var(--orange);background:#fdf5e6;border:1px solid #e8c97044;border-radius:20px;padding:4px 10px;}
+.expiry-dot{width:5px;height:5px;border-radius:50%;background:var(--orange);animation:pulse 1.4s infinite;}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:flex;background:rgba(250,248,245,0.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--border);z-index:200;padding-bottom:env(safe-area-inset-bottom);}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px 12px;background:none;border:none;border-top:2px solid transparent;color:var(--muted2);cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;font-size:9px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;transition:color .18s,border-color .18s;}
 .nb.on{color:var(--plum);border-top-color:var(--plum);}
 .nb svg{width:20px;height:20px;}
-
-/* ── PAGE ── */
-.page{
-  padding:22px 18px;
-  padding-bottom:100px;
-  animation:fadeUp .25s ease;
-  min-height:calc(100vh - 58px);
-}
-.page-label{
-  font-size:10px;font-weight:500;letter-spacing:2px;
-  color:var(--muted);text-transform:uppercase;margin-bottom:5px;
-}
-.page-title{
-  font-family:'Cormorant Garamond',Georgia,serif;
-  font-size:30px;font-weight:600;color:var(--text);
-  letter-spacing:-.5px;margin-bottom:4px;line-height:1.1;
-}
+.page{padding:22px 18px;padding-bottom:100px;animation:fadeUp .25s ease;min-height:calc(100vh - 58px);}
+.page-label{font-size:10px;font-weight:500;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;}
+.page-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:30px;font-weight:600;color:var(--text);letter-spacing:-.5px;margin-bottom:4px;line-height:1.1;}
 .page-sub{font-size:13px;color:var(--muted);margin-bottom:20px;}
-
-/* ── CARDS ── */
-.card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:18px;
-  padding:16px;
-  margin-bottom:12px;
-  box-shadow:0 1px 4px rgba(74,26,110,.05);
-}
-.card-title{
-  font-size:13px;font-weight:500;color:var(--plum);
-  margin-bottom:12px;letter-spacing:.1px;
-}
-.section-label{
-  font-size:10px;font-weight:500;color:var(--muted);
-  text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;
-}
-
-/* ── INPUTS ── */
-input,select,textarea{
-  background:var(--warm);
-  border:1px solid var(--border);
-  border-radius:12px;
-  padding:11px 14px;
-  color:var(--text);
-  font-family:'DM Sans',system-ui,sans-serif;
-  font-size:14px;
-  outline:none;
-  width:100%;
-  -webkit-appearance:none;
-  transition:border-color .15s;
-}
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(74,26,110,.05);}
+.card-title{font-size:13px;font-weight:500;color:var(--plum);margin-bottom:12px;letter-spacing:.1px;}
+.section-label{font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+input,select,textarea{background:var(--warm);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:14px;outline:none;width:100%;-webkit-appearance:none;transition:border-color .15s;}
 input:focus,select:focus{border-color:var(--plum3);}
 input::placeholder{color:var(--muted2);}
 input[type=date]{color:var(--muted);}
-.input-label{
-  font-size:11px;font-weight:500;color:var(--muted);
-  text-transform:uppercase;letter-spacing:.6px;
-  display:block;margin-bottom:5px;
-}
-
-/* ── BUTTONS ── */
-.btn-full{
-  width:100%;
-  background:linear-gradient(135deg,var(--plum2),var(--plum));
-  border:none;border-radius:14px;
-  padding:15px;
-  color:#fff;font-weight:500;font-size:15px;
-  cursor:pointer;
-  font-family:'Cormorant Garamond',Georgia,serif;
-  letter-spacing:.2px;font-size:16px;
-  box-shadow:0 4px 18px rgba(107,47,160,.3);
-  transition:opacity .15s,transform .1s;
-}
+.input-label{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;display:block;margin-bottom:5px;}
+.btn-full{width:100%;background:linear-gradient(135deg,var(--plum2),var(--plum));border:none;border-radius:14px;padding:15px;color:#fff;font-weight:500;cursor:pointer;font-family:'Cormorant Garamond',Georgia,serif;letter-spacing:.2px;font-size:16px;box-shadow:0 4px 18px rgba(107,47,160,.3);transition:opacity .15s,transform .1s;}
 .btn-full:active{opacity:.9;transform:scale(.99);}
 .btn-full.red{background:linear-gradient(135deg,#c0392b,#922b21);}
 .btn-full.blue{background:linear-gradient(135deg,#3a6fa0,#2c5380);}
 .btn-full:disabled{opacity:.45;cursor:not-allowed;}
-.btn-sm{
-  background:var(--plumL);
-  border:1px solid var(--plum3)44;
-  border-radius:10px;
-  padding:7px 14px;
-  color:var(--plum2);
-  font-size:12px;font-weight:500;
-  cursor:pointer;
-  font-family:'DM Sans',system-ui,sans-serif;
-  white-space:nowrap;
-  transition:background .15s;
-}
+.btn-sm{background:var(--plumL);border:1px solid var(--plum3)44;border-radius:10px;padding:7px 14px;color:var(--plum2);font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;white-space:nowrap;transition:background .15s;}
 .btn-sm:hover{background:var(--plumLL);}
-.btn-ghost{
-  width:100%;
-  background:none;
-  border:1px dashed var(--border2);
-  border-radius:12px;
-  padding:11px;
-  color:var(--muted);
-  font-size:13px;cursor:pointer;
-  font-family:'DM Sans',system-ui,sans-serif;
-  margin-bottom:12px;
-  transition:border-color .15s;
-}
-.btn-ghost:hover{border-color:var(--plum3);}
-
-/* ── CHIPS ── */
-.chips{
-  display:flex;flex-wrap:nowrap;overflow-x:auto;
-  gap:6px;margin-bottom:14px;padding-bottom:2px;
-}
+.btn-ghost{width:100%;background:none;border:1px dashed var(--border2);border-radius:12px;padding:11px;color:var(--muted);font-size:13px;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;margin-bottom:12px;transition:border-color .15s;}
+.chips{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;margin-bottom:14px;padding-bottom:2px;}
 .chips.wrap{flex-wrap:wrap;overflow-x:visible;}
-.chip{
-  flex-shrink:0;
-  background:var(--card);border:1px solid var(--border);border-radius:20px;
-  padding:6px 14px;font-size:12px;font-weight:400;
-  color:var(--muted);cursor:pointer;white-space:nowrap;
-  font-family:'DM Sans',system-ui,sans-serif;
-  transition:all .15s;
-}
+.chip{flex-shrink:0;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;font-weight:400;color:var(--muted);cursor:pointer;white-space:nowrap;font-family:'DM Sans',system-ui,sans-serif;transition:all .15s;}
 .chip.on{background:var(--plumL);border-color:var(--plum3);color:var(--plum2);font-weight:500;}
 .chip.red{background:var(--roseL);border-color:var(--rose)66;color:var(--rose);font-weight:500;}
-
-/* ── SEG CONTROL ── */
-.seg{
-  display:flex;background:var(--warm);border:1px solid var(--border);
-  border-radius:14px;padding:4px;gap:4px;margin-bottom:16px;
-}
-.seg-btn{
-  flex:1;padding:10px;border-radius:10px;border:none;
-  background:none;color:var(--muted);cursor:pointer;
-  font-family:'DM Sans',system-ui,sans-serif;font-size:13px;font-weight:500;
-  transition:all .15s;
-}
-.seg-btn.on{
-  background:var(--card);color:var(--plum2);
-  box-shadow:0 1px 6px rgba(74,26,110,.12);
-}
+.seg{display:flex;background:var(--warm);border:1px solid var(--border);border-radius:14px;padding:4px;gap:4px;margin-bottom:16px;}
+.seg-btn{flex:1;padding:10px;border-radius:10px;border:none;background:none;color:var(--muted);cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;font-size:13px;font-weight:500;transition:all .15s;}
+.seg-btn.on{background:var(--card);color:var(--plum2);box-shadow:0 1px 6px rgba(74,26,110,.12);}
 .seg-btn.red.on{color:var(--red);}
-
-/* ── VIEWFINDER ── */
-.vf{
-  position:relative;height:210px;
-  background:#1a0f24;border-radius:20px;
-  overflow:hidden;margin-bottom:14px;
-  box-shadow:0 6px 24px rgba(74,26,110,.25);
-}
+.vf{position:relative;height:210px;background:#1a0f24;border-radius:20px;overflow:hidden;margin-bottom:14px;box-shadow:0 6px 24px rgba(74,26,110,.25);}
 .vf video{width:100%;height:100%;object-fit:cover;}
 .vf-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
 .vf-frame{position:relative;width:220px;height:130px;}
@@ -284,274 +80,81 @@ input[type=date]{color:var(--muted);}
 .vf-hint{font-size:12px;color:#e8c0f088;letter-spacing:.8px;}
 .vf-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;}
 .vf-stop{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.5);border:none;border-radius:8px;padding:6px 10px;color:#fff;cursor:pointer;font-size:12px;}
-
-/* ── PANTRY ROW ── */
-.prow{
-  display:flex;align-items:center;gap:12px;
-  background:var(--card);border-radius:16px;padding:13px 14px;
-  border:1px solid var(--border);border-left:3px solid var(--border);
-  margin-bottom:8px;
-  box-shadow:0 1px 3px rgba(74,26,110,.04);
-  transition:transform .1s;
-}
+.prow{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:16px;padding:13px 14px;border:1px solid var(--border);border-left:3px solid var(--border);margin-bottom:8px;box-shadow:0 1px 3px rgba(74,26,110,.04);transition:transform .1s;}
 .prow:active{transform:scale(.995);}
-.prow-icon{
-  width:42px;height:42px;border-radius:12px;
-  background:var(--plumLL);
-  display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;
-}
+.prow-icon{width:42px;height:42px;border-radius:12px;background:var(--plumLL);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .prow-icon svg{width:20px;height:20px;}
 .prow-name{font-weight:500;font-size:14px;color:var(--text);margin-bottom:2px;}
 .prow-meta{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--muted);margin-bottom:5px;}
-.macro-pill{
-  background:var(--warm);border:1px solid var(--border);
-  border-radius:6px;padding:2px 7px;font-size:10px;color:var(--muted);
-}
-.qty-tag{
-  background:var(--plumL);border:1px solid var(--plum3)33;
-  border-radius:8px;padding:3px 9px;font-size:12px;
-  color:var(--plum2);font-weight:500;white-space:nowrap;
-}
-.btn-use{
-  background:var(--sageL);border:1px solid var(--sage)55;
-  border-radius:8px;padding:5px 11px;color:var(--sage);
-  font-size:12px;font-weight:500;cursor:pointer;
-  font-family:'DM Sans',system-ui,sans-serif;
-}
-.btn-del{
-  background:none;border:1px solid var(--border);
-  border-radius:8px;padding:5px 9px;color:var(--muted2);
-  font-size:12px;cursor:pointer;
-}
-
-/* ── RESULT CARD ── */
-.result-card{
-  background:var(--card);
-  border:1px solid var(--plum3)44;
-  border-radius:18px;padding:16px;
-  margin-bottom:14px;
-  box-shadow:0 3px 16px rgba(107,47,160,.1);
-  animation:fadeUp .2s ease;
-}
-.result-icon{
-  width:50px;height:50px;border-radius:14px;
-  background:var(--plumLL);
-  display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;
-}
+.macro-pill{background:var(--warm);border:1px solid var(--border);border-radius:6px;padding:2px 7px;font-size:10px;color:var(--muted);}
+.qty-tag{background:var(--plumL);border:1px solid var(--plum3)33;border-radius:8px;padding:3px 9px;font-size:12px;color:var(--plum2);font-weight:500;white-space:nowrap;}
+.btn-use{background:var(--sageL);border:1px solid var(--sage)55;border-radius:8px;padding:5px 11px;color:var(--sage);font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;}
+.btn-del{background:none;border:1px solid var(--border);border-radius:8px;padding:5px 9px;color:var(--muted2);font-size:12px;cursor:pointer;}
+.result-card{background:var(--card);border:1px solid var(--plum3)44;border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:0 3px 16px rgba(107,47,160,.1);animation:fadeUp .2s ease;}
+.result-icon{width:50px;height:50px;border-radius:14px;background:var(--plumLL);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .result-icon svg{width:24px;height:24px;}
 .macro-grid{display:flex;gap:8px;margin-bottom:14px;}
-.macro-box{
-  flex:1;background:var(--warm);border:1px solid var(--border);
-  border-radius:10px;padding:9px 6px;text-align:center;
-}
+.macro-box{flex:1;background:var(--warm);border:1px solid var(--border);border-radius:10px;padding:9px 6px;text-align:center;}
 .macro-val{font-weight:500;font-size:15px;color:var(--plum2);}
 .macro-lbl{font-size:10px;color:var(--muted);margin-top:2px;}
 .qty-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-.qty-btn{
-  width:38px;height:38px;
-  background:var(--warm);border:1px solid var(--border);border-radius:10px;
-  color:var(--text);font-size:20px;font-weight:300;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:background .12s;
-}
+.qty-btn{width:38px;height:38px;background:var(--warm);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:20px;font-weight:300;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s;}
 .qty-btn:hover{background:var(--plumLL);}
 .qty-num{font-size:20px;font-weight:500;min-width:32px;text-align:center;color:var(--plum);}
-
-/* ── ALERT ── */
-.alert{
-  background:#fef7ed;border:1px solid #e8c97066;
-  border-radius:12px;padding:12px 14px;
-  margin-bottom:14px;font-size:13px;color:#8a5a0a;
-}
-
-/* ── STAT ROW ── */
+.alert{background:#fef7ed;border:1px solid #e8c97066;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:#8a5a0a;}
 .stat-row{display:flex;gap:8px;margin-bottom:20px;}
-.stat-pill{
-  background:var(--plumLL);border:1px solid var(--plum3)22;
-  border-radius:20px;padding:5px 13px;
-  font-size:12px;color:var(--plum);
-}
-
-/* ── BMR CARD ── */
-.bmr-card{
-  background:var(--plumL);
-  border:1px solid var(--plum3)33;
-  border-radius:18px;padding:18px;margin-bottom:14px;
-}
+.stat-pill{background:var(--plumLL);border:1px solid var(--plum3)22;border-radius:20px;padding:5px 13px;font-size:12px;color:var(--plum);}
+.bmr-card{background:var(--plumL);border:1px solid var(--plum3)33;border-radius:18px;padding:18px;margin-bottom:14px;}
 .bmr-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
-.bmr-val{
-  font-family:'Cormorant Garamond',Georgia,serif;
-  font-size:32px;font-weight:600;color:var(--plum);line-height:1;
-}
+.bmr-val{font-family:'Cormorant Garamond',Georgia,serif;font-size:32px;font-weight:600;color:var(--plum);line-height:1;}
 .bmr-unit{font-size:14px;font-weight:400;color:var(--muted);}
-.macro-target-row{
-  display:flex;border:1px solid var(--border2);
-  border-radius:12px;overflow:hidden;margin-bottom:12px;
-  background:var(--card);
-}
+.macro-target-row{display:flex;border:1px solid var(--border2);border-radius:12px;overflow:hidden;margin-bottom:12px;background:var(--card);}
 .macro-target-cell{flex:1;padding:11px 6px;text-align:center;}
 .macro-target-cell+.macro-target-cell{border-left:1px solid var(--border2);}
 .mtv{font-weight:500;font-size:16px;margin-bottom:2px;}
 .mtl{font-size:10px;color:var(--muted);}
-
-/* ── ACTIVITY ROW ── */
-.act-row{
-  display:flex;align-items:center;gap:12px;
-  background:var(--warm);border:1px solid var(--border);border-radius:12px;
-  padding:11px 14px;cursor:pointer;width:100%;
-  font-family:'DM Sans',system-ui,sans-serif;margin-bottom:6px;
-  transition:all .15s;
-}
+.act-row{display:flex;align-items:center;gap:12px;background:var(--warm);border:1px solid var(--border);border-radius:12px;padding:11px 14px;cursor:pointer;width:100%;font-family:'DM Sans',system-ui,sans-serif;margin-bottom:6px;transition:all .15s;}
 .act-row.on{background:var(--plumLL);border-color:var(--plum3)55;}
-
-/* ── GOAL / PILL BTNS ── */
-.pill-btn{
-  background:var(--warm);border:1px solid var(--border);border-radius:20px;
-  padding:7px 16px;color:var(--muted);cursor:pointer;
-  font-family:'DM Sans',system-ui,sans-serif;font-size:13px;font-weight:400;
-  transition:all .15s;
-}
+.pill-btn{background:var(--warm);border:1px solid var(--border);border-radius:20px;padding:7px 16px;color:var(--muted);cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;font-size:13px;font-weight:400;transition:all .15s;}
 .pill-btn.on{background:var(--plumL);border-color:var(--plum3);color:var(--plum2);font-weight:500;}
-.goal-btn{
-  flex:1;background:var(--warm);border:1px solid var(--border);border-radius:12px;
-  padding:11px 6px;color:var(--muted);cursor:pointer;
-  font-family:'DM Sans',system-ui,sans-serif;font-size:13px;
-  transition:all .15s;
-}
+.goal-btn{flex:1;background:var(--warm);border:1px solid var(--border);border-radius:12px;padding:11px 6px;color:var(--muted);cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;font-size:13px;transition:all .15s;}
 .goal-btn.on{background:var(--plumL);border-color:var(--plum3);color:var(--plum2);font-weight:500;}
-
-/* ── WEIGHT CHART ── */
 .sparkline{display:flex;align-items:flex-end;gap:4px;height:56px;margin-bottom:14px;}
 .spark-bar{width:12px;border-radius:3px;transition:height .4s;}
 .spark-lbl{font-size:8px;color:var(--muted2);margin-top:3px;}
-
-/* ── MEALS ── */
-.btn-generate{
-  width:100%;
-  background:linear-gradient(135deg,var(--plum2),var(--plum));
-  border:none;border-radius:16px;padding:18px;
-  color:#fff;font-weight:500;
-  font-family:'Cormorant Garamond',Georgia,serif;
-  font-size:18px;letter-spacing:.2px;
-  cursor:pointer;margin-bottom:18px;
-  display:flex;align-items:center;justify-content:center;gap:10px;
-  box-shadow:0 6px 24px rgba(107,47,160,.32);
-  transition:opacity .15s;
-}
+.btn-generate{width:100%;background:linear-gradient(135deg,var(--plum2),var(--plum));border:none;border-radius:16px;padding:18px;color:#fff;font-weight:500;font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;letter-spacing:.2px;cursor:pointer;margin-bottom:18px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 6px 24px rgba(107,47,160,.32);transition:opacity .15s;}
 .btn-generate:disabled{opacity:.55;cursor:not-allowed;}
-.strat-card{
-  display:flex;gap:10px;align-items:flex-start;
-  background:var(--plumLL);border:1px solid var(--plum3)22;
-  border-radius:14px;padding:14px;margin-bottom:16px;
-  font-size:13px;line-height:1.6;color:var(--plum);
-}
-.day-btn{
-  flex-shrink:0;background:var(--card);border:1px solid var(--border);
-  border-radius:20px;padding:7px 15px;color:var(--muted);
-  cursor:pointer;font-size:13px;font-weight:400;
-  font-family:'DM Sans',system-ui,sans-serif;
-  transition:all .15s;
-}
+.strat-card{display:flex;gap:10px;align-items:flex-start;background:var(--plumLL);border:1px solid var(--plum3)22;border-radius:14px;padding:14px;margin-bottom:16px;font-size:13px;line-height:1.6;color:var(--plum);}
+.day-btn{flex-shrink:0;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:7px 15px;color:var(--muted);cursor:pointer;font-size:13px;font-weight:400;font-family:'DM Sans',system-ui,sans-serif;transition:all .15s;}
 .day-btn.on{background:var(--plumL);border-color:var(--plum3);color:var(--plum2);font-weight:500;}
 .day-totals{display:flex;gap:8px;margin-bottom:16px;}
-.day-total-cell{
-  flex:1;background:var(--card);border:1px solid var(--border);
-  border-radius:12px;padding:10px 6px;
-  display:flex;flex-direction:column;align-items:center;gap:3px;
-}
-.meal-card{
-  background:var(--card);border:1px solid var(--border);
-  border-radius:16px;padding:15px;margin-bottom:10px;
-  box-shadow:0 1px 4px rgba(74,26,110,.05);
-}
-.meal-type{
-  font-size:9px;font-weight:500;letter-spacing:2px;
-  text-transform:uppercase;color:var(--rose);margin-bottom:6px;
-}
-.meal-name{
-  font-family:'Cormorant Garamond',Georgia,serif;
-  font-size:18px;font-weight:500;color:var(--text);margin-bottom:5px;
-}
+.day-total-cell{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.meal-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:15px;margin-bottom:10px;box-shadow:0 1px 4px rgba(74,26,110,.05);}
+.meal-type{font-size:9px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:var(--rose);margin-bottom:6px;}
+.meal-name{font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:500;color:var(--text);margin-bottom:5px;}
 .meal-desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:8px;}
-.uses-chip{
-  background:var(--sageL);border:1px solid var(--sage)44;
-  border-radius:6px;padding:2px 8px;font-size:11px;color:var(--sage);
-}
+.uses-chip{background:var(--sageL);border:1px solid var(--sage)44;border-radius:6px;padding:2px 8px;font-size:11px;color:var(--sage);}
 .pantry-tag{font-size:11px;color:var(--muted);}
-
-/* ── SHOP ── */
-.store-btn{
-  flex:1;min-width:78px;background:var(--card);
-  border:1px solid var(--border);border-radius:11px;
-  padding:9px 8px;color:var(--muted);cursor:pointer;
-  font-family:'DM Sans',system-ui,sans-serif;font-size:12px;font-weight:400;
-  transition:all .15s;
-}
+.store-btn{flex:1;min-width:78px;background:var(--card);border:1px solid var(--border);border-radius:11px;padding:9px 8px;color:var(--muted);cursor:pointer;font-family:'DM Sans',system-ui,sans-serif;font-size:12px;font-weight:400;transition:all .15s;}
 .store-btn.on{background:var(--plumL);border-color:var(--plum3);color:var(--plum2);font-weight:500;}
-.shop-summary{
-  display:flex;background:var(--card);border:1px solid var(--border);
-  border-radius:14px;padding:16px;margin-bottom:16px;
-}
+.shop-summary{display:flex;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;}
 .sum-cell{flex:1;text-align:center;}
 .sum-val{font-size:22px;font-weight:500;color:var(--text);font-family:'Cormorant Garamond',Georgia,serif;}
 .sum-lbl{font-size:11px;color:var(--muted);margin-top:2px;}
-.shop-row{
-  display:flex;align-items:center;gap:12px;
-  background:var(--card);border:1px solid var(--border);
-  border-radius:13px;padding:12px 14px;cursor:pointer;
-  margin-bottom:7px;transition:opacity .2s;
-}
+.shop-row{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:13px;padding:12px 14px;cursor:pointer;margin-bottom:7px;transition:opacity .2s;}
 .shop-row.done{opacity:.4;}
-.check-ring{
-  width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border2);
-  flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  font-size:11px;font-weight:500;transition:all .18s;color:transparent;
-}
+.check-ring{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;transition:all .18s;color:transparent;}
 .check-ring.on{background:var(--sage);border-color:var(--sage);color:#fff;}
-.urgent-tag{
-  background:var(--roseL);border:1px solid var(--rose)44;
-  border-radius:6px;padding:2px 8px;font-size:10px;color:var(--rose);font-weight:500;
-}
-
-/* ── TOAST ── */
-.toast{
-  position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
-  background:var(--plum);
-  border-radius:14px;padding:12px 22px;
-  color:#fff;font-size:14px;font-weight:400;
-  z-index:999;white-space:nowrap;
-  box-shadow:0 8px 28px rgba(74,26,110,.4);
-  animation:fadeUp .25s ease;
-}
+.urgent-tag{background:var(--roseL);border:1px solid var(--rose)44;border-radius:6px;padding:2px 8px;font-size:10px;color:var(--rose);font-weight:500;}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--plum);border-radius:14px;padding:12px 22px;color:#fff;font-size:14px;font-weight:400;z-index:999;white-space:nowrap;box-shadow:0 8px 28px rgba(74,26,110,.4);animation:fadeUp .25s ease;}
 .toast.err{background:var(--red);}
-
-/* ── SPINNER ── */
-.spin{
-  width:16px;height:16px;border-radius:50%;
-  border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
-  animation:spin .7s linear infinite;display:inline-block;
-}
-
-/* ── MANUAL FORM ── */
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;animation:spin .7s linear infinite;display:inline-block;}
 .manual-form{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-
-/* ── EMPTY STATE ── */
-.empty{
-  text-align:center;padding:50px 20px;
-  color:var(--muted);font-size:14px;line-height:1.7;
-}
+.empty{text-align:center;padding:50px 20px;color:var(--muted);font-size:14px;line-height:1.7;}
 .empty-icon{margin-bottom:16px;opacity:.4;}
-
-/* ── ONBOARDING ── */
 .ob-wrap{min-height:100vh;display:flex;flex-direction:column;background:var(--cream);padding:0;}
-.ob-hero{
-  background:linear-gradient(160deg,var(--plumL) 0%,var(--blush) 100%);
-  padding:60px 28px 40px;text-align:center;
-}
-.ob-bloom{width:64px;height:64px;margin:0 auto 16px;}
+.ob-hero{background:linear-gradient(160deg,var(--plumL) 0%,var(--blush) 100%);padding:60px 28px 40px;text-align:center;}
 .ob-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:36px;font-weight:600;color:var(--plum);margin-bottom:6px;}
 .ob-sub{font-size:14px;color:var(--muted);line-height:1.6;}
 .ob-body{flex:1;padding:28px 20px;display:flex;flex-direction:column;gap:0;}
@@ -584,18 +187,15 @@ input[type=date]{color:var(--muted);}
 <script type="text/babel">
 const {useState,useEffect,useRef,useCallback} = React;
 
-/* ── SUPABASE ── */
-const SUPA_URL = "https://lefzeekulgswdezozhcm.supabase.co";
-const SUPA_KEY = "sb_publishable_0-JLi16Gc3MePWi_lrdMSA_ux_HD0ES";
-const supa = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+const SUPA_URL="https://lefzeekulgswdezozhcm.supabase.co";
+const SUPA_KEY="sb_publishable_0-JLi16Gc3MePWi_lrdMSA_ux_HD0ES";
+const supa=window.supabase.createClient(SUPA_URL,SUPA_KEY);
 
-/* ── DB (localStorage fallback) ── */
 const DB={
   get:(k,fb)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;}},
   set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
 };
 
-/* ── BMR ── */
 function calcBMR({weight,height,age,sex}){
   if(!weight||!height||!age)return 0;
   const w=weight*.453592,h=height*2.54;
@@ -603,10 +203,10 @@ function calcBMR({weight,height,age,sex}){
 }
 const ACT={
   sedentary:{label:"Sedentary",desc:"Desk job, little exercise",mult:1.2},
-  light:{label:"Lightly active",desc:"1–3 days/week",mult:1.375},
-  moderate:{label:"Moderately active",desc:"3–5 days/week",mult:1.55},
-  active:{label:"Very active",desc:"6–7 days/week",mult:1.725},
-  athlete:{label:"Athlete",desc:"2× training/day",mult:1.9},
+  light:{label:"Lightly active",desc:"1-3 days/week",mult:1.375},
+  moderate:{label:"Moderately active",desc:"3-5 days/week",mult:1.55},
+  active:{label:"Very active",desc:"6-7 days/week",mult:1.725},
+  athlete:{label:"Athlete",desc:"2x training/day",mult:1.9},
 };
 function calcMacros(tdee,diet,gt){
   const cal=Math.round(tdee+({lose:-500,maintain:0,gain:300}[gt]||0));
@@ -615,7 +215,6 @@ function calcMacros(tdee,diet,gt){
   return{calories:cal,protein:Math.round(cal*r.p/4),carbs:Math.round(cal*r.c/4),fat:Math.round(cal*r.f/9)};
 }
 
-/* ── DATA ── */
 const NOW=Date.now();
 const FD={
   "021130126026":{name:"Whole Milk (1 gal)",brand:"Lucerne",cal:150,pro:8,carb:12,fat:8,cat:"Dairy",perish:true,price:4.99},
@@ -636,15 +235,10 @@ const SP=[
   {id:"p6",...FD["041497014132"],qty:3,unit:"boxes",added:NOW,expiry:null,by:"Alex"},
   {id:"p7",...FD["038000138416"],qty:1,unit:"box",added:NOW-5*864e5,expiry:NOW+60*864e5,by:"Jordan"},
 ];
-const MBRS=[
-  {id:"u1",name:"Alex",color:"#9b72cf"},
-  {id:"u2",name:"Jordan",color:"#d4a0e8"},
-];
-const DG={weight:150,goalWeight:135,height:65,age:34,sex:"female",activity:"moderate",goalType:"lose",diet:"balanced",allergies:[],householdSize:2};
+const DG={weight:150,goalWeight:135,height:65,age:34,sex:"female",activity:"moderate",goalType:"lose",diet:"balanced",allergies:[],householdSize:2,meal_cuisines:[],meal_preferences:{}};
 const du=d=>d?Math.ceil((d-Date.now())/864e5):null;
 const uc=d=>d===null?null:d<=2?"#b5344a":d<=5?"#c2780a":d<=10?"#c9a227":"#7a9e6e";
 
-/* ── BARCODE LOOKUP ── */
 async function lookupBarcode(code){
   const loc=FD[code.trim()];
   if(loc)return{name:loc.name,brand:loc.brand,calories:loc.cal,protein:loc.pro,carbs:loc.carb,fat:loc.fat,category:loc.cat,perishable:loc.perish,price:loc.price};
@@ -659,32 +253,18 @@ async function lookupBarcode(code){
   return{name:`Product ${code.slice(-4)}`,brand:"",calories:0,protein:0,carbs:0,fat:0,category:"Other",perishable:false,price:0};
 }
 
-/* ── CLAUDE STREAM ── */
 async function streamClaude(sys,usr,cb){
-  // Calls our Netlify function proxy — keeps API key secret
   const res=await fetch("/api/claude",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
+    method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({system:sys,messages:[{role:"user",content:usr}]})
   });
-  if(!res.ok){
-    const err=await res.text();
-    throw new Error("API error: "+err);
-  }
+  if(!res.ok){const err=await res.text();throw new Error("API error: "+err);}
   const data=await res.json();
-  // Extract text from response content blocks
   if(data.content&&data.content.length>0){
-    for(const block of data.content){
-      if(block.type==="text"&&block.text){
-        cb(block.text);
-      }
-    }
-  } else if(data.error){
-    throw new Error(data.error.message||"Claude API error");
-  }
+    for(const block of data.content){if(block.type==="text"&&block.text)cb(block.text);}
+  }else if(data.error){throw new Error(data.error.message||"Claude API error");}
 }
 
-/* ── SVG ICONS (custom, no emoji) ── */
 const I={
   scan:(c="#8b4fc0")=><svg viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8V5a2 2 0 012-2h2M19 3h2a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M8 21H5a2 2 0 01-2-2v-3"/><line x1="7" y1="12" x2="17" y2="12"/></svg>,
   pantry:(c="#8b4fc0")=><svg viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>,
@@ -698,10 +278,8 @@ const I={
   snacks:(c="#d4537e")=><svg viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M7 8V6a5 5 0 0110 0v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>,
   other:(c="#b0a0be")=><svg viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="12" cy="12" r="3"/></svg>,
 };
-
 const CAT_ICON={Dairy:I.dairy,Meat:I.meat,Grains:I.grains,Produce:I.produce,Snacks:I.snacks,Breakfast:I.grains,Beverages:I.dairy,Frozen:I.other,Canned:I.other,Other:I.other};
 
-/* ── BLOOM LOGO SVG ── */
 const BloomLogo=()=>(
   <svg className="logo-bloom" viewBox="0 0 34 34" fill="none">
     <ellipse cx="17" cy="6" rx="5" ry="8" fill="#e8a4c8" opacity=".9"/>
@@ -714,28 +292,21 @@ const BloomLogo=()=>(
   </svg>
 );
 
-/* ── AUTH SCREEN ── */
-function AuthScreen({onAuth}){
+/* AUTH */
+function AuthScreen(){
   const[mode,setMode]=useState("login");
   const[email,setEmail]=useState("");
   const[pass,setPass]=useState("");
   const[loading,setLoading]=useState(false);
   const[err,setErr]=useState("");
-
   const submit=async()=>{
     setErr("");setLoading(true);
     try{
-      if(mode==="login"){
-        const{error}=await supa.auth.signInWithPassword({email,password:pass});
-        if(error)throw error;
-      } else {
-        const{error}=await supa.auth.signUp({email,password:pass});
-        if(error)throw error;
-      }
+      if(mode==="login"){const{error}=await supa.auth.signInWithPassword({email,password:pass});if(error)throw error;}
+      else{const{error}=await supa.auth.signUp({email,password:pass});if(error)throw error;}
     }catch(e){setErr(e.message);}
     setLoading(false);
   };
-
   return(
     <div className="auth-wrap">
       <div style={{textAlign:"center",marginBottom:28}}>
@@ -749,19 +320,14 @@ function AuthScreen({onAuth}){
         {err&&<div className="auth-err">{err}</div>}
         <div className="ob-field"><label className="ob-label">Email</label><input className="ob-input" type="email" placeholder="you@email.com" value={email} onChange={e=>setEmail(e.target.value)}/></div>
         <div className="ob-field"><label className="ob-label">Password</label><input className="ob-input" type="password" placeholder="••••••••" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()}/></div>
-        <button className="ob-next" onClick={submit} disabled={loading||!email||!pass}>
-          {loading?<span className="spin"/>:mode==="login"?"Sign in":"Create account"}
-        </button>
-        <div className="auth-switch">
-          {mode==="login"?"Don't have an account? ":"Already have an account? "}
-          <span onClick={()=>{setMode(mode==="login"?"signup":"login");setErr("");}}>{mode==="login"?"Sign up":"Sign in"}</span>
-        </div>
+        <button className="ob-next" onClick={submit} disabled={loading||!email||!pass}>{loading?<span className="spin"/>:mode==="login"?"Sign in":"Create account"}</button>
+        <div className="auth-switch">{mode==="login"?"Don't have an account? ":"Already have an account? "}<span onClick={()=>{setMode(mode==="login"?"signup":"login");setErr("");}}>{mode==="login"?"Sign up":"Sign in"}</span></div>
       </div>
     </div>
   );
 }
 
-/* ── ONBOARDING ── */
+/* ONBOARDING */
 const CUISINES=["Italian","Mexican","Asian","Mediterranean","American","Indian","Middle Eastern","Greek","Japanese","Thai","French","Healthy"];
 const MEAL_TYPES=["Breakfast","Quick Breakfast","Lunch","Meal Prep Lunch","Dinner","Quick Dinner","Snack","Smoothie"];
 
@@ -781,54 +347,44 @@ function Onboarding({user,onComplete}){
   const finish=async()=>{
     setLoading(true);
     try{
-      // Get or create household for this user
+      // Get or create household
       let hid=null;
-      const{data:existingProfile}=await supa.from("profiles").select("household_id").eq("id",user.id).single();
-      
-      if(existingProfile?.household_id){
-        hid=existingProfile.household_id;
-      } else {
-        // Create household if trigger didn't do it
-        const{data:newHousehold}=await supa.from("households").insert({name:`${name}'s Household`}).select().single();
-        hid=newHousehold?.id;
+      const{data:ep}=await supa.from("profiles").select("household_id").eq("id",user.id).maybeSingle();
+      if(ep?.household_id){
+        hid=ep.household_id;
+      }else{
+        const{data:nh}=await supa.from("households").insert({name:`${name}'s Household`}).select().single();
+        hid=nh?.id;
       }
+      // Save profile — onboarding_complete:true is the key flag
+      const{error:pe}=await supa.from("profiles").upsert({
+        id:user.id,household_id:hid,name:name,role:"owner",onboarding_complete:true
+      },{onConflict:"id"});
+      if(pe)console.error("Profile save error:",pe);
 
-      // Upsert profile with name — this is the key flag that marks onboarding complete
-      await supa.from("profiles").upsert({
-  id:user.id,household_id:hid,name:name,role:"owner",onboarding_complete:true
-},{onConflict:"id"});
       // Save goals
-      await supa.from("goals").upsert({
-        user_id:user.id,
-        household_id:hid,
-        weight:g.weight,
-        goal_weight:g.goalWeight,
-        height:g.height,
-        age:g.age,
-        sex:g.sex,
-        activity:g.activity,
-        goal_type:g.goalType,
-        diet:g.diet,
-        allergies:g.allergies,
-        household_size:g.householdSize,
-        meal_cuisines:cuisines,
-        meal_preferences:mealPrefs,
+      const{error:ge}=await supa.from("goals").upsert({
+        user_id:user.id,household_id:hid,
+        weight:g.weight||0,goal_weight:g.goalWeight||0,
+        height:g.height||0,age:g.age||0,
+        sex:g.sex||"female",activity:g.activity||"moderate",
+        goal_type:g.goalType||"lose",diet:g.diet||"balanced",
+        allergies:g.allergies||[],household_size:g.householdSize||1,
+        meal_cuisines:cuisines||[],meal_preferences:mealPrefs||{},
         updated_at:new Date().toISOString()
-      },{onConflict:"user_id"});
+      },{onConflict:"user_id",ignoreDuplicates:false});
+      if(ge)console.error("Goals save error:",ge);
 
-     localStorage.setItem("nq_onboarded_"+user.id,"true");
       onComplete({...g,name,meal_cuisines:cuisines,meal_preferences:mealPrefs});
     }catch(e){
       console.error("Onboarding error:",e);
-      localStorage.setItem("nq_onboarded_"+user.id,"true");
+      // Let them in even if DB save failed
       onComplete({...g,name,meal_cuisines:cuisines,meal_preferences:mealPrefs});
     }
     setLoading(false);
   };
-    
 
   const steps=[
-    /* STEP 0 — Welcome */
     <div key={0} className="ob-body">
       <div className="ob-step">Step 1 of 4 — About you</div>
       <div className="ob-progress">{[0,1,2,3].map(i=><div key={i} className={`ob-dot${i<=0?" on":""}`}/>)}</div>
@@ -841,12 +397,12 @@ function Onboarding({user,onComplete}){
       </div>
       <div className="ob-field"><label className="ob-label">Biological sex</label>
         <div style={{display:"flex",gap:8}}>
-          {["female","male"].map(s=><button key={s} className={`ob-sel-btn${g.sex===s?" on":""}`} onClick={()=>up("sex",s)}>{s==="female"?"♀ Female":"♂ Male"}</button>)}
+          {["female","male"].map(s=><button key={s} className={`ob-sel-btn${g.sex===s?" on":""}`} onClick={()=>up("sex",s)}>{s==="female"?"Female":"Male"}</button>)}
         </div>
       </div>
       <div className="ob-field"><label className="ob-label">Household size</label>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
-          <button className="qty-btn" onClick={()=>up("householdSize",Math.max(1,g.householdSize-1))}>−</button>
+          <button className="qty-btn" onClick={()=>up("householdSize",Math.max(1,g.householdSize-1))}>-</button>
           <span style={{fontSize:22,fontWeight:500,color:"var(--plum)",minWidth:28,textAlign:"center"}}>{g.householdSize}</span>
           <button className="qty-btn" onClick={()=>up("householdSize",g.householdSize+1)}>+</button>
           <span style={{fontSize:13,color:"var(--muted)"}}>people</span>
@@ -855,7 +411,6 @@ function Onboarding({user,onComplete}){
       <button className="ob-next" onClick={()=>setStep(1)} disabled={!name||!g.weight||!g.height||!g.age}>Continue</button>
     </div>,
 
-    /* STEP 1 — Goals & Activity */
     <div key={1} className="ob-body">
       <div className="ob-step">Step 2 of 4 — Your goals</div>
       <div className="ob-progress">{[0,1,2,3].map(i=><div key={i} className={`ob-dot${i<=1?" on":""}`}/>)}</div>
@@ -865,43 +420,41 @@ function Onboarding({user,onComplete}){
       </div>}
       <div className="ob-field"><label className="ob-label">Goal</label>
         <div style={{display:"flex",gap:8}}>
-          {[["lose","🔽 Lose"],["maintain","⚖️ Maintain"],["gain","🔼 Gain"]].map(([k,l])=><button key={k} className={`ob-sel-btn${g.goalType===k?" on":""}`} onClick={()=>up("goalType",k)}>{l}</button>)}
+          {[["lose","Lose"],["maintain","Maintain"],["gain","Gain"]].map(([k,l])=><button key={k} className={`ob-sel-btn${g.goalType===k?" on":""}`} onClick={()=>up("goalType",k)}>{l}</button>)}
         </div>
       </div>
       <div className="ob-field"><label className="ob-label">Activity level</label>
         {Object.entries(ACT).map(([k,a])=><button key={k} className={`act-row${g.activity===k?" on":""}`} onClick={()=>up("activity",k)}>
           <div style={{fontWeight:500,fontSize:13,flex:1,textAlign:"left"}}>{a.label}</div>
           <div style={{fontSize:12,color:"var(--muted)",flex:2,textAlign:"left"}}>{a.desc}</div>
-          <div style={{fontSize:12,fontWeight:500,color:g.activity===k?"var(--plum2)":"var(--muted2)"}}>×{a.mult}</div>
+          <div style={{fontSize:12,fontWeight:500,color:g.activity===k?"var(--plum2)":"var(--muted2)"}}>x{a.mult}</div>
         </button>)}
       </div>
       <div style={{display:"flex",gap:8,marginTop:8}}>
-        <button className="ob-back" onClick={()=>setStep(0)}>← Back</button>
+        <button className="ob-back" onClick={()=>setStep(0)}>Back</button>
         <button className="ob-next" onClick={()=>setStep(2)}>Continue</button>
       </div>
     </div>,
 
-    /* STEP 2 — Diet & Allergies */
     <div key={2} className="ob-body">
-      <div className="ob-step">Step 3 of 4 — Diet & allergies</div>
+      <div className="ob-step">Step 3 of 4 — Diet and allergies</div>
       <div className="ob-progress">{[0,1,2,3].map(i=><div key={i} className={`ob-dot${i<=2?" on":""}`}/>)}</div>
       <div className="ob-field"><label className="ob-label">Diet style</label>
         <div className="ob-sel-grid">
           {["balanced","keto","high-protein","low-carb","vegan","vegetarian","mediterranean","paleo"].map(d=><button key={d} className={`ob-sel-btn${g.diet===d?" on":""}`} onClick={()=>up("diet",d)}>{d}</button>)}
         </div>
       </div>
-      <div className="ob-field"><label className="ob-label">Allergies & intolerances</label>
+      <div className="ob-field"><label className="ob-label">Allergies</label>
         <div className="ob-sel-grid">
           {["gluten","dairy","nuts","shellfish","eggs","soy","fish","sesame"].map(a=><button key={a} className={`ob-sel-btn${g.allergies.includes(a)?" on":""}`} onClick={()=>up("allergies",g.allergies.includes(a)?g.allergies.filter(x=>x!==a):[...g.allergies,a])}>{a}</button>)}
         </div>
       </div>
       <div style={{display:"flex",gap:8,marginTop:8}}>
-        <button className="ob-back" onClick={()=>setStep(1)}>← Back</button>
+        <button className="ob-back" onClick={()=>setStep(1)}>Back</button>
         <button className="ob-next" onClick={()=>setStep(3)}>Continue</button>
       </div>
     </div>,
 
-    /* STEP 3 — Meal Preferences */
     <div key={3} className="ob-body">
       <div className="ob-step">Step 4 of 4 — Meal preferences</div>
       <div className="ob-progress">{[0,1,2,3].map(i=><div key={i} className={`ob-dot${i<=3?" on":""}`}/>)}</div>
@@ -910,15 +463,15 @@ function Onboarding({user,onComplete}){
           {CUISINES.map(c=><button key={c} className={`ob-sel-btn${cuisines.includes(c)?" on":""}`} onClick={()=>toggleCuisine(c)}>{c}</button>)}
         </div>
       </div>
-      <div className="ob-field"><label className="ob-label">Which meals do you want planned? Tap to add, set how many per week.</label>
+      <div className="ob-field"><label className="ob-label">Meals per week — tap to add, set count</label>
         <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:8}}>
           {MEAL_TYPES.map(t=>(
             <div key={t} style={{display:"flex",alignItems:"center",gap:10}}>
               <button className={`ob-sel-btn${mealPrefs[t]?" on":""}`} style={{flex:1,textAlign:"left"}} onClick={()=>toggleMealType(t)}>{t}</button>
               {mealPrefs[t]&&<div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                <button className="qty-btn" onClick={()=>setMealCount(t,mealPrefs[t]-1)}>−</button>
+                <button className="qty-btn" style={{width:30,height:30,fontSize:16}} onClick={()=>setMealCount(t,mealPrefs[t]-1)}>-</button>
                 <span style={{fontSize:15,fontWeight:500,color:"var(--plum)",minWidth:20,textAlign:"center"}}>{mealPrefs[t]}</span>
-                <button className="qty-btn" onClick={()=>setMealCount(t,mealPrefs[t]+1)}>+</button>
+                <button className="qty-btn" style={{width:30,height:30,fontSize:16}} onClick={()=>setMealCount(t,mealPrefs[t]+1)}>+</button>
                 <span style={{fontSize:11,color:"var(--muted)"}}>/ wk</span>
               </div>}
             </div>
@@ -926,9 +479,9 @@ function Onboarding({user,onComplete}){
         </div>
       </div>
       <div style={{display:"flex",gap:8,marginTop:8}}>
-        <button className="ob-back" onClick={()=>setStep(2)}>← Back</button>
+        <button className="ob-back" onClick={()=>setStep(2)}>Back</button>
         <button className="ob-next" onClick={finish} disabled={loading||Object.keys(mealPrefs).length===0}>
-          {loading?<span className="spin"/>:"Let's get cooking →"}
+          {loading?<span className="spin"/>:"Let's get cooking"}
         </button>
       </div>
     </div>,
@@ -946,7 +499,7 @@ function Onboarding({user,onComplete}){
   );
 }
 
-/* ── ROOT APP ── */
+/* ROOT APP */
 function App(){
   const[session,setSession]=useState(undefined);
   const[profile,setProfile]=useState(null);
@@ -972,31 +525,11 @@ function App(){
     return()=>subscription.unsubscribe();
   },[]);
 
+  // ── CLEAN loadProfile — single source of truth: onboarding_complete in DB ──
   const loadProfile=async(uid)=>{
-    // Check localStorage flag first — skips onboarding check on every navigation
-     const{data,error}=await supa.from("profiles").select("*").eq("id",uid).maybeSingle();
-if(!data||!data.onboarding_complete){
-  setNeedsOnboard(true);
-  return;
-}
-    if(onboarded==="true"){
-      // Double-check goals exist in DB — if not, still show onboarding
-      const{data:checkGoals}=await supa.from("goals").select("id").eq("user_id",uid).maybeSingle();
-      if(!checkGoals){
-        localStorage.removeItem("nq_onboarded_"+uid);
-        setNeedsOnboard(true);
-        return;
-      }
-      const{data}=await supa.from("profiles").select("*").eq("id",uid).maybeSingle();
-      if(data)setProfile(data);
-      const{data:g}=await supa.from("goals").select("*").eq("user_id",uid).maybeSingle();
-      if(g){setGoals({weight:g.weight,goalWeight:g.goal_weight,height:g.height,age:g.age,sex:g.sex,activity:g.activity,goalType:g.goal_type,diet:g.diet,allergies:g.allergies||[],householdSize:g.household_size,meal_cuisines:g.meal_cuisines||[],meal_preferences:g.meal_preferences||{}});}
-      if(data?.household_id)loadPantry(data.household_id);
-      loadWeights(uid);
-      return;
-    }
     const{data,error}=await supa.from("profiles").select("*").eq("id",uid).maybeSingle();
-    if(!data||!data.name){
+    if(error)console.error("loadProfile error:",error);
+    if(!data||!data.onboarding_complete){
       setNeedsOnboard(true);
       return;
     }
@@ -1004,18 +537,10 @@ if(!data||!data.onboarding_complete){
     const{data:g}=await supa.from("goals").select("*").eq("user_id",uid).maybeSingle();
     if(g){
       setGoals({
-        weight:g.weight,
-        goalWeight:g.goal_weight,
-        height:g.height,
-        age:g.age,
-        sex:g.sex,
-        activity:g.activity,
-        goalType:g.goal_type,
-        diet:g.diet,
-        allergies:g.allergies||[],
-        householdSize:g.household_size,
-        meal_cuisines:g.meal_cuisines||[],
-        meal_preferences:g.meal_preferences||{}
+        weight:g.weight,goalWeight:g.goal_weight,height:g.height,age:g.age,
+        sex:g.sex,activity:g.activity,goalType:g.goal_type,diet:g.diet,
+        allergies:g.allergies||[],householdSize:g.household_size,
+        meal_cuisines:g.meal_cuisines||[],meal_preferences:g.meal_preferences||{}
       });
     }
     if(data.household_id)loadPantry(data.household_id);
@@ -1036,20 +561,11 @@ if(!data||!data.onboarding_complete){
     if(!session)return;
     const{data:prof}=await supa.from("profiles").select("household_id").eq("id",session.user.id).maybeSingle();
     const{error}=await supa.from("goals").upsert({
-      user_id:session.user.id,
-      household_id:prof?.household_id,
-      weight:g.weight||0,
-      goal_weight:g.goalWeight||0,
-      height:g.height||0,
-      age:g.age||0,
-      sex:g.sex||"female",
-      activity:g.activity||"moderate",
-      goal_type:g.goalType||"lose",
-      diet:g.diet||"balanced",
-      allergies:g.allergies||[],
-      household_size:g.householdSize||1,
-      meal_cuisines:g.meal_cuisines||[],
-      meal_preferences:g.meal_preferences||{},
+      user_id:session.user.id,household_id:prof?.household_id,
+      weight:g.weight||0,goal_weight:g.goalWeight||0,height:g.height||0,age:g.age||0,
+      sex:g.sex||"female",activity:g.activity||"moderate",goal_type:g.goalType||"lose",
+      diet:g.diet||"balanced",allergies:g.allergies||[],household_size:g.householdSize||1,
+      meal_cuisines:g.meal_cuisines||[],meal_preferences:g.meal_preferences||{},
       updated_at:new Date().toISOString()
     },{onConflict:"user_id",ignoreDuplicates:false});
     if(error)console.error("saveGoals error:",error);
@@ -1057,23 +573,14 @@ if(!data||!data.onboarding_complete){
 
   const savePantryItem=async(item)=>{
     if(!session)return item;
-    const{data:prof}=await supa.from("profiles").select("household_id").eq("id",session.user.id).single();
+    const{data:prof}=await supa.from("profiles").select("household_id").eq("id",session.user.id).maybeSingle();
     const{data}=await supa.from("pantry_items").insert({household_id:prof?.household_id,name:item.name,brand:item.brand,calories:item.calories,protein:item.protein,carbs:item.carbs,fat:item.fat,category:item.category,perishable:item.perishable,price:item.price||0,qty:item.qty,unit:item.unit,expiry:item.expiry?new Date(item.expiry).toISOString():null,added_by:item.by||"Me"}).select().single();
     return data?{...item,id:data.id}:item;
   };
 
-  const deletePantryItem=async(id)=>{
-    if(session)await supa.from("pantry_items").delete().eq("id",id);
-  };
-
-  const updatePantryQty=async(id,qty)=>{
-    if(session)await supa.from("pantry_items").update({qty}).eq("id",id);
-  };
-
-  const logWeight=async(w,date)=>{
-    if(!session)return;
-    await supa.from("weight_logs").insert({user_id:session.user.id,weight:w,logged_at:date});
-  };
+  const deletePantryItem=async(id)=>{if(session)await supa.from("pantry_items").delete().eq("id",id);};
+  const updatePantryQty=async(id,qty)=>{if(session)await supa.from("pantry_items").update({qty}).eq("id",id);};
+  const logWeight=async(w,date)=>{if(!session)return;await supa.from("weight_logs").insert({user_id:session.user.id,weight:w,logged_at:date});};
 
   useEffect(()=>DB.set("nq_p",pantry),[pantry]);
   useEffect(()=>DB.set("nq_g",goals),[goals]);
@@ -1084,7 +591,6 @@ if(!data||!data.onboarding_complete){
   const exp=pantry.filter(i=>{const d=du(i.expiry);return d!==null&&d<=5;});
   const bmr=calcBMR(goals),tdee=Math.round(bmr*(ACT[goals.activity]?.mult||1.55)),macros=calcMacros(tdee,goals.diet,goals.goalType);
   const userName=profile?.name||session?.user?.email?.split("@")[0]||"";
-
   const TABS=[
     {id:"scan",label:"Scan",icon:(on)=>I.scan(on?"#4a1a6e":"#c0b0d0")},
     {id:"pantry",label:"Pantry",icon:(on)=>I.pantry(on?"#4a1a6e":"#c0b0d0")},
@@ -1093,40 +599,30 @@ if(!data||!data.onboarding_complete){
     {id:"goals",label:"Goals",icon:(on)=>I.goals(on?"#4a1a6e":"#c0b0d0")},
   ];
 
-  // Loading
   if(session===undefined)return(
     <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--cream)"}}>
-      <div style={{textAlign:"center"}}><BloomLogo/><div style={{marginTop:12,color:"var(--muted)",fontSize:14}}>Loading…</div></div>
+      <div style={{textAlign:"center"}}><BloomLogo/><div style={{marginTop:12,color:"var(--muted)",fontSize:14}}>Loading...</div></div>
     </div>
   );
 
-  // Not logged in
-  if(!session)return <AuthScreen onAuth={()=>{}}/>;
+  if(!session)return <AuthScreen/>;
 
-  // Needs onboarding
-  if(needsOnboard)return <Onboarding user={session.user} onComplete={async(g)=>{
-    console.log("onComplete called, setting needsOnboard=false");
-  setGoals(g);
-setNeedsOnboard(false);
-    // Don't reload profile - that re-triggers onboarding check
-  }}/>;
+  if(needsOnboard)return <Onboarding user={session.user} onComplete={g=>{setGoals(g);setNeedsOnboard(false);}}/>;
 
   return(
     <div>
       <div className="hdr">
         <div className="hdr-logo">
           <BloomLogo/>
-          <div className="logo-text-wrap">
+          <div>
             <div className="logo-name">Nutriq</div>
             <div className="logo-tag">Feed your family better, without the mental math.</div>
           </div>
         </div>
         <div className="hdr-right">
           {exp.length>0&&<div className="expiry-chip"><span className="expiry-dot"/>{exp.length} expiring</div>}
-          <div style={{display:"flex",alignItems:"center",gap:6}}>
-            <div style={{width:28,height:28,borderRadius:"50%",background:"var(--plumL)",border:"1.5px solid var(--plum3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,color:"var(--plum2)",cursor:"pointer"}} onClick={()=>{supa.auth.signOut();}} title="Sign out">
-              {userName[0]?.toUpperCase()||"?"}
-            </div>
+          <div style={{width:28,height:28,borderRadius:"50%",background:"var(--plumL)",border:"1.5px solid var(--plum3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,color:"var(--plum2)",cursor:"pointer"}} onClick={()=>supa.auth.signOut()} title="Sign out">
+            {userName[0]?.toUpperCase()||"?"}
           </div>
         </div>
       </div>
@@ -1146,7 +642,7 @@ setNeedsOnboard(false);
   );
 }
 
-/* ── SCANNER ── */
+/* SCANNER */
 function ScannerTab({pantry,setPantry,savePantryItem,deletePantryItem,updatePantryQty,notify}){
   const[mode,setMode]=useState("add");
   const[scanning,setScanning]=useState(false);
@@ -1173,58 +669,36 @@ function ScannerTab({pantry,setPantry,savePantryItem,deletePantryItem,updatePant
   },[]);
 
   const startCamera=useCallback(async()=>{
-    setCamErr("");setScanStatus("Opening camera…");setScanning(true);
-    scanningRef.current=true;
+    setCamErr("");setScanStatus("Opening camera...");setScanning(true);scanningRef.current=true;
     try{
-      const stream=await navigator.mediaDevices.getUserMedia({
-        audio:false,
-        video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},
-      });
+      const stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}}});
       streamRef.current=stream;
       const vid=videoRef.current;
-      vid.srcObject=stream;
-      vid.setAttribute("playsinline","");
-      vid.muted=true;
+      vid.srcObject=stream;vid.setAttribute("playsinline","");vid.muted=true;
       await vid.play();
       setScanStatus("Point camera at a barcode");
-
-      // Use zxing-wasm to decode frames from a canvas
       const canvas=document.createElement("canvas");
       const ctx=canvas.getContext("2d",{willReadFrequently:true});
       let frameN=0;
-
       const tick=async()=>{
         if(!scanningRef.current)return;
         frameN++;
-        // Scan every 10th frame ~6fps — good balance of speed vs battery
         if(frameN%10===0&&vid.readyState>=2&&vid.videoWidth>0){
-          canvas.width=vid.videoWidth;
-          canvas.height=vid.videoHeight;
-          ctx.drawImage(vid,0,0);
+          canvas.width=vid.videoWidth;canvas.height=vid.videoHeight;ctx.drawImage(vid,0,0);
           try{
             const blob=await new Promise(res=>canvas.toBlob(res,"image/jpeg",0.8));
             if(blob&&window.ZXingWASM){
-              const results=await window.ZXingWASM.readBarcodes(blob,{
-                formats:["EAN-13","EAN-8","UPC-A","UPC-E","Code128","Code39","QRCode"],
-                tryHarder:true,
-              });
-              if(results&&results.length>0&&results[0].text){
-                const txt=results[0].text;
-                stopCamera();
-                setCode(txt);
-                doLookup(txt);
-                return;
-              }
+              const results=await window.ZXingWASM.readBarcodes(blob,{formats:["EAN-13","EAN-8","UPC-A","UPC-E","Code128","Code39","QRCode"],tryHarder:true});
+              if(results&&results.length>0&&results[0].text){const txt=results[0].text;stopCamera();setCode(txt);doLookup(txt);return;}
             }
           }catch(e){}
         }
         rafRef.current=requestAnimationFrame(tick);
       };
       rafRef.current=requestAnimationFrame(tick);
-
     }catch(err){
       setScanning(false);scanningRef.current=false;
-      if(err.name==="NotAllowedError")setCamErr("Camera permission denied. In Safari: Settings → Safari → Camera → Allow.");
+      if(err.name==="NotAllowedError")setCamErr("Camera permission denied. In Safari: Settings > Safari > Camera > Allow.");
       else if(err.name==="NotFoundError")setCamErr("No camera found on this device.");
       else setCamErr("Camera error: "+err.message);
     }
@@ -1244,13 +718,13 @@ function ScannerTab({pantry,setPantry,savePantryItem,deletePantryItem,updatePant
     if(!item)return;
     if(mode==="add"){
       const ex=pantry.find(p=>p.name===item.name);
-      if(ex){setPantry(p=>p.map(i=>i.id===ex.id?{...i,qty:i.qty+qty}:i));notify(`✓ Updated: ${item.name}`);}
-      else{setPantry(p=>[...p,{id:Date.now()+"", ...item,qty,unit,added:Date.now(),expiry:expiry?new Date(expiry).getTime():null,by:"Alex"}]);notify(`✓ Added: ${item.name}`);}
+      if(ex){setPantry(p=>p.map(i=>i.id===ex.id?{...i,qty:i.qty+qty}:i));notify("Updated: "+item.name);}
+      else{setPantry(p=>[...p,{id:Date.now()+"", ...item,qty,unit,added:Date.now(),expiry:expiry?new Date(expiry).getTime():null,by:"Me"}]);notify("Added: "+item.name);}
     }else{
       const ex=pantry.find(p=>p.name===item.name);
       if(!ex){notify("Not in pantry","err");return;}
       setPantry(p=>p.map(i=>i.id===ex.id?{...i,qty:Math.max(0,i.qty-qty)}:i).filter(i=>i.qty>0));
-      notify(`✓ Used: ${item.name}`);
+      notify("Used: "+item.name);
     }
     setResult(null);setCode("");setExpiry("");setQty(1);
   };
@@ -1259,13 +733,10 @@ function ScannerTab({pantry,setPantry,savePantryItem,deletePantryItem,updatePant
     <div className="page">
       <div className="page-label">Scanner</div>
       <h1 className="page-title">Add or use items</h1>
-
       <div className="seg">
         <button className={`seg-btn${mode==="add"?" on":""}`} onClick={()=>setMode("add")}>+ Add to pantry</button>
-        <button className={`seg-btn red${mode==="use"?" on":""}`} onClick={()=>setMode("use")}>− Mark as used</button>
+        <button className={`seg-btn red${mode==="use"?" on":""}`} onClick={()=>setMode("use")}>- Mark as used</button>
       </div>
-
-      {/* CAMERA */}
       <div className="vf">
         {scanning?(
           <>
@@ -1280,39 +751,28 @@ function ScannerTab({pantry,setPantry,savePantryItem,deletePantryItem,updatePant
               </div>
               <div className="vf-hint">{scanStatus}</div>
             </div>
-            <button className="vf-stop" onClick={stopCamera}>✕ Stop</button>
+            <button className="vf-stop" onClick={stopCamera}>X Stop</button>
           </>
         ):(
           <div className="vf-placeholder">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6b2f9a66" strokeWidth="1.5" strokeLinecap="round"><path d="M3 8V5a2 2 0 012-2h2M19 3h2a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M8 21H5a2 2 0 01-2-2v-3"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
-            <button className="btn-full" style={{width:"auto",padding:"13px 28px",fontSize:15}} onClick={startCamera}>
-              Tap to scan barcode
-            </button>
+            <button className="btn-full" style={{width:"auto",padding:"13px 28px",fontSize:15}} onClick={startCamera}>Tap to scan barcode</button>
             {camErr&&<p style={{fontSize:12,color:"#c2780a",marginTop:8,textAlign:"center",padding:"0 16px"}}>{camErr}</p>}
           </div>
         )}
       </div>
-
-      {/* MANUAL CODE ENTRY */}
       <div style={{display:"flex",gap:8,marginBottom:8}}>
-        <input style={{flex:1,fontFamily:"monospace"}} placeholder="Or type barcode number…" value={code}
-          onChange={e=>setCode(e.target.value)}
-          onKeyDown={e=>e.key==="Enter"&&doLookup(code)}/>
+        <input style={{flex:1,fontFamily:"monospace"}} placeholder="Or type barcode number..." value={code} onChange={e=>setCode(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doLookup(code)}/>
         <button className="btn-sm" style={{padding:"0 18px",height:46,display:"flex",alignItems:"center",gap:6,borderRadius:12}} onClick={()=>doLookup(code)} disabled={loading}>
           {loading?<span className="spin" style={{width:12,height:12,borderTopColor:"#6b2f9a",borderColor:"#d4a0e8"}}/>:"Look up"}
         </button>
       </div>
-
       <p className="section-label" style={{marginBottom:8}}>Sample items to test</p>
       <div className="chips" style={{marginBottom:20}}>
         {Object.entries(FD).slice(0,7).map(([bc,f])=>(
-          <button key={bc} className="chip" onClick={()=>{setCode(bc);doLookup(bc);}}>
-            {f.name.split(" ").slice(0,2).join(" ")}
-          </button>
+          <button key={bc} className="chip" onClick={()=>{setCode(bc);doLookup(bc);}}>{f.name.split(" ").slice(0,2).join(" ")}</button>
         ))}
       </div>
-
-      {/* RESULT */}
       {result&&(
         <div className="result-card">
           <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>
@@ -1328,7 +788,7 @@ function ScannerTab({pantry,setPantry,savePantryItem,deletePantryItem,updatePant
             ))}
           </div>
           <div className="qty-row">
-            <button className="qty-btn" onClick={()=>setQty(q=>Math.max(1,q-1))}>−</button>
+            <button className="qty-btn" onClick={()=>setQty(q=>Math.max(1,q-1))}>-</button>
             <span className="qty-num">{qty}</span>
             <button className="qty-btn" onClick={()=>setQty(q=>q+1)}>+</button>
             <input style={{flex:1}} value={unit} onChange={e=>setUnit(e.target.value)} placeholder="unit"/>
@@ -1339,15 +799,10 @@ function ScannerTab({pantry,setPantry,savePantryItem,deletePantryItem,updatePant
               <input type="date" value={expiry} onChange={e=>setExpiry(e.target.value)}/>
             </div>
           )}
-          <button className={`btn-full${mode==="use"?" red":""}`} onClick={confirm}>
-            {mode==="add"?"Add to pantry":"Mark as used"}
-          </button>
+          <button className={`btn-full${mode==="use"?" red":""}`} onClick={confirm}>{mode==="add"?"Add to pantry":"Mark as used"}</button>
         </div>
       )}
-
-      <button className="btn-ghost" onClick={()=>setManual(!manual)}>
-        {manual?"▲ Hide manual entry":"Add item manually"}
-      </button>
+      <button className="btn-ghost" onClick={()=>setManual(!manual)}>{manual?"Hide manual entry":"Add item manually"}</button>
       {manual&&(
         <div className="manual-form">
           <div><label className="input-label">Item name *</label><input value={mf.name} onChange={e=>setMf(m=>({...m,name:e.target.value}))}/></div>
@@ -1373,7 +828,7 @@ function ScannerTab({pantry,setPantry,savePantryItem,deletePantryItem,updatePant
   );
 }
 
-/* ── PANTRY ── */
+/* PANTRY */
 function PantryTab({pantry,setPantry,deletePantryItem,updatePantryQty,notify}){
   const[search,setSearch]=useState("");
   const[cat,setCat]=useState("all");
@@ -1392,11 +847,11 @@ function PantryTab({pantry,setPantry,deletePantryItem,updatePantryQty,notify}){
         <div className="stat-pill"><span style={{fontWeight:500,color:"var(--plum2)"}}>{pantry.length}</span> items</div>
         <div className="stat-pill"><span style={{fontWeight:500,color:"var(--orange)"}}>{urgent.length}</span> expiring soon</div>
       </div>
-      {urgent.length>0&&<div className="alert">Use these soon — {urgent.map(i=>i.name).join(", ")}</div>}
+      {urgent.length>0&&<div className="alert">Use these soon: {urgent.map(i=>i.name).join(", ")}</div>}
       <div style={{display:"flex",gap:8,marginBottom:12}}>
         <div style={{flex:1,display:"flex",alignItems:"center",gap:8,background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,padding:"0 12px"}}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.8" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input style={{flex:1,background:"none",border:"none",padding:"11px 0",fontSize:14,outline:"none"}} placeholder="Search pantry…" value={search} onChange={e=>setSearch(e.target.value)}/>
+          <input style={{flex:1,background:"none",border:"none",padding:"11px 0",fontSize:14,outline:"none"}} placeholder="Search pantry..." value={search} onChange={e=>setSearch(e.target.value)}/>
         </div>
         <select style={{width:"auto"}} value={sort} onChange={e=>setSort(e.target.value)}>
           <option value="expiry">Expiry</option>
@@ -1426,20 +881,19 @@ function PantryTab({pantry,setPantry,deletePantryItem,updatePantryQty,notify}){
             <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6}}>
               <div className="qty-tag">{item.qty} {item.unit}</div>
               <div style={{display:"flex",gap:4}}>
-                <button className="btn-use" onClick={()=>{setPantry(p=>p.map(i=>i.id===item.id?{...i,qty:Math.max(0,i.qty-1)}:i).filter(i=>i.qty>0));notify("✓ Used");}}>Use</button>
-                <button className="btn-del" onClick={()=>{setPantry(p=>p.filter(i=>i.id!==item.id));notify("Removed");}}>✕</button>
+                <button className="btn-use" onClick={()=>{const nq=Math.max(0,item.qty-1);if(nq===0){setPantry(p=>p.filter(i=>i.id!==item.id));if(deletePantryItem)deletePantryItem(item.id);}else{setPantry(p=>p.map(i=>i.id===item.id?{...i,qty:nq}:i));if(updatePantryQty)updatePantryQty(item.id,nq);}notify("Used");}}>Use</button>
+                <button className="btn-del" onClick={()=>{setPantry(p=>p.filter(i=>i.id!==item.id));if(deletePantryItem)deletePantryItem(item.id);notify("Removed");}}>X</button>
               </div>
             </div>
           </div>
         );
       })}
-      {filtered.length===0&&<div className="empty"><div className="empty-icon">{I.pantry("#b0a0be")}</div>Nothing found — scan something!</div>}
+      {filtered.length===0&&<div className="empty"><div className="empty-icon">{I.pantry("#b0a0be")}</div>Nothing found - scan something!</div>}
     </div>
   );
 }
 
-/* ── MEALS ── */
-
+/* MEALS */
 function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
   const[gen,setGen]=useState(false);
   const[stat,setStat]=useState("");
@@ -1448,8 +902,6 @@ function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
   const[cuisines,setCuisines]=useState(goals.meal_cuisines||[]);
   const[mealPrefs,setMealPrefs]=useState(goals.meal_preferences||{});
   const DAYS=["Mon","Tue","Wed"];
-  const CUISINES=["Italian","Mexican","Asian","Mediterranean","American","Indian","Middle Eastern","Greek","Japanese","Thai","French","Healthy"];
-  const MEAL_TYPES=["Breakfast","Quick Breakfast","Lunch","Meal Prep Lunch","Dinner","Quick Dinner","Snack","Smoothie"];
   const toggleCuisine=c=>setCuisines(cs=>cs.includes(c)?cs.filter(x=>x!==c):[...cs,c]);
   const toggleMealType=t=>setMealPrefs(mp=>{const n={...mp};if(n[t])delete n[t];else n[t]=1;return n;});
   const setMealCount=(t,v)=>setMealPrefs(mp=>({...mp,[t]:Math.max(1,Math.min(7,+v||1))}));
@@ -1481,7 +933,6 @@ function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
     <div className="page">
       <div className="page-label">AI Planner</div>
       <h1 className="page-title">Weekly meals</h1>
-
       <div className="card" style={{marginBottom:14}}>
         <button style={{width:"100%",background:"none",border:"none",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",padding:0,fontFamily:"'DM Sans',system-ui,sans-serif"}} onClick={()=>setShowPrefs(!showPrefs)}>
           <div>
@@ -1491,16 +942,13 @@ function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
               {cuisines.length>0&&` · ${cuisines.slice(0,2).join(", ")}${cuisines.length>2?" +more":""}`}
             </div>
           </div>
-          <span style={{fontSize:18,color:"var(--muted2)",display:"inline-block",transform:showPrefs?"rotate(180deg)":"none",transition:"transform .2s"}}>v</span>
+          <span style={{fontSize:14,color:"var(--muted2)"}}>{showPrefs?"v":">"}</span>
         </button>
-
         {showPrefs&&(
           <div style={{marginTop:14,borderTop:"1px solid var(--border)",paddingTop:14}}>
             <div className="section-label" style={{marginBottom:8}}>Cuisine preferences</div>
             <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:16}}>
-              {CUISINES.map(c=>(
-                <button key={c} className={`chip${cuisines.includes(c)?" on":""}`} onClick={()=>toggleCuisine(c)}>{c}</button>
-              ))}
+              {CUISINES.map(c=><button key={c} className={`chip${cuisines.includes(c)?" on":""}`} onClick={()=>toggleCuisine(c)}>{c}</button>)}
             </div>
             <div className="section-label" style={{marginBottom:8}}>Meals this week</div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -1521,11 +969,9 @@ function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
           </div>
         )}
       </div>
-
       <button className="btn-generate" onClick={generate} disabled={gen}>
         {gen?<span style={{display:"flex",alignItems:"center",gap:8}}><span className="spin"/>  {stat}</span>:"Generate this week's plan"}
       </button>
-
       {meal&&(
         <>
           {meal.strategy&&<div className="strat-card"><span style={{fontSize:18,flexShrink:0}}>*</span><p>{meal.strategy}</p></div>}
@@ -1565,7 +1011,6 @@ function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
           )}
         </>
       )}
-
       {!meal&&!gen&&(
         <div className="empty">
           <div className="empty-icon">{I.meals("#b0a0be")}</div>
@@ -1577,7 +1022,7 @@ function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
   );
 }
 
-/* ── SHOP ── */
+/* SHOP */
 function ShopTab({shop,notify}){
   const[store,setStore]=useState("kroger");
   const[method,setMethod]=useState("pickup");
@@ -1601,10 +1046,7 @@ function ShopTab({shop,notify}){
       <h1 className="page-title">Shopping list</h1>
       <p className="page-sub">From your meal plan</p>
       {shop.length===0?(
-        <div className="empty">
-          <div className="empty-icon">{I.shop("#b0a0be")}</div>
-          <p>Generate a meal plan first to build your shopping list.</p>
-        </div>
+        <div className="empty"><div className="empty-icon">{I.shop("#b0a0be")}</div><p>Generate a meal plan first to build your shopping list.</p></div>
       ):(
         <>
           <div style={{marginBottom:16}}>
@@ -1627,7 +1069,7 @@ function ShopTab({shop,notify}){
           </div>
           {shop.map((item,i)=>(
             <div key={i} className={`shop-row${checked[i]?" done":""}`} onClick={()=>toggle(i)}>
-              <div className={`check-ring${checked[i]?" on":""}`}>{checked[i]?"✓":""}</div>
+              <div className={`check-ring${checked[i]?" on":""}`}>{checked[i]?"v":""}</div>
               <div style={{flex:1}}>
                 <div style={{fontWeight:500,fontSize:14,color:checked[i]?"var(--muted2)":"var(--text)",textDecoration:checked[i]?"line-through":"none"}}>{item.item}</div>
                 <div style={{fontSize:12,color:"var(--muted)",marginTop:2}}>{item.quantity} · {item.reason}</div>
@@ -1645,21 +1087,19 @@ function ShopTab({shop,notify}){
   );
 }
 
-/* ── GOALS ── */
+/* GOALS */
 function GoalsTab({goals,setGoals,weights,setWeights,macros,tdee,bmr,logWeight,saveGoals,notify}){
   const[wt,setWt]=useState("");
   const[wd,setWd]=useState(new Date().toISOString().split("T")[0]);
   const up=(k,v)=>setGoals(g=>({...g,[k]:v}));
-  const logW=async()=>{if(!wt)return;const entry={date:wd,weight:+wt};setWeights(w=>[...w,entry].sort((a,b)=>new Date(a.date)-new Date(b.date)));setWt("");if(logWeight)await logWeight(+wt,wd);notify("✓ Weight logged");};
+  const logW=async()=>{if(!wt)return;const entry={date:wd,weight:+wt};setWeights(w=>[...w,entry].sort((a,b)=>new Date(a.date)-new Date(b.date)));setWt("");if(logWeight)await logWeight(+wt,wd);notify("Weight logged");};
   const latest=weights.length>0?weights[weights.length-1].weight:null;
   const change=weights.length>1?(weights[weights.length-1].weight-weights[0].weight).toFixed(1):null;
   const toGoal=latest&&goals.goalWeight?(latest-goals.goalWeight).toFixed(1):null;
   return(
     <div className="page">
       <div className="page-label">Nutrition</div>
-      <h1 className="page-title">Goals & body</h1>
-
-      {/* BMR */}
+      <h1 className="page-title">Goals and body</h1>
       <div className="bmr-card">
         <div style={{display:"flex",justifyContent:"space-between",marginBottom:16}}>
           <div><div className="bmr-label">Resting metabolic rate</div><div className="bmr-val">{Math.round(bmr)} <span className="bmr-unit">kcal/day</span></div></div>
@@ -1670,17 +1110,15 @@ function GoalsTab({goals,setGoals,weights,setWeights,macros,tdee,bmr,logWeight,s
             <div key={m.l} className="macro-target-cell"><div className="mtv" style={{color:m.c}}>{m.v}</div><div className="mtl">{m.l}</div></div>
           ))}
         </div>
-        <p style={{fontSize:12,color:"var(--muted)",lineHeight:1.6}}>Mifflin-St Jeor · {goals.diet} split · {goals.goalType==="lose"?"−500 kcal deficit":goals.goalType==="gain"?"+300 kcal surplus":"maintenance"}</p>
+        <p style={{fontSize:12,color:"var(--muted)",lineHeight:1.6}}>Mifflin-St Jeor · {goals.diet} · {goals.goalType==="lose"?"-500 kcal deficit":goals.goalType==="gain"?"+300 kcal surplus":"maintenance"}</p>
       </div>
-
-      {/* WEIGHT */}
       <div className="card">
         <div className="card-title">Weight log</div>
         {latest&&(
           <div style={{display:"flex",alignItems:"baseline",gap:14,marginBottom:12}}>
             <span style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:42,fontWeight:600,color:"var(--plum)"}}>{latest}<span style={{fontSize:16,fontWeight:400,color:"var(--muted)"}}>lbs</span></span>
             <div>
-              {change!==null&&<div style={{fontSize:13,fontWeight:500,color:+change<0?"var(--sage)":"var(--orange)"}}>{+change<0?"▼":"▲"} {Math.abs(change)} lbs</div>}
+              {change!==null&&<div style={{fontSize:13,fontWeight:500,color:+change<0?"var(--sage)":"var(--orange)"}}>{+change<0?"v":"^"} {Math.abs(change)} lbs</div>}
               {toGoal&&<div style={{fontSize:12,color:"var(--muted)"}}>{+toGoal>0?`${toGoal} lbs to goal`:"Goal reached!"}</div>}
             </div>
           </div>
@@ -1696,8 +1134,6 @@ function GoalsTab({goals,setGoals,weights,setWeights,macros,tdee,bmr,logWeight,s
           <button className="btn-sm" style={{padding:"0 18px"}} onClick={logW}>Log</button>
         </div>
       </div>
-
-      {/* METRICS */}
       <div className="card">
         <div className="card-title">Body metrics</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
@@ -1712,20 +1148,16 @@ function GoalsTab({goals,setGoals,weights,setWeights,macros,tdee,bmr,logWeight,s
           </div>
         </div>
       </div>
-
-      {/* ACTIVITY */}
       <div className="card">
         <div className="card-title">Activity level</div>
         {Object.entries(ACT).map(([k,a])=>(
           <button key={k} className={`act-row${goals.activity===k?" on":""}`} onClick={()=>up("activity",k)}>
             <div style={{fontWeight:500,fontSize:13,flex:1,textAlign:"left",color:"var(--text)"}}>{a.label}</div>
             <div style={{fontSize:12,color:"var(--muted)",flex:2,textAlign:"left"}}>{a.desc}</div>
-            <div style={{fontSize:12,fontWeight:500,color:goals.activity===k?"var(--plum2)":"var(--muted2)"}}>×{a.mult}</div>
+            <div style={{fontSize:12,fontWeight:500,color:goals.activity===k?"var(--plum2)":"var(--muted2)"}}>x{a.mult}</div>
           </button>
         ))}
       </div>
-
-      {/* GOAL */}
       <div className="card">
         <div className="card-title">Goal</div>
         <div style={{display:"flex",gap:8}}>
@@ -1734,8 +1166,6 @@ function GoalsTab({goals,setGoals,weights,setWeights,macros,tdee,bmr,logWeight,s
           ))}
         </div>
       </div>
-
-      {/* DIET */}
       <div className="card">
         <div className="card-title">Diet style</div>
         <div className="chips wrap">
@@ -1744,10 +1174,8 @@ function GoalsTab({goals,setGoals,weights,setWeights,macros,tdee,bmr,logWeight,s
           ))}
         </div>
       </div>
-
-      {/* ALLERGIES */}
       <div className="card">
-        <div className="card-title">Allergies & intolerances</div>
+        <div className="card-title">Allergies</div>
         <div className="chips wrap">
           {["gluten","dairy","nuts","shellfish","eggs","soy","fish","sesame"].map(a=>(
             <button key={a} className={`chip${goals.allergies.includes(a)?" red":""}`}
@@ -1755,19 +1183,16 @@ function GoalsTab({goals,setGoals,weights,setWeights,macros,tdee,bmr,logWeight,s
           ))}
         </div>
       </div>
-
-      {/* HOUSEHOLD */}
       <div className="card">
         <div className="card-title">Household size</div>
         <div style={{display:"flex",alignItems:"center",gap:14}}>
-          <button className="qty-btn" onClick={()=>up("householdSize",Math.max(1,goals.householdSize-1))}>−</button>
+          <button className="qty-btn" onClick={()=>up("householdSize",Math.max(1,goals.householdSize-1))}>-</button>
           <span style={{fontSize:24,fontWeight:500,color:"var(--plum)",fontFamily:"'Cormorant Garamond',Georgia,serif",minWidth:32,textAlign:"center"}}>{goals.householdSize}</span>
           <button className="qty-btn" onClick={()=>up("householdSize",goals.householdSize+1)}>+</button>
           <span style={{fontSize:13,color:"var(--muted)"}}>people</span>
         </div>
       </div>
-
-      <button className="btn-full" onClick={async()=>{if(saveGoals)await saveGoals(goals);notify("✓ Goals saved — macros recalculated");}}>Save goals</button>
+      <button className="btn-full" onClick={async()=>{if(saveGoals)await saveGoals(goals);notify("Goals saved");}}>Save goals</button>
     </div>
   );
 }
