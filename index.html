@@ -751,8 +751,6 @@ function App(){
     </div>
   );
 }
-  /* ACCOUNT MODALS */
-function AccountModals({acctModal,setAcctModal,session,userName,setUserName,notify,supa}){
   const[form,setForm]=useState({});
   const[loading,setLoading]=useState(false);
   const[deleteConfirm,setDeleteConfirm]=useState("");
@@ -905,6 +903,9 @@ function AccountModals({acctModal,setAcctModal,session,userName,setUserName,noti
     </div>
   );
 }
+      /* ACCOUNT MODALS */
+function AccountModals({acctModal,setAcctModal,session,userName,setUserName,notify,supa}){
+  
 /* HOME */
 function HomeTab({pantry,goals,weights,meal,macros,setTab,userName,notify}){
   const today=new Date().toISOString().split("T")[0];
