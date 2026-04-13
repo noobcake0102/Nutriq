@@ -159,12 +159,8 @@ exports.handler = async function (event) {
     }
     try {
       // Add "raw" or category hints to avoid prepared foods
-const rawTerms = ["chicken","beef","pork","salmon","shrimp","turkey","lamb"];
-const isRawMeat = rawTerms.some(t => query.toLowerCase().includes(t));
-const searchQuery = isRawMeat ? `fresh ${query}` : query;
-
 const params = new URLSearchParams({
-  "filter.term": searchQuery,
+  "filter.term": query,
   "filter.limit": "5",
   "filter.fulfillment": "ais",
 });
