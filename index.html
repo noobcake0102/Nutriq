@@ -228,6 +228,24 @@ input[type=date]{color:var(--muted);}
   .opt-card{width:300px;}
   .toast{left:calc(220px + 50%);transform:translateX(-50%);}
 }
+  /* ── ACCOUNT DROPDOWN ── */
+.acct-btn{width:34px;height:34px;border-radius:50%;background:var(--plumL);border:1.5px solid var(--plum3)55;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:'Cormorant Garamond',Georgia,serif;font-size:15px;font-weight:600;color:var(--plum2);position:relative;flex-shrink:0;}
+.acct-dropdown{position:absolute;top:54px;right:16px;width:240px;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(74,26,110,.15);z-index:400;overflow:hidden;animation:fadeUp .15s ease;}
+.acct-header{padding:16px;border-bottom:1px solid var(--border);background:var(--plumLL);}
+.acct-email{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.acct-menu-item{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:13px;color:var(--text);background:none;border:none;width:100%;text-align:left;font-family:'DM Sans',system-ui,sans-serif;transition:background .12s;}
+.acct-menu-item:hover{background:var(--warm);}
+.acct-menu-item.danger{color:var(--red);}
+.acct-menu-item.danger:hover{background:var(--roseL);}
+.acct-divider{height:1px;background:var(--border);margin:4px 0;}
+.acct-overlay{position:fixed;inset:0;z-index:399;}
+ 
+/* ── SETTINGS MODAL ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:flex-end;justify-content:center;}
+.modal-sheet{background:var(--card);border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:430px;max-height:85vh;overflow-y:auto;}
+.modal-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;font-weight:600;color:var(--plum);margin-bottom:4px;}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:20px;}
+.modal-close{position:absolute;top:16px;right:16px;background:var(--warm);border:none;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--muted);}
 </style>
 </head>
 <body>
@@ -559,6 +577,10 @@ function App(){
   const[meal,setMeal]=useState(()=>DB.get("nq_m",null));
   const[shop,setShop]=useState(()=>DB.get("nq_s",[]));
   const[toast,setToast]=useState(null);
+  const[showAcctMenu,setShowAcctMenu]=useState(false);
+  const[acctModal,setAcctModal]=useState(null); // profile | password | subscription | delete
+  const[acctForm,setAcctForm]=useState({});
+  const[acctLoading,setAcctLoading]=useState(false);
 
   useEffect(()=>{
     supa.auth.getSession().then(({data:{session}})=>{
@@ -667,14 +689,53 @@ function App(){
             <div className="logo-tag">Feed your family better, without the mental math.</div>
           </div>
         </div>
-        <div className="hdr-right">
-          {exp.length>0&&<div className="expiry-chip"><span className="expiry-dot"/>{exp.length} expiring</div>}
-          <div style={{width:28,height:28,borderRadius:"50%",background:"var(--plumL)",border:"1.5px solid var(--plum3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:600,color:"var(--plum2)",cursor:"pointer"}} onClick={()=>supa.auth.signOut()} title="Sign out">
-            {userName[0]?.toUpperCase()||"?"}
-          </div>
+        {/* HEADER RIGHT — replace whatever is currently in hdr-right */}
+<div className="hdr-right" style={{position:"relative"}}>
+  {expiringCount>0&&(
+    <div className="expiry-chip" onClick={()=>setTab("pantry")} style={{cursor:"pointer"}}>
+      <div className="expiry-dot"/>
+      {expiringCount} expiring
+    </div>
+  )}
+  <button className="acct-btn" onClick={()=>setShowAcctMenu(m=>!m)}>
+    {userName?userName[0].toUpperCase():"?"}
+  </button>
+  {showAcctMenu&&(
+    <>
+      <div className="acct-overlay" onClick={()=>setShowAcctMenu(false)}/>
+      <div className="acct-dropdown">
+        <div className="acct-header">
+          <div style={{fontWeight:500,fontSize:14,color:"var(--plum)"}}>{userName||"Your account"}</div>
+          <div className="acct-email">{session?.user?.email}</div>
         </div>
+        <button className="acct-menu-item" onClick={()=>{setShowAcctMenu(false);setAcctModal("profile");}}>
+          <span>👤</span> Edit profile
+        </button>
+        <button className="acct-menu-item" onClick={()=>{setShowAcctMenu(false);setAcctModal("password");}}>
+          <span>🔒</span> Change password
+        </button>
+        <button className="acct-menu-item" onClick={()=>{setShowAcctMenu(false);setAcctModal("subscription");}}>
+          <span>⭐</span> Manage subscription
+        </button>
+        <div className="acct-divider"/>
+        <a href="https://nutriqai.com/privacy" target="_blank" className="acct-menu-item" style={{textDecoration:"none",color:"var(--muted)"}}>
+          <span>📄</span> Privacy policy
+        </a>
+        <a href="https://nutriqai.com/terms" target="_blank" className="acct-menu-item" style={{textDecoration:"none",color:"var(--muted)"}}>
+          <span>📋</span> Terms of service
+        </a>
+        <div className="acct-divider"/>
+        <button className="acct-menu-item" onClick={()=>{setShowAcctMenu(false);supa.auth.signOut();}}>
+          <span>🚪</span> Sign out
+        </button>
+        <button className="acct-menu-item danger" onClick={()=>{setShowAcctMenu(false);setAcctModal("delete");}}>
+          <span>🗑</span> Delete account
+        </button>
       </div>
-
+    </>
+  )}
+</div>
+<AccountModals acctModal={acctModal} setAcctModal={setAcctModal} session={session} userName={userName} setUserName={setUserName} notify={notify} supa={supa}/>
       {tab==="home"   &&<HomeTab    pantry={pantry} goals={goals} weights={weights} meal={meal} macros={macros} setTab={setTab} userName={userName} notify={notify}/>}
       {tab==="scan"   &&<ScannerTab pantry={pantry} setPantry={setPantry} savePantryItem={savePantryItem} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify}/>}
       {tab==="pantry" &&<PantryTab  pantry={pantry} setPantry={setPantry} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify}/>}
@@ -687,6 +748,160 @@ function App(){
       </div>
 
       {toast&&<div className={`toast${toast.type==="err"?" err":""}`}>{toast.msg}</div>}
+    </div>
+  );
+}
+  /* ACCOUNT MODALS */
+function AccountModals({acctModal,setAcctModal,session,userName,setUserName,notify,supa}){
+  const[form,setForm]=useState({});
+  const[loading,setLoading]=useState(false);
+  const[deleteConfirm,setDeleteConfirm]=useState("");
+ 
+  if(!acctModal)return null;
+ 
+  const handleProfileSave=async()=>{
+    setLoading(true);
+    const updates={};
+    if(form.name)updates.full_name=form.name;
+    const{error}=await supa.auth.updateUser({data:updates});
+    if(!error){
+      await supa.from("profiles").update({name:form.name}).eq("id",session.user.id);
+      setUserName(form.name);
+      notify("Profile updated");
+      setAcctModal(null);
+    } else notify(error.message,"err");
+    setLoading(false);
+  };
+ 
+  const handlePasswordSave=async()=>{
+    if(form.password!==form.confirm){notify("Passwords don't match","err");return;}
+    if((form.password||"").length<6){notify("Password must be at least 6 characters","err");return;}
+    setLoading(true);
+    const{error}=await supa.auth.updateUser({password:form.password});
+    if(!error){notify("Password updated");setAcctModal(null);}
+    else notify(error.message,"err");
+    setLoading(false);
+  };
+ 
+  const handleDeleteAccount=async()=>{
+    if(deleteConfirm!=="DELETE"){notify("Type DELETE to confirm","err");return;}
+    setLoading(true);
+    try{
+      const uid=session.user.id;
+      // Delete all user data in order
+      await supa.from("meal_ratings").delete().eq("user_id",uid);
+      await supa.from("saved_meals").delete().eq("user_id",uid);
+      await supa.from("weight_logs").delete().eq("user_id",uid);
+      await supa.from("goals").delete().eq("user_id",uid);
+      await supa.from("pantry_items").delete().eq("user_id",uid);
+      await supa.from("profiles").delete().eq("id",uid);
+      // Sign out — Supabase will handle auth user deletion via cascade
+      await supa.auth.signOut();
+      notify("Account deleted");
+    }catch(e){
+      notify("Deletion failed — contact info@nutriqai.com","err");
+    }
+    setLoading(false);
+  };
+ 
+  return(
+    <div className="modal-backdrop" onClick={()=>setAcctModal(null)}>
+      <div className="modal-sheet" onClick={e=>e.stopPropagation()}>
+ 
+        {/* PROFILE */}
+        {acctModal==="profile"&&(
+          <>
+            <div className="modal-title">Edit profile</div>
+            <div className="modal-sub">Update your display name</div>
+            <div className="ob-field">
+              <label className="ob-label">Display name</label>
+              <input className="ob-input" defaultValue={userName} placeholder="Your name"
+                onChange={e=>setForm(f=>({...f,name:e.target.value}))}/>
+            </div>
+            <button className="btn-full" onClick={handleProfileSave} disabled={loading}>
+              {loading?"Saving...":"Save changes"}
+            </button>
+            <button className="btn-ghost" style={{marginTop:8}} onClick={()=>setAcctModal(null)}>Cancel</button>
+          </>
+        )}
+ 
+        {/* PASSWORD */}
+        {acctModal==="password"&&(
+          <>
+            <div className="modal-title">Change password</div>
+            <div className="modal-sub">Choose a new password for your account</div>
+            <div className="ob-field">
+              <label className="ob-label">New password</label>
+              <input className="ob-input" type="password" placeholder="At least 6 characters"
+                onChange={e=>setForm(f=>({...f,password:e.target.value}))}/>
+            </div>
+            <div className="ob-field">
+              <label className="ob-label">Confirm password</label>
+              <input className="ob-input" type="password" placeholder="Repeat new password"
+                onChange={e=>setForm(f=>({...f,confirm:e.target.value}))}/>
+            </div>
+            <button className="btn-full" onClick={handlePasswordSave} disabled={loading}>
+              {loading?"Updating...":"Update password"}
+            </button>
+            <button className="btn-ghost" style={{marginTop:8}} onClick={()=>setAcctModal(null)}>Cancel</button>
+          </>
+        )}
+ 
+        {/* SUBSCRIPTION */}
+        {acctModal==="subscription"&&(
+          <>
+            <div className="modal-title">Manage subscription</div>
+            <div className="modal-sub">Your current plan</div>
+            <div style={{background:"var(--plumLL)",border:"1px solid var(--plum3)22",borderRadius:14,padding:16,marginBottom:16}}>
+              <div style={{fontSize:13,color:"var(--muted)",marginBottom:4}}>Current plan</div>
+              <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:22,color:"var(--plum)",fontWeight:600}}>Free</div>
+              <div style={{fontSize:12,color:"var(--muted)",marginTop:4}}>3 meal plan generations per month</div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+              {[["Core","$4.99/mo","Unlimited plans · Full pantry"],["Family","$8.99/mo","Everything + household sharing"],["Premium","$12.99/mo","Everything + grocery ordering + AI images"]].map(([name,price,desc])=>(
+                <div key={name} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div>
+                    <div style={{fontWeight:500,fontSize:14,color:"var(--text)"}}>{name}</div>
+                    <div style={{fontSize:12,color:"var(--muted)"}}>{desc}</div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <div style={{fontWeight:500,color:"var(--plum2)"}}>{price}</div>
+                    <button className="btn-sm" style={{fontSize:10,padding:"3px 8px",marginTop:4}}>Upgrade</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{fontSize:12,color:"var(--muted)",textAlign:"center",marginBottom:16}}>
+              Subscription billing coming soon via App Store
+            </div>
+            <button className="btn-ghost" onClick={()=>setAcctModal(null)}>Close</button>
+          </>
+        )}
+ 
+        {/* DELETE ACCOUNT */}
+        {acctModal==="delete"&&(
+          <>
+            <div className="modal-title" style={{color:"var(--red)"}}>Delete account</div>
+            <div className="modal-sub">This will permanently delete all your data including your pantry, meal history, weight logs, and ratings. This cannot be undone.</div>
+            <div style={{background:"var(--roseL)",border:"1px solid var(--rose)44",borderRadius:12,padding:"12px 14px",marginBottom:16,fontSize:13,color:"var(--red)"}}>
+              All your data will be permanently deleted within 30 days as per our Privacy Policy.
+            </div>
+            <div className="ob-field">
+              <label className="ob-label">Type DELETE to confirm</label>
+              <input className="ob-input" placeholder="DELETE"
+                value={deleteConfirm}
+                onChange={e=>setDeleteConfirm(e.target.value)}
+                style={{borderColor:deleteConfirm==="DELETE"?"var(--red)":"var(--border)"}}/>
+            </div>
+            <button className="btn-full red" onClick={handleDeleteAccount}
+              disabled={loading||deleteConfirm!=="DELETE"}>
+              {loading?"Deleting...":"Permanently delete my account"}
+            </button>
+            <button className="btn-ghost" style={{marginTop:8}} onClick={()=>setAcctModal(null)}>Cancel</button>
+          </>
+        )}
+ 
+      </div>
     </div>
   );
 }
