@@ -1429,35 +1429,6 @@ function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify,sessio
       }
     }
     // Build shopping list from all this week's meals
-   const buildShoppingList=(meals)=>{
-  const allIngredients={};
-  meals.forEach(m=>{
-    const ings=Array.isArray(m.ingredients)?m.ingredients:[];
-    ings.forEach(ing=>{
-      const name=typeof ing==="string"
-        ?ing.replace(/^[\d./\s]+(cup|tbsp|tsp|oz|lb|g|kg|clove|cloves|slice|slices|can|cans|bunch|bunches|piece|pieces|medium|large|small)s?\s*/i,"").trim()
-        :ing;
-      if(name)allIngredients[name.toLowerCase()]=(allIngredients[name.toLowerCase()]||0)+1;
-    });
-  });
-  // Cross-reference pantry — remove items already in stock
-  const pantryNames=pantry.map(p=>p.name.toLowerCase());
-  const needed=Object.keys(allIngredients).filter(item=>
-    !pantryNames.some(p=>p.includes(item)||item.includes(p))
-  );
-  const list=needed.map(item=>({
-    item,
-    quantity:"as needed",
-    reason:"For your meals this week",
-    priority:"high"
-  }));
-  // Also flag pantry items being used
-  const using=Object.keys(allIngredients).filter(item=>
-    pantryNames.some(p=>p.includes(item)||item.includes(p))
-  );
-  if(using.length>0)notify(`Using ${using.length} pantry item${using.length!==1?"s":""} you already have`);
-  setShop(list);
-};
  
   const buildRatingContext=()=>{
     if(savedRatings.length===0)return"";
