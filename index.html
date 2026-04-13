@@ -180,6 +180,34 @@ input[type=date]{color:var(--muted);}
 .auth-switch{font-size:13px;color:var(--muted);text-align:center;margin-top:16px;}
 .auth-switch span{color:var(--plum2);cursor:pointer;font-weight:500;}
 .auth-err{background:var(--roseL);border:1px solid var(--rose)44;border-radius:10px;padding:10px 14px;font-size:13px;color:var(--red);margin-bottom:14px;}
+/* ── MEAL OPTIONS ── */
+.opt-card{background:var(--card);border:2px solid var(--border);border-radius:18px;padding:16px;cursor:pointer;transition:all .18s;flex-shrink:0;width:260px;}
+.opt-card.on{border-color:var(--plum2);background:var(--plumLL);}
+.opt-card.done{opacity:.45;pointer-events:none;}
+.opt-card-name{font-family:'Cormorant Garamond',Georgia,serif;font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.opt-card-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:8px;}
+.opt-macros{display:flex;gap:6px;flex-wrap:wrap;}
+.opt-macro{background:var(--warm);border:1px solid var(--border);border-radius:6px;padding:2px 7px;font-size:10px;color:var(--muted);}
+.opt-pantry{font-size:11px;color:var(--sage);margin-top:6px;}
+.step-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.step-counter{font-size:13px;color:var(--muted);}
+.step-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:600;color:var(--plum);line-height:1.1;}
+.step-sub{font-size:13px;color:var(--muted);margin-top:4px;margin-bottom:16px;}
+.sel-counter{display:inline-flex;align-items:center;gap:6px;background:var(--plumL);border:1px solid var(--plum3)44;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:500;color:var(--plum2);}
+.sel-counter.full{background:var(--sageL);border-color:var(--sage)55;color:var(--sage);}
+.plan-meal-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;}
+.plan-meal-icon{width:40px;height:40px;border-radius:10px;background:var(--plumLL);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;font-weight:500;color:var(--plum2);text-transform:uppercase;letter-spacing:.3px;text-align:center;line-height:1.3;}
+ 
+/* ── RESPONSIVE DESKTOP ── */
+@media(min-width:768px){
+  #root{max-width:100%;display:grid;grid-template-columns:280px 1fr;grid-template-rows:auto 1fr;min-height:100vh;}
+  .hdr{grid-column:1/-1;grid-row:1;}
+  .nav{position:static;transform:none;width:auto;flex-direction:column;border-top:none;border-right:1px solid var(--border);grid-column:1;grid-row:2;padding:16px 8px;background:var(--card);align-items:stretch;gap:4px;height:calc(100vh - 58px);overflow-y:auto;}
+  .nb{flex-direction:row;justify-content:flex-start;gap:10px;padding:10px 14px;border-top:none;border-left:3px solid transparent;border-radius:10px;font-size:12px;letter-spacing:.3px;}
+  .nb.on{border-left-color:var(--plum);border-top-color:transparent;background:var(--plumLL);}
+  .page{grid-column:2;grid-row:2;max-width:860px;padding:28px 32px 40px;}
+  .opt-card{width:300px;}
+}
 </style>
 </head>
 <body>
@@ -1082,120 +1110,419 @@ function PantryTab({pantry,setPantry,deletePantryItem,updatePantryQty,notify}){
 }
 
 /* MEALS */
+const MEAL_TYPE_LABELS={
+  "Breakfast":"breakfast","Quick Breakfast":"quick_breakfast",
+  "Lunch":"lunch","Meal Prep Lunch":"meal_prep_lunch",
+  "Dinner":"dinner","Quick Dinner":"quick_dinner",
+  "Snack":"snack","Smoothie":"smoothie",
+};
+ 
 function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify,session}){
+  const[phase,setPhase]=useState("prefs"); // prefs | generating | picking | plan | recipe
   const[gen,setGen]=useState(false);
   const[stat,setStat]=useState("");
-  const[day,setDay]=useState(0);
   const[showPrefs,setShowPrefs]=useState(false);
   const[cuisines,setCuisines]=useState(goals.meal_cuisines||[]);
   const[mealPrefs,setMealPrefs]=useState(goals.meal_preferences||{});
+  const[options,setOptions]=useState({}); // {dinner:[...10], breakfast:[...4]}
+  const[selected,setSelected]=useState({}); // {dinner:[idx,idx,...], breakfast:[idx]}
+  const[stepIdx,setStepIdx]=useState(0); // which meal type we're picking
   const[ratings,setRatings]=useState(()=>DB.get("nq_ratings",{}));
   const[savedRatings,setSavedRatings]=useState([]);
-  const DAYS=["Mon","Tue","Wed"];
+  const[activeRecipe,setActiveRecipe]=useState(null);
+  const[genRecipe,setGenRecipe]=useState(false);
+ 
   const toggleCuisine=c=>setCuisines(cs=>cs.includes(c)?cs.filter(x=>x!==c):[...cs,c]);
   const toggleMealType=t=>setMealPrefs(mp=>{const n={...mp};if(n[t])delete n[t];else n[t]=1;return n;});
   const setMealCount=(t,v)=>setMealPrefs(mp=>({...mp,[t]:Math.max(1,Math.min(7,+v||1))}));
  
-  // Load saved ratings from Supabase on mount
+  const mealTypeKeys=Object.keys(mealPrefs);
+  const currentTypeLabel=mealTypeKeys[stepIdx]||"";
+  const currentTypeKey=MEAL_TYPE_LABELS[currentTypeLabel]||currentTypeLabel.toLowerCase().replace(/\s+/g,"_");
+  const currentOptions=options[currentTypeKey]||[];
+  const currentSelected=selected[currentTypeKey]||[];
+  const neededCount=mealPrefs[currentTypeLabel]||1;
+  const isFull=currentSelected.length>=neededCount;
+ 
   useEffect(()=>{
     if(!session)return;
-    supa.from("meal_ratings").select("*").eq("user_id",session.user.id).order("created_at",{ascending:false}).limit(50)
+    supa.from("meal_ratings").select("*").eq("user_id",session.user.id)
+      .order("created_at",{ascending:false}).limit(100)
       .then(({data})=>{if(data)setSavedRatings(data);});
   },[session]);
  
-  const rateMeal=async(mealName,mealType,rating)=>{
-    const key=`${mealName}__${mealType}`;
-    const newRatings={...ratings,[key]:rating};
-    setRatings(newRatings);
-    DB.set("nq_ratings",newRatings);
-    if(session){
-      const{data:prof}=await supa.from("profiles").select("household_id").eq("id",session.user.id).maybeSingle();
-      await supa.from("meal_ratings").upsert({
-        user_id:session.user.id,
-        household_id:prof?.household_id,
-        meal_name:mealName,
-        meal_type:mealType,
-        rating,
-        never_again:rating===1,
-      },{onConflict:"user_id,meal_name,meal_type",ignoreDuplicates:false});
-      // Refresh ratings
-      const{data}=await supa.from("meal_ratings").select("*").eq("user_id",session.user.id).order("created_at",{ascending:false}).limit(50);
-      if(data)setSavedRatings(data);
-    }
-    if(rating===1)notify(`Won't suggest "${mealName}" again`);
-    else if(rating===5)notify(`Loved "${mealName}" — will suggest more like this!`);
-  };
- 
-  const getRating=(mealName,mealType)=>{
-    const key=`${mealName}__${mealType}`;
-    if(ratings[key])return ratings[key];
-    const saved=savedRatings.find(r=>r.meal_name===mealName&&r.meal_type===mealType);
-    return saved?.rating||0;
-  };
- 
-  // Build rating context string for prompt
   const buildRatingContext=()=>{
-    if(savedRatings.length===0&&Object.keys(ratings).length===0)return"";
-    const loved=savedRatings.filter(r=>r.rating>=4).slice(0,5).map(r=>`${r.meal_name} (${r.rating}★)`);
-    const disliked=savedRatings.filter(r=>r.rating<=2).slice(0,5).map(r=>r.meal_name);
-    const neverAgain=savedRatings.filter(r=>r.never_again).map(r=>r.meal_name);
+    if(savedRatings.length===0)return"";
+    const loved=savedRatings.filter(r=>r.rating===5).slice(0,5).map(r=>r.meal_name);
+    const good=savedRatings.filter(r=>r.rating===4).slice(0,5).map(r=>`${r.meal_name}${r.note?` (${r.note})`:""}`);
+    const ok=savedRatings.filter(r=>r.rating===3).slice(0,5).map(r=>`${r.meal_name}${r.note?` (modify: ${r.note})`:""}`);
+    const exclude=savedRatings.filter(r=>r.rating<=2).map(r=>r.meal_name);
     let ctx="";
-    if(loved.length>0)ctx+=`User loved these meals: ${loved.join(", ")}. `;
-    if(disliked.length>0)ctx+=`User disliked: ${disliked.join(", ")}. `;
-    if(neverAgain.length>0)ctx+=`NEVER suggest these again: ${neverAgain.join(", ")}. `;
+    if(loved.length>0)ctx+=`User loves meals like: ${loved.join(", ")} — create inspired variations. `;
+    if(good.length>0)ctx+=`User liked: ${good.join(", ")}. `;
+    if(ok.length>0)ctx+=`User wants changes to: ${ok.join(", ")}. `;
+    if(exclude.length>0)ctx+=`NEVER suggest: ${exclude.join(", ")}. `;
     return ctx;
   };
  
   const generate=async()=>{
-    setGen(true);setStat("Analyzing your pantry...");setMeal(null);
-    const ps=pantry.map(i=>{const d=du(i.expiry);return `- ${i.name} (${i.qty} ${i.unit}${d!==null?`, expires in ${d} days`:""})`;}).join("\n");
+    if(mealTypeKeys.length===0){notify("Set meal preferences first","err");return;}
+    setGen(true);setPhase("generating");
+    setStat("Analyzing your pantry...");
+    const ps=pantry.map(i=>{const d=du(i.expiry);return`- ${i.name} (${i.qty} ${i.unit}${d!==null?`, expires ${d}d`:""})`;}).join("\n");
     const cuisineStr=cuisines.length?`Preferred cuisines: ${cuisines.join(", ")}.`:"";
-    const mealPrefStr=Object.keys(mealPrefs).length?`Meal schedule this week: ${Object.entries(mealPrefs).map(([k,v])=>`${v}x ${k}`).join(", ")}.`:"";
     const ratingCtx=buildRatingContext();
-    const sys=`You are a nutritionist. Respond with ONLY a raw JSON object. Absolutely no markdown, no backticks, no code fences, no explanation. Just raw JSON. Keep ALL text fields under 6 words. Structure:
-{"days":[{"day":"Monday","meals":{"breakfast":{"name":"...","description":"...","uses_pantry":["..."],"calories":400,"protein":30,"carbs":45,"fat":12},"lunch":{"name":"...","description":"...","uses_pantry":[],"calories":500,"protein":35,"carbs":55,"fat":15},"dinner":{"name":"...","description":"...","uses_pantry":["..."],"calories":600,"protein":45,"carbs":60,"fat":20},"snack":{"name":"...","description":"...","uses_pantry":[],"calories":150,"protein":8,"carbs":18,"fat":5}},"total_calories":1650,"total_protein":118,"total_carbs":178,"total_fat":52}],"shopping_list":[{"item":"...","quantity":"...","reason":"...","priority":"high"}],"strategy":"..."}`;
-    const usr=`3-day meal plan (Monday, Tuesday, Wednesday) for ${goals.householdSize} people. Targets: ${macros.calories} cal, ${macros.protein}g protein, ${macros.carbs}g carbs, ${macros.fat}g fat. Goal: ${goals.goalType}. Diet: ${goals.diet}. Allergies: ${goals.allergies.join(",")||"none"}. ${cuisineStr} ${mealPrefStr} ${ratingCtx} Be extremely brief. Pantry:\n${ps.split("\n").slice(0,8).join("\n")}`;
+ 
+    // Build options spec — 2x count per type
+    const optionsSpec=mealTypeKeys.map(t=>{
+      const key=MEAL_TYPE_LABELS[t]||t.toLowerCase().replace(/\s+/g,"_");
+      const count=Math.min((mealPrefs[t]||1)*2,10);
+      return`"${key}": array of exactly ${count} options`;
+    }).join(", ");
+ 
+    // Build JSON structure example
+    const exampleType=MEAL_TYPE_LABELS[mealTypeKeys[0]]||"dinner";
+    const sys=`You are a nutritionist. Respond with ONLY a raw JSON object. No markdown, no backticks, no code fences. Just raw JSON.
+Structure: {"options":{"${exampleType}":[{"name":"...","description":"...","uses_pantry":["..."],"calories":500,"protein":35,"carbs":55,"fat":15,"ingredients":["1 cup rice","2 chicken breasts","..."]}]}}
+Rules: Keep names under 5 words. Keep descriptions under 10 words. Include 4-8 ingredients per meal. Generate exactly the counts specified.`;
+ 
+    const usr=`Generate meal options for a household of ${goals.householdSize}. Calorie target: ${macros.calories}/day. Goal: ${goals.goalType}. Diet: ${goals.diet}. Allergies: ${goals.allergies.join(",")||"none"}. ${cuisineStr} ${ratingCtx}
+Generate these option pools: ${optionsSpec}.
+Pantry items to prioritize (use expiring first): ${ps.split("\n").slice(0,8).join(", ")}.`;
+ 
     let full="";
     try{
-      setStat("Crafting your plan...");
+      setStat("Generating your meal options...");
       await streamClaude(sys,usr,c=>{full+=c;});
       const cleaned=full.replace(/```json/g,"").replace(/```/g,"").trim();
       const parsed=JSON.parse(cleaned);
-      setMeal(parsed);setShop(parsed.shopping_list||[]);
-      notify("Your meal plan is ready!");
-    }catch(e){notify("Generation failed - try again","err");console.error(e,full);}
+      setOptions(parsed.options||{});
+      setSelected({});
+      setStepIdx(0);
+      setPhase("picking");
+    }catch(e){
+      notify("Generation failed — try again","err");
+      console.error(e,full);
+      setPhase("prefs");
+    }
     setGen(false);setStat("");
   };
  
-  const d=meal?.days?.[day],mn=d?.meals;
-  const hasMealPrefs=Object.keys(mealPrefs).length>0;
- 
-  // Star rating component
-  const StarRating=({mealName,mealType})=>{
-    const current=getRating(mealName,mealType);
-    const[hover,setHover]=useState(0);
-    return(
-      <div style={{display:"flex",alignItems:"center",gap:3,marginTop:8}}>
-        <span style={{fontSize:11,color:"var(--muted)",marginRight:4}}>Rate:</span>
-        {[1,2,3,4,5].map(star=>(
-          <button key={star}
-            style={{background:"none",border:"none",cursor:"pointer",padding:"2px",fontSize:18,lineHeight:1,color:(hover||current)>=star?"#c9a227":"var(--border2)",transition:"color .1s"}}
-            onMouseEnter={()=>setHover(star)}
-            onMouseLeave={()=>setHover(0)}
-            onClick={()=>rateMeal(mealName,mealType,star)}
-          >★</button>
-        ))}
-        {current>0&&<span style={{fontSize:11,color:"var(--muted)",marginLeft:4}}>{current===5?"Loved it!":current===4?"Good":current===3?"OK":current===2?"Meh":"Won't make again"}</span>}
-      </div>
-    );
+  const toggleOption=(typeKey,idx)=>{
+    setSelected(s=>{
+      const cur=s[typeKey]||[];
+      const needed=mealPrefs[Object.keys(MEAL_TYPE_LABELS).find(k=>MEAL_TYPE_LABELS[k]===typeKey)||typeKey]||1;
+      if(cur.includes(idx)){
+        return{...s,[typeKey]:cur.filter(i=>i!==idx)};
+      } else if(cur.length<needed){
+        return{...s,[typeKey]:[...cur,idx]};
+      }
+      return s;
+    });
   };
  
+  const canAdvance=()=>{
+    const needed=mealPrefs[currentTypeLabel]||1;
+    return(selected[currentTypeKey]||[]).length>=needed;
+  };
+ 
+  const advanceStep=()=>{
+    if(stepIdx<mealTypeKeys.length-1){
+      setStepIdx(s=>s+1);
+    } else {
+      // All types selected — build final plan
+      buildFinalPlan();
+    }
+  };
+ 
+  const buildFinalPlan=()=>{
+    // Flatten selections into a plan structure
+    const days=["Monday","Tuesday","Wednesday"];
+    const planDays=days.map((day,di)=>{
+      const meals={};
+      mealTypeKeys.forEach(typeLabel=>{
+        const typeKey=MEAL_TYPE_LABELS[typeLabel]||typeLabel.toLowerCase().replace(/\s+/g,"_");
+        const selIdxs=selected[typeKey]||[];
+        const typeOptions=options[typeKey]||[];
+        const needed=mealPrefs[typeLabel]||1;
+        // Distribute selected meals across days
+        const mealForDay=typeOptions[selIdxs[di%selIdxs.length]];
+        if(mealForDay)meals[typeKey]=mealForDay;
+      });
+      // Compute day totals
+      const total_calories=Object.values(meals).reduce((s,m)=>s+(m.calories||0),0);
+      const total_protein=Object.values(meals).reduce((s,m)=>s+(m.protein||0),0);
+      const total_carbs=Object.values(meals).reduce((s,m)=>s+(m.carbs||0),0);
+      const total_fat=Object.values(meals).reduce((s,m)=>s+(m.fat||0),0);
+      return{day,meals,total_calories,total_protein,total_carbs,total_fat};
+    });
+ 
+    // Build shopping list from all selected meals' ingredients
+    const allIngredients={};
+    mealTypeKeys.forEach(typeLabel=>{
+      const typeKey=MEAL_TYPE_LABELS[typeLabel]||typeLabel.toLowerCase().replace(/\s+/g,"_");
+      const selIdxs=selected[typeKey]||[];
+      const typeOptions=options[typeKey]||[];
+      selIdxs.forEach(idx=>{
+        const m=typeOptions[idx];
+        if(m?.ingredients){
+          m.ingredients.forEach(ing=>{
+            const name=ing.replace(/^[\d./\s]+(cup|tbsp|tsp|oz|lb|g|kg|clove|cloves|slice|slices|can|cans|bunch|bunches|piece|pieces|medium|large|small)s?\s*/i,"").trim();
+            allIngredients[name]=(allIngredients[name]||0)+1;
+          });
+        }
+      });
+    });
+ 
+    const shopping_list=Object.keys(allIngredients).map(item=>({
+      item,quantity:"as needed",reason:"For your selected meals",priority:"high"
+    }));
+ 
+    const finalMeal={days:planDays,shopping_list,strategy:"Based on your selections"};
+    setMeal(finalMeal);
+    setShop(shopping_list);
+    setPhase("plan");
+  };
+ 
+  const generateRecipe=async(mealName,mealType,ingredients)=>{
+    setGenRecipe(true);
+    setActiveRecipe({name:mealName,type:mealType,loading:true});
+    const sys=`You are a chef. Respond with ONLY a raw JSON object. No markdown. Structure: {"title":"...","servings":4,"prep_time":"15 min","cook_time":"30 min","ingredients":[{"amount":"1 cup","name":"brown rice"}],"steps":["Step 1: ...","Step 2: ..."]}`;
+    const usr=`Write a complete recipe for "${mealName}" (${mealType.replace(/_/g," ")}). Serves ${goals.householdSize}. Diet: ${goals.diet}. Known ingredients: ${ingredients?.join(", ")||"standard"}. Include all ingredients with amounts and clear step-by-step instructions.`;
+    let full="";
+    try{
+      await streamClaude(sys,usr,c=>{full+=c;});
+      const cleaned=full.replace(/```json/g,"").replace(/```/g,"").trim();
+      const recipe=JSON.parse(cleaned);
+      setActiveRecipe({...recipe,mealName,mealType,loading:false});
+    }catch(e){
+      notify("Recipe generation failed","err");
+      setActiveRecipe(null);
+    }
+    setGenRecipe(false);
+  };
+ 
+  const saveRating=async(mealName,mealType,rating,note="",inspired=false)=>{
+    const key=`${mealName}__${mealType}`;
+    const newRatings={...ratings,[key]:{rating,note,inspired}};
+    setRatings(newRatings);
+    DB.set("nq_ratings",newRatings);
+    if(session){
+      const{data:prof}=await supa.from("profiles").select("household_id").eq("id",session.user.id).maybeSingle();
+      await supa.from("meal_ratings").delete().eq("user_id",session.user.id).eq("meal_name",mealName).eq("meal_type",mealType);
+      await supa.from("meal_ratings").insert({user_id:session.user.id,household_id:prof?.household_id,meal_name:mealName,meal_type:mealType,rating,never_again:rating<=2,note:note||null,weekly_rotation:inspired});
+      const{data}=await supa.from("meal_ratings").select("*").eq("user_id",session.user.id).order("created_at",{ascending:false}).limit(100);
+      if(data)setSavedRatings(data);
+    }
+  };
+ 
+  const hasMealPrefs=Object.keys(mealPrefs).length>0;
+ 
+  // ── RECIPE VIEW ──
+  if(activeRecipe){
+    if(activeRecipe.loading)return(
+      <div className="page" style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60vh"}}>
+        <span className="spin" style={{width:28,height:28,borderWidth:3,borderTopColor:"var(--plum)",borderColor:"var(--plum3)44",marginBottom:16}}/>
+        <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:22,color:"var(--plum)"}}>Writing your recipe...</div>
+      </div>
+    );
+    return(
+      <div className="page">
+        <button className="btn-sm" style={{marginBottom:16}} onClick={()=>setActiveRecipe(null)}>← Back to plan</button>
+        <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:30,fontWeight:600,color:"var(--plum)",marginBottom:4}}>{activeRecipe.title||activeRecipe.mealName}</div>
+        <div style={{display:"flex",gap:12,fontSize:12,color:"var(--muted)",marginBottom:20}}>
+          {activeRecipe.servings&&<span>Serves {activeRecipe.servings}</span>}
+          {activeRecipe.prep_time&&<span>Prep: {activeRecipe.prep_time}</span>}
+          {activeRecipe.cook_time&&<span>Cook: {activeRecipe.cook_time}</span>}
+        </div>
+        <div className="card" style={{marginBottom:14}}>
+          <div className="card-title">Ingredients</div>
+          {(activeRecipe.ingredients||[]).map((ing,i)=>(
+            <div key={i} style={{display:"flex",gap:10,padding:"6px 0",borderBottom:"1px solid var(--border)",fontSize:13}}>
+              <span style={{fontWeight:500,color:"var(--plum2)",minWidth:70}}>{ing.amount}</span>
+              <span style={{color:"var(--text)"}}>{ing.name}</span>
+            </div>
+          ))}
+        </div>
+        <div className="card">
+          <div className="card-title">Instructions</div>
+          {(activeRecipe.steps||[]).map((step,i)=>(
+            <div key={i} style={{display:"flex",gap:12,padding:"10px 0",borderBottom:"1px solid var(--border)"}}>
+              <div style={{width:24,height:24,borderRadius:"50%",background:"var(--plumL)",border:"1px solid var(--plum3)44",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:600,color:"var(--plum2)",flexShrink:0,marginTop:1}}>{i+1}</div>
+              <div style={{fontSize:13,color:"var(--text)",lineHeight:1.6,flex:1}}>{step}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{marginTop:16}}>
+          <div style={{fontSize:12,color:"var(--muted)",marginBottom:8}}>How was this recipe?</div>
+          <div style={{display:"flex",gap:8}}>
+            {[["Never again",1,"var(--red)"],["Meh",2,"var(--orange)"],["OK",3,"var(--gold)"],["Good",4,"var(--sage)"],["Loved it",5,"var(--plum2)"]].map(([label,r,color])=>(
+              <button key={r} onClick={()=>{saveRating(activeRecipe.mealName,activeRecipe.mealType,r);notify(r>=4?`"${activeRecipe.mealName}" rated ${r}★`:`Got it — noted for next time`);}}
+                style={{flex:1,background:"var(--warm)",border:"1px solid var(--border)",borderRadius:10,padding:"8px 4px",fontSize:11,color,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans',system-ui,sans-serif"}}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+ 
+  // ── PLAN VIEW ──
+  if(phase==="plan"&&meal){
+    return(
+      <div className="page">
+        <div className="page-label">Your plan</div>
+        <h1 className="page-title">Meals selected</h1>
+        <p style={{fontSize:13,color:"var(--muted)",marginBottom:20}}>Tap any meal to view the full recipe.</p>
+ 
+        {meal.days?.map((d,di)=>(
+          <div key={di} style={{marginBottom:20}}>
+            <div style={{fontSize:11,fontWeight:500,color:"var(--muted)",textTransform:"uppercase",letterSpacing:1.5,marginBottom:8}}>{d.day}</div>
+            {Object.entries(d.meals||{}).map(([mt,m])=>(
+              <div key={mt} className="plan-meal-card" style={{cursor:"pointer"}} onClick={()=>generateRecipe(m.name,mt,m.ingredients)}>
+                <div className="plan-meal-icon">{mt.replace(/_/g," ").split(" ").map(w=>w[0]).join("")}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:10,color:"var(--rose)",fontWeight:500,textTransform:"uppercase",letterSpacing:1,marginBottom:2}}>{mt.replace(/_/g," ")}</div>
+                  <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:17,fontWeight:500,color:"var(--text)",marginBottom:2}}>{m.name}</div>
+                  <div style={{fontSize:11,color:"var(--muted)"}}>{m.calories} cal · P {m.protein}g · C {m.carbs}g</div>
+                </div>
+                <div style={{fontSize:12,color:"var(--plum3)",flexShrink:0}}>→</div>
+              </div>
+            ))}
+            <div style={{display:"flex",gap:8,marginTop:4}}>
+              {[["🔥",d.total_calories,"cal"],["💪",d.total_protein+"g","prot"],["🌾",d.total_carbs+"g","carb"]].map(([ic,v,lb])=>(
+                <div key={lb} style={{flex:1,background:"var(--warm)",borderRadius:8,padding:"6px 4px",textAlign:"center"}}>
+                  <div style={{fontSize:12,fontWeight:500,color:"var(--text)"}}>{v}</div>
+                  <div style={{fontSize:9,color:"var(--muted)"}}>{lb}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+ 
+        <div style={{display:"flex",gap:8,marginTop:8}}>
+          <button className="btn-full blue" onClick={()=>setTab("shop")}>
+            Order ingredients ({meal.shopping_list?.length||0} items)
+          </button>
+          <button className="btn-sm" style={{padding:"0 16px"}} onClick={()=>{setPhase("prefs");setOptions({});setSelected({});}}>
+            Regenerate
+          </button>
+        </div>
+      </div>
+    );
+  }
+ 
+  // ── PICKING VIEW ──
+  if(phase==="picking"){
+    const allTypesDone=mealTypeKeys.every(t=>{
+      const key=MEAL_TYPE_LABELS[t]||t.toLowerCase().replace(/\s+/g,"_");
+      return(selected[key]||[]).length>=(mealPrefs[t]||1);
+    });
+ 
+    return(
+      <div className="page">
+        {/* STEP PROGRESS */}
+        <div style={{display:"flex",gap:4,marginBottom:20}}>
+          {mealTypeKeys.map((t,i)=>{
+            const key=MEAL_TYPE_LABELS[t]||t.toLowerCase().replace(/\s+/g,"_");
+            const done=(selected[key]||[]).length>=(mealPrefs[t]||1);
+            return(
+              <div key={t} style={{flex:1,height:3,borderRadius:3,background:done?"var(--sage)":i===stepIdx?"var(--plum2)":"var(--border)",transition:"background .3s"}}/>
+            );
+          })}
+        </div>
+ 
+        {/* STEP HEADER */}
+        <div className="step-header">
+          {stepIdx>0&&<button style={{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:20,padding:0,lineHeight:1}} onClick={()=>setStepIdx(s=>s-1)}>←</button>}
+          <div style={{flex:1}}>
+            <div className="step-counter">Step {stepIdx+1} of {mealTypeKeys.length}</div>
+            <div className="step-title">Pick your {currentTypeLabel.toLowerCase()}s</div>
+          </div>
+        </div>
+ 
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+          <div className={`sel-counter${isFull?" full":""}`}>
+            {currentSelected.length} of {neededCount} selected
+            {isFull&&" ✓"}
+          </div>
+          {isFull&&(
+            <button className="btn-sm" onClick={advanceStep}>
+              {stepIdx<mealTypeKeys.length-1?"Next →":"See my plan →"}
+            </button>
+          )}
+        </div>
+ 
+        {/* OPTIONS HORIZONTAL SCROLL */}
+        <div style={{display:"flex",gap:12,overflowX:"auto",paddingBottom:12,marginBottom:8}}>
+          {currentOptions.map((opt,idx)=>{
+            const isSelected=currentSelected.includes(idx);
+            const isDisabled=!isSelected&&isFull;
+            return(
+              <div key={idx} className={`opt-card${isSelected?" on":""}${isDisabled?" done":""}`}
+                onClick={()=>!isDisabled&&toggleOption(currentTypeKey,idx)}>
+                {opt.uses_pantry?.length>0&&(
+                  <div style={{fontSize:9,fontWeight:500,color:"var(--sage)",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>Uses pantry items</div>
+                )}
+                <div className="opt-card-name">{opt.name}</div>
+                <div className="opt-card-desc">{opt.description}</div>
+                <div className="opt-macros">
+                  {[`${opt.calories} cal`,`P ${opt.protein}g`,`C ${opt.carbs}g`,`F ${opt.fat}g`].map(t=>(
+                    <span key={t} className="opt-macro">{t}</span>
+                  ))}
+                </div>
+                {opt.uses_pantry?.length>0&&(
+                  <div className="opt-pantry">Uses: {opt.uses_pantry.slice(0,3).join(", ")}</div>
+                )}
+                {isSelected&&(
+                  <div style={{marginTop:10,display:"flex",alignItems:"center",gap:6,color:"var(--plum2)",fontSize:12,fontWeight:500}}>
+                    <div style={{width:16,height:16,borderRadius:"50%",background:"var(--plum2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"white"}}>✓</div>
+                    Selected
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+ 
+        <p style={{fontSize:11,color:"var(--muted2)",textAlign:"center"}}>
+          Scroll to see all options · Select {neededCount} to continue
+        </p>
+ 
+        {allTypesDone&&(
+          <button className="btn-full" style={{marginTop:16}} onClick={buildFinalPlan}>
+            Build my meal plan →
+          </button>
+        )}
+      </div>
+    );
+  }
+ 
+  // ── GENERATING VIEW ──
+  if(phase==="generating"){
+    return(
+      <div className="page" style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60vh",textAlign:"center"}}>
+        <span className="spin" style={{width:32,height:32,borderWidth:3,borderTopColor:"var(--plum)",borderColor:"var(--plum3)44",marginBottom:20}}/>
+        <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:26,color:"var(--plum)",marginBottom:8}}>Creating your options</div>
+        <div style={{fontSize:13,color:"var(--muted)"}}>{stat}</div>
+      </div>
+    );
+  }
+ 
+  // ── PREFS VIEW (default) ──
   return(
     <div className="page">
       <div className="page-label">AI Planner</div>
       <h1 className="page-title">Weekly meals</h1>
  
-      {/* PREFERENCES CARD */}
+      {savedRatings.length>0&&(
+        <div style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",background:"var(--sageL)",borderRadius:10,marginBottom:12,fontSize:12,color:"var(--sage)"}}>
+          <span style={{fontSize:14}}>★</span>
+          <span>Using your {savedRatings.length} meal rating{savedRatings.length!==1?"s":""} to personalize options</span>
+        </div>
+      )}
+ 
       <div className="card" style={{marginBottom:14}}>
         <button style={{width:"100%",background:"none",border:"none",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",padding:0,fontFamily:"'DM Sans',system-ui,sans-serif"}} onClick={()=>setShowPrefs(!showPrefs)}>
           <div>
@@ -1233,67 +1560,18 @@ function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify,sessio
         )}
       </div>
  
-      {/* RATING CONTEXT INDICATOR */}
-      {savedRatings.length>0&&(
-        <div style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",background:"var(--sageL)",borderRadius:10,marginBottom:12,fontSize:12,color:"var(--sage)"}}>
-          <span>★</span>
-          <span>Using your {savedRatings.length} meal rating{savedRatings.length!==1?"s":""} to personalize this plan</span>
-        </div>
-      )}
- 
-      <button className="btn-generate" onClick={generate} disabled={gen}>
-        {gen?<span style={{display:"flex",alignItems:"center",gap:8}}><span className="spin"/>  {stat}</span>:"Generate this week's plan"}
+      <button className="btn-generate" onClick={generate} disabled={gen||!hasMealPrefs}>
+        {gen?<span style={{display:"flex",alignItems:"center",gap:8}}><span className="spin"/>Generating options...</span>:"Generate meal options"}
       </button>
  
-      {meal&&(
-        <>
-          {meal.strategy&&<div className="strat-card"><span style={{fontSize:18,flexShrink:0}}>*</span><p>{meal.strategy}</p></div>}
-          <div className="chips" style={{marginBottom:14}}>
-            {DAYS.map((dn,i)=><button key={dn} className={`day-btn${day===i?" on":""}`} onClick={()=>setDay(i)}>{dn}</button>)}
-          </div>
-          {d&&(
-            <div className="day-totals">
-              {[["cal",d.total_calories,"cal"],["prot",d.total_protein+"g","protein"],["carb",d.total_carbs+"g","carbs"],["fat",d.total_fat+"g","fat"]].map(([ic,v,lb])=>(
-                <div key={lb} className="day-total-cell">
-                  <div style={{fontWeight:500,fontSize:14,color:"var(--text)"}}>{v}</div>
-                  <div style={{fontSize:10,color:"var(--muted)"}}>{lb}</div>
-                </div>
-              ))}
-            </div>
-          )}
-          {mn&&Object.entries(mn).map(([mt,m])=>(
-            <div key={mt} className="meal-card">
-              <div className="meal-type">{mt}</div>
-              <div className="meal-name">{m.name}</div>
-              <div className="meal-desc">{m.description}</div>
-              {m.uses_pantry?.length>0&&(
-                <div style={{display:"flex",flexWrap:"wrap",alignItems:"center",gap:5,marginBottom:8}}>
-                  <span className="pantry-tag">Uses:</span>
-                  {m.uses_pantry.map(x=><span key={x} className="uses-chip">{x}</span>)}
-                </div>
-              )}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-                <div style={{display:"flex",gap:12,fontSize:12,color:"var(--muted)"}}>
-                  <span>{m.calories} cal</span><span>P {m.protein}g</span><span>C {m.carbs}g</span><span>F {m.fat}g</span>
-                </div>
-              </div>
-              <StarRating mealName={m.name} mealType={mt}/>
-            </div>
-          ))}
-          {meal.shopping_list?.length>0&&(
-            <button className="btn-full blue" style={{marginTop:8}} onClick={()=>setTab("shop")}>
-              View shopping list ({meal.shopping_list.length} items)
-            </button>
-          )}
-        </>
+      {!hasMealPrefs&&(
+        <p style={{textAlign:"center",fontSize:13,color:"var(--muted)",marginTop:8}}>Set your meal preferences above to get started</p>
       )}
  
-      {!meal&&!gen&&(
-        <div className="empty">
-          <div className="empty-icon">{I.meals("#b0a0be")}</div>
-          <div style={{fontFamily:"'Cormorant Garamond',Georgia,serif",fontSize:22,color:"var(--plum)",marginBottom:8}}>No plan yet</div>
-          <p>Set your preferences above, then generate a plan built around your <strong style={{color:"var(--plum2)"}}>{macros.calories} kcal</strong> target.</p>
-        </div>
+      {meal&&phase==="prefs"&&(
+        <button className="btn-sm" style={{width:"100%",marginTop:8,textAlign:"center"}} onClick={()=>setPhase("plan")}>
+          View current plan
+        </button>
       )}
     </div>
   );
