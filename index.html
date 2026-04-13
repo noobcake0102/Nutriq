@@ -753,7 +753,7 @@ useEffect(()=>{setUserName(profile?.name||session?.user?.email?.split("@")[0]||"
   );
 }
   /* ACCOUNT MODALS */
-     function AccountModals({acctModal,setAcctModal,session,userName,setUserName,notify,supa}){
+  function AccountModals({acctModal,setAcctModal,session,userName,setUserName,notify,supa}){
   const[form,setForm]=useState({});
   const[loading,setLoading]=useState(false);
   const[deleteConfirm,setDeleteConfirm]=useState("");
