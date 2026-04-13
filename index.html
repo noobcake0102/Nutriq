@@ -552,7 +552,7 @@ function App(){
   const[session,setSession]=useState(undefined);
   const[profile,setProfile]=useState(null);
   const[needsOnboard,setNeedsOnboard]=useState(false);
-  const[tab,setTab]=useState("scan");
+  const[tab,setTab]=useState("home");
   const[pantry,setPantry]=useState(()=>DB.get("nq_p",SP));
   const[goals,setGoals]=useState(()=>DB.get("nq_g",DG));
   const[weights,setWeights]=useState(()=>DB.get("nq_w",[]));
@@ -1332,25 +1332,38 @@ Pantry (prioritize expiring): ${ps.split("\n").slice(0,8).join(", ")}.`;
   };
  
   const generateRecipe=async(mealItem)=>{
-    setActiveRecipe({...mealItem,loading:true});
+  // If recipe already saved, just show it
+  if(mealItem.recipe){
+    setActiveRecipe({...mealItem,...mealItem.recipe,loading:false});
     setView("recipe");
-    const sys=`You are a chef. Respond with ONLY raw JSON. No markdown. Structure: {"title":"...","servings":4,"prep_time":"15 min","cook_time":"30 min","ingredients":[{"amount":"1 cup","name":"brown rice"}],"steps":["Step 1: ..."]}`;
-    const usr=`Complete recipe for "${mealItem.name}" (${(mealItem.meal_type||"").replace(/_/g," ")}). Serves ${goals.householdSize}. Diet: ${goals.diet}. Known ingredients: ${(Array.isArray(mealItem.ingredients)?mealItem.ingredients:[]).join(", ")||"standard"}.`;
-    let full="";
-    try{
-      await streamClaude(sys,usr,c=>{full+=c;});
-      const cleaned=full.replace(/```json/g,"").replace(/```/g,"").trim();
-      const recipe=JSON.parse(cleaned);
-      setActiveRecipe({...mealItem,...recipe,loading:false});
-      // Update times_made
-      if(mealItem.id){
-        await supa.from("saved_meals").update({times_made:(mealItem.times_made||0)+1,last_made:new Date().toISOString().split("T")[0]}).eq("id",mealItem.id);
-      }
-    }catch(e){
-      notify("Recipe failed — try again","err");
-      setView("plan");
+    return;
+  }
+  setActiveRecipe({...mealItem,loading:true});
+  setView("recipe");
+  const sys=`You are a chef. Respond with ONLY raw JSON. No markdown. Structure: {"title":"...","servings":4,"prep_time":"15 min","cook_time":"30 min","ingredients":[{"amount":"1 cup","name":"brown rice"}],"steps":["Step 1: ..."]}`;
+  const usr=`Complete recipe for "${mealItem.name}" (${(mealItem.meal_type||"").replace(/_/g," ")}). Serves ${goals.householdSize}. Diet: ${goals.diet}. Known ingredients: ${(Array.isArray(mealItem.ingredients)?mealItem.ingredients:[]).join(", ")||"standard"}.`;
+  let full="";
+  try{
+    await streamClaude(sys,usr,c=>{full+=c;});
+    const cleaned=full.replace(/```json/g,"").replace(/```/g,"").trim();
+    const recipe=JSON.parse(cleaned);
+    setActiveRecipe({...mealItem,...recipe,loading:false});
+    // Save recipe + update times_made
+    if(mealItem.id){
+      await supa.from("saved_meals").update({
+        recipe,
+        times_made:(mealItem.times_made||0)+1,
+        last_made:new Date().toISOString().split("T")[0]
+      }).eq("id",mealItem.id);
+      // Update local state so next tap uses cached recipe
+      setSavedMeals(ms=>ms.map(m=>m.id===mealItem.id?{...m,recipe,times_made:(m.times_made||0)+1}:m));
+      setThisWeek(tw=>tw.map(m=>m.id===mealItem.id?{...m,recipe,times_made:(m.times_made||0)+1}:m));
     }
-  };
+  }catch(e){
+    notify("Recipe failed — try again","err");
+    setView("plan");
+  }
+};
  
   const rateFromRecipe=async(rating)=>{
     if(!activeRecipe||!session)return;
