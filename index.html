@@ -2268,12 +2268,12 @@ function GoalsTab({goals,setGoals,weights,setWeights,macros,tdee,bmr,logWeight,s
         </div>
       </div>
       <button className="btn-full" onClick={async()=>{if(saveGoals)await saveGoals(goals);notify("Goals saved");}}>Save goals</button>
-    </div>
-      );
-    }
+   </div>
+    );
   }
 }
 
+/* ====================== FINAL RENDER ====================== */
 const container = document.getElementById("root");
 const root = ReactDOM.createRoot(container);
 root.render(React.createElement(App));
