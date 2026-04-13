@@ -1892,6 +1892,16 @@ function ShopTab({shop,notify,session,preferredStore}){
   // Auto-match products when Kroger connected and shop list exists
   useEffect(()=>{
     if(krogerToken&&shop.length>0&&store==="kroger"&&Object.keys(matchedProducts).length===0){
+      const cleanIngredient=(raw)=>{
+  // Strip cooking methods and quantities
+  const strip=["cooked","fresh","frozen","dried","chopped","diced","sliced","minced","grilled","fried","baked","raw","large","small","medium","ripe","whole","boneless","skinless","lean","ground"];
+  let q=raw.toLowerCase()
+    .replace(/^\d+[\d./\s]*(cup|tbsp|tsp|oz|lb|g|kg|clove|cloves|can|bunch|piece|medium|large|small)s?\s*/i,"")
+    .trim();
+  strip.forEach(w=>{ q=q.replace(new RegExp(`\\b${w}\\b`,"gi"),"").trim(); });
+  // Collapse multiple spaces
+  return q.replace(/\s+/g," ").trim()||raw;
+};
       matchAllProducts();
     }
   },[krogerToken,shop,store]);
@@ -1977,7 +1987,7 @@ function ShopTab({shop,notify,session,preferredStore}){
       try{
         const data=await krogerApi("search_products",{
           access_token:krogerToken,
-          query:item.item,
+          query:cleanIngredient(item.item),
           location_id:krogerStore?.id
         });
         if(data.products&&data.products.length>0){
