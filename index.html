@@ -736,6 +736,7 @@ useEffect(()=>{setUserName(profile?.name||session?.user?.email?.split("@")[0]||"
     </>
   )}
 </div>
+      </div>
 <AccountModals acctModal={acctModal} setAcctModal={setAcctModal} session={session} userName={userName} setUserName={setUserName} notify={notify} supa={supa}/>
       {tab==="home"   &&<HomeTab    pantry={pantry} goals={goals} weights={weights} meal={meal} macros={macros} setTab={setTab} userName={userName} notify={notify}/>}
       {tab==="scan"   &&<ScannerTab pantry={pantry} setPantry={setPantry} savePantryItem={savePantryItem} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify}/>}
