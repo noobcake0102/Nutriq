@@ -1,5 +1,5 @@
-const KROGER_BASE = "https://api.kroger.com/v1";
-const KROGER_AUTH_BASE = "https://api.kroger.com/v1/connect/oauth2";
+const KROGER_BASE = "https://api-ce.kroger.com/v1";
+const KROGER_AUTH_BASE = "https://api-ce.kroger.com/v1/connect/oauth2";
 
 exports.handler = async function (event) {
   if (event.httpMethod === "OPTIONS") {
