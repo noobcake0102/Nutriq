@@ -630,7 +630,7 @@ function App(){
       {tab==="scan"   &&<ScannerTab pantry={pantry} setPantry={setPantry} savePantryItem={savePantryItem} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify}/>}
       {tab==="pantry" &&<PantryTab  pantry={pantry} setPantry={setPantry} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify}/>}
       {tab==="meals"  &&<MealsTab   pantry={pantry} goals={goals} macros={macros} meal={meal} setMeal={setMeal} setShop={setShop} setTab={setTab} notify={notify}/>}
-      {tab==="shop"   &&<ShopTab    shop={shop} notify={notify}/>}
+      {tab==="shop" &&<ShopTab shop={shop} notify={notify} session={session}/>
       {tab==="goals"  &&<GoalsTab   goals={goals} setGoals={setGoals} weights={weights} setWeights={setWeights} macros={macros} tdee={tdee} bmr={bmr} logWeight={logWeight} saveGoals={saveGoals} notify={notify}/>}
 
       <div className="nav">
