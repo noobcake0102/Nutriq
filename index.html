@@ -1082,26 +1082,79 @@ function PantryTab({pantry,setPantry,deletePantryItem,updatePantryQty,notify}){
 }
 
 /* MEALS */
-function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
+function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify,session}){
   const[gen,setGen]=useState(false);
   const[stat,setStat]=useState("");
   const[day,setDay]=useState(0);
   const[showPrefs,setShowPrefs]=useState(false);
   const[cuisines,setCuisines]=useState(goals.meal_cuisines||[]);
   const[mealPrefs,setMealPrefs]=useState(goals.meal_preferences||{});
+  const[ratings,setRatings]=useState(()=>DB.get("nq_ratings",{}));
+  const[savedRatings,setSavedRatings]=useState([]);
   const DAYS=["Mon","Tue","Wed"];
   const toggleCuisine=c=>setCuisines(cs=>cs.includes(c)?cs.filter(x=>x!==c):[...cs,c]);
   const toggleMealType=t=>setMealPrefs(mp=>{const n={...mp};if(n[t])delete n[t];else n[t]=1;return n;});
   const setMealCount=(t,v)=>setMealPrefs(mp=>({...mp,[t]:Math.max(1,Math.min(7,+v||1))}));
-
+ 
+  // Load saved ratings from Supabase on mount
+  useEffect(()=>{
+    if(!session)return;
+    supa.from("meal_ratings").select("*").eq("user_id",session.user.id).order("created_at",{ascending:false}).limit(50)
+      .then(({data})=>{if(data)setSavedRatings(data);});
+  },[session]);
+ 
+  const rateMeal=async(mealName,mealType,rating)=>{
+    const key=`${mealName}__${mealType}`;
+    const newRatings={...ratings,[key]:rating};
+    setRatings(newRatings);
+    DB.set("nq_ratings",newRatings);
+    if(session){
+      const{data:prof}=await supa.from("profiles").select("household_id").eq("id",session.user.id).maybeSingle();
+      await supa.from("meal_ratings").upsert({
+        user_id:session.user.id,
+        household_id:prof?.household_id,
+        meal_name:mealName,
+        meal_type:mealType,
+        rating,
+        never_again:rating===1,
+      },{onConflict:"user_id,meal_name,meal_type",ignoreDuplicates:false});
+      // Refresh ratings
+      const{data}=await supa.from("meal_ratings").select("*").eq("user_id",session.user.id).order("created_at",{ascending:false}).limit(50);
+      if(data)setSavedRatings(data);
+    }
+    if(rating===1)notify(`Won't suggest "${mealName}" again`);
+    else if(rating===5)notify(`Loved "${mealName}" — will suggest more like this!`);
+  };
+ 
+  const getRating=(mealName,mealType)=>{
+    const key=`${mealName}__${mealType}`;
+    if(ratings[key])return ratings[key];
+    const saved=savedRatings.find(r=>r.meal_name===mealName&&r.meal_type===mealType);
+    return saved?.rating||0;
+  };
+ 
+  // Build rating context string for prompt
+  const buildRatingContext=()=>{
+    if(savedRatings.length===0&&Object.keys(ratings).length===0)return"";
+    const loved=savedRatings.filter(r=>r.rating>=4).slice(0,5).map(r=>`${r.meal_name} (${r.rating}★)`);
+    const disliked=savedRatings.filter(r=>r.rating<=2).slice(0,5).map(r=>r.meal_name);
+    const neverAgain=savedRatings.filter(r=>r.never_again).map(r=>r.meal_name);
+    let ctx="";
+    if(loved.length>0)ctx+=`User loved these meals: ${loved.join(", ")}. `;
+    if(disliked.length>0)ctx+=`User disliked: ${disliked.join(", ")}. `;
+    if(neverAgain.length>0)ctx+=`NEVER suggest these again: ${neverAgain.join(", ")}. `;
+    return ctx;
+  };
+ 
   const generate=async()=>{
     setGen(true);setStat("Analyzing your pantry...");setMeal(null);
     const ps=pantry.map(i=>{const d=du(i.expiry);return `- ${i.name} (${i.qty} ${i.unit}${d!==null?`, expires in ${d} days`:""})`;}).join("\n");
     const cuisineStr=cuisines.length?`Preferred cuisines: ${cuisines.join(", ")}.`:"";
     const mealPrefStr=Object.keys(mealPrefs).length?`Meal schedule this week: ${Object.entries(mealPrefs).map(([k,v])=>`${v}x ${k}`).join(", ")}.`:"";
+    const ratingCtx=buildRatingContext();
     const sys=`You are a nutritionist. Respond with ONLY a raw JSON object. Absolutely no markdown, no backticks, no code fences, no explanation. Just raw JSON. Keep ALL text fields under 6 words. Structure:
 {"days":[{"day":"Monday","meals":{"breakfast":{"name":"...","description":"...","uses_pantry":["..."],"calories":400,"protein":30,"carbs":45,"fat":12},"lunch":{"name":"...","description":"...","uses_pantry":[],"calories":500,"protein":35,"carbs":55,"fat":15},"dinner":{"name":"...","description":"...","uses_pantry":["..."],"calories":600,"protein":45,"carbs":60,"fat":20},"snack":{"name":"...","description":"...","uses_pantry":[],"calories":150,"protein":8,"carbs":18,"fat":5}},"total_calories":1650,"total_protein":118,"total_carbs":178,"total_fat":52}],"shopping_list":[{"item":"...","quantity":"...","reason":"...","priority":"high"}],"strategy":"..."}`;
-    const usr=`3-day meal plan (Monday, Tuesday, Wednesday) for ${goals.householdSize} people. Targets: ${macros.calories} cal, ${macros.protein}g protein, ${macros.carbs}g carbs, ${macros.fat}g fat. Goal: ${goals.goalType}. Diet: ${goals.diet}. Allergies: ${goals.allergies.join(",")||"none"}. ${cuisineStr} ${mealPrefStr} Be extremely brief. Pantry:\n${ps.split("\n").slice(0,8).join("\n")}`;
+    const usr=`3-day meal plan (Monday, Tuesday, Wednesday) for ${goals.householdSize} people. Targets: ${macros.calories} cal, ${macros.protein}g protein, ${macros.carbs}g carbs, ${macros.fat}g fat. Goal: ${goals.goalType}. Diet: ${goals.diet}. Allergies: ${goals.allergies.join(",")||"none"}. ${cuisineStr} ${mealPrefStr} ${ratingCtx} Be extremely brief. Pantry:\n${ps.split("\n").slice(0,8).join("\n")}`;
     let full="";
     try{
       setStat("Crafting your plan...");
@@ -1113,14 +1166,36 @@ function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
     }catch(e){notify("Generation failed - try again","err");console.error(e,full);}
     setGen(false);setStat("");
   };
-
+ 
   const d=meal?.days?.[day],mn=d?.meals;
   const hasMealPrefs=Object.keys(mealPrefs).length>0;
-
+ 
+  // Star rating component
+  const StarRating=({mealName,mealType})=>{
+    const current=getRating(mealName,mealType);
+    const[hover,setHover]=useState(0);
+    return(
+      <div style={{display:"flex",alignItems:"center",gap:3,marginTop:8}}>
+        <span style={{fontSize:11,color:"var(--muted)",marginRight:4}}>Rate:</span>
+        {[1,2,3,4,5].map(star=>(
+          <button key={star}
+            style={{background:"none",border:"none",cursor:"pointer",padding:"2px",fontSize:18,lineHeight:1,color:(hover||current)>=star?"#c9a227":"var(--border2)",transition:"color .1s"}}
+            onMouseEnter={()=>setHover(star)}
+            onMouseLeave={()=>setHover(0)}
+            onClick={()=>rateMeal(mealName,mealType,star)}
+          >★</button>
+        ))}
+        {current>0&&<span style={{fontSize:11,color:"var(--muted)",marginLeft:4}}>{current===5?"Loved it!":current===4?"Good":current===3?"OK":current===2?"Meh":"Won't make again"}</span>}
+      </div>
+    );
+  };
+ 
   return(
     <div className="page">
       <div className="page-label">AI Planner</div>
       <h1 className="page-title">Weekly meals</h1>
+ 
+      {/* PREFERENCES CARD */}
       <div className="card" style={{marginBottom:14}}>
         <button style={{width:"100%",background:"none",border:"none",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",padding:0,fontFamily:"'DM Sans',system-ui,sans-serif"}} onClick={()=>setShowPrefs(!showPrefs)}>
           <div>
@@ -1157,9 +1232,19 @@ function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
           </div>
         )}
       </div>
+ 
+      {/* RATING CONTEXT INDICATOR */}
+      {savedRatings.length>0&&(
+        <div style={{display:"flex",alignItems:"center",gap:6,padding:"8px 12px",background:"var(--sageL)",borderRadius:10,marginBottom:12,fontSize:12,color:"var(--sage)"}}>
+          <span>★</span>
+          <span>Using your {savedRatings.length} meal rating{savedRatings.length!==1?"s":""} to personalize this plan</span>
+        </div>
+      )}
+ 
       <button className="btn-generate" onClick={generate} disabled={gen}>
         {gen?<span style={{display:"flex",alignItems:"center",gap:8}}><span className="spin"/>  {stat}</span>:"Generate this week's plan"}
       </button>
+ 
       {meal&&(
         <>
           {meal.strategy&&<div className="strat-card"><span style={{fontSize:18,flexShrink:0}}>*</span><p>{meal.strategy}</p></div>}
@@ -1187,9 +1272,12 @@ function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
                   {m.uses_pantry.map(x=><span key={x} className="uses-chip">{x}</span>)}
                 </div>
               )}
-              <div style={{display:"flex",gap:12,fontSize:12,color:"var(--muted)"}}>
-                <span>{m.calories} cal</span><span>P {m.protein}g</span><span>C {m.carbs}g</span><span>F {m.fat}g</span>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+                <div style={{display:"flex",gap:12,fontSize:12,color:"var(--muted)"}}>
+                  <span>{m.calories} cal</span><span>P {m.protein}g</span><span>C {m.carbs}g</span><span>F {m.fat}g</span>
+                </div>
               </div>
+              <StarRating mealName={m.name} mealType={mt}/>
             </div>
           ))}
           {meal.shopping_list?.length>0&&(
@@ -1199,6 +1287,7 @@ function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
           )}
         </>
       )}
+ 
       {!meal&&!gen&&(
         <div className="empty">
           <div className="empty-icon">{I.meals("#b0a0be")}</div>
@@ -1209,7 +1298,6 @@ function MealsTab({pantry,goals,macros,meal,setMeal,setShop,setTab,notify}){
     </div>
   );
 }
-
 /* SHOP */
 function ShopTab({shop,notify,session}){
   const[store,setStore]=useState("kroger");
