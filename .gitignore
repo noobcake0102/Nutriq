@@ -2,3 +2,10 @@ node_modules
 dist
 .env
 .env.local
+
+# iOS native build artifacts (keep ios/ project files, ignore build output)
+ios/App/Pods
+ios/App/App.xcworkspace/xcuserdata
+ios/App/*.xcworkspace/xcuserdata
+ios/.DS_Store
+*.xcuserstate
