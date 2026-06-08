@@ -37,7 +37,7 @@ export default function PaywallModal({ onClose, onSuccess, generationsUsed = 0 }
 
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <BloomLogo />
+          <BloomLogo size={72} />
           <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 26, fontWeight: 600, color: 'var(--plum)', marginTop: 10, marginBottom: 4 }}>
             Unlock Nutriq
           </div>

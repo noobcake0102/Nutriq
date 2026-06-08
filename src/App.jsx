@@ -142,7 +142,7 @@ export default function App() {
 
   if (session === undefined) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream)' }}>
-      <div style={{ textAlign: 'center' }}><BloomLogo /><div style={{ marginTop: 12, color: 'var(--muted)', fontSize: 14 }}>Loading...</div></div>
+      <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}><BloomLogo size={72} /><div style={{ color: 'var(--muted)', fontSize: 14 }}>Loading...</div></div>
     </div>
   )
 

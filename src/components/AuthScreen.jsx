@@ -21,7 +21,7 @@ export default function AuthScreen() {
   return (
     <div className="auth-wrap">
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <BloomLogo />
+        <BloomLogo size={80} />
         <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 32, fontWeight: 600, color: 'var(--plum)', marginTop: 10 }}>Nutriq</div>
         <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>Feed your family better, without the mental math.</div>
       </div>

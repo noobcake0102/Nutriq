@@ -133,7 +133,7 @@ export default function Onboarding({ user, onComplete }) {
 
   return (
     <div className="ob-wrap">
-      <div className="ob-hero"><BloomLogo /><div className="ob-title">Welcome to Nutriq</div><div className="ob-sub">Feed your family better,<br />without the mental math.</div></div>
+      <div className="ob-hero"><BloomLogo size={80} /><div className="ob-title">Welcome to Nutriq</div><div className="ob-sub">Feed your family better,<br />without the mental math.</div></div>
       {steps[step]}
     </div>
   )
