@@ -19,17 +19,29 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
   const [activeRecipe, setActiveRecipe] = useState(null)
   const [historyFilter, setHistoryFilter] = useState('all')
   const [savedRatings, setSavedRatings] = useState([])
+  const [reuseSelected, setReuseSelected] = useState([]) // saved-meal ids reused this week
 
   const toggleCuisine = c => setCuisines(cs => cs.includes(c) ? cs.filter(x => x !== c) : [...cs, c])
   const toggleMealType = t => setMealPrefs(mp => { const n = { ...mp }; if (n[t]) delete n[t]; else n[t] = 1; return n })
   const setMealCount = (t, v) => setMealPrefs(mp => ({ ...mp, [t]: Math.max(1, Math.min(7, +v || 1)) }))
 
   const mealTypeKeys = Object.keys(mealPrefs)
-  const currentTypeLabel = mealTypeKeys[stepIdx] || ''
-  const currentTypeKey = MEAL_TYPE_LABELS[currentTypeLabel] || currentTypeLabel.toLowerCase().replace(/\s+/g, '_')
+  const typeKeyFor = label => MEAL_TYPE_LABELS[label] || label.toLowerCase().replace(/\s+/g, '_')
+  // How many of each requested type are already filled by reused saved meals
+  const reusedCountForType = label => {
+    const key = typeKeyFor(label)
+    return reuseSelected.filter(id => savedMeals.find(x => x.id === id)?.meal_type === key).length
+  }
+  const remainingForType = label => Math.max(0, (mealPrefs[label] || 0) - reusedCountForType(label))
+  const totalRemaining = mealTypeKeys.reduce((s, t) => s + remainingForType(t), 0)
+  // Only types still needing generation drive the picking steps
+  const genTypeKeys = mealTypeKeys.filter(t => remainingForType(t) > 0)
+
+  const currentTypeLabel = genTypeKeys[stepIdx] || ''
+  const currentTypeKey = typeKeyFor(currentTypeLabel)
   const currentOptions = options[currentTypeKey] || []
   const currentSelected = selected[currentTypeKey] || []
-  const neededCount = mealPrefs[currentTypeLabel] || 1
+  const neededCount = remainingForType(currentTypeLabel) || 1
   const isFull = currentSelected.length >= neededCount
 
   useEffect(() => {
@@ -52,23 +64,59 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
 
   const addToThisWeek = async mealId => {
     await supa.from('saved_meals').update({ this_week: true }).eq('id', mealId)
-    setSavedMeals(ms => ms.map(m => m.id === mealId ? { ...m, this_week: true } : m))
-    setThisWeek(tw => [...tw, savedMeals.find(m => m.id === mealId)])
+    const m = savedMeals.find(x => x.id === mealId)
+    setSavedMeals(ms => ms.map(x => x.id === mealId ? { ...x, this_week: true } : x))
+    const nextWeek = [...thisWeek, m].filter(Boolean)
+    setThisWeek(nextWeek)
+    buildShoppingList(nextWeek)
     notify('Added to this week')
   }
 
   const removeFromThisWeek = async mealId => {
     await supa.from('saved_meals').update({ this_week: false }).eq('id', mealId)
     setSavedMeals(ms => ms.map(m => m.id === mealId ? { ...m, this_week: false } : m))
-    setThisWeek(tw => tw.filter(m => m.id !== mealId))
+    const nextWeek = thisWeek.filter(m => m.id !== mealId)
+    setThisWeek(nextWeek)
+    buildShoppingList(nextWeek)
     notify('Removed from this week')
   }
 
   const deleteSavedMeal = async mealId => {
     await supa.from('saved_meals').delete().eq('id', mealId)
     setSavedMeals(ms => ms.filter(m => m.id !== mealId))
-    setThisWeek(tw => tw.filter(m => m.id !== mealId))
+    const nextWeek = thisWeek.filter(m => m.id !== mealId)
+    setThisWeek(nextWeek)
+    buildShoppingList(nextWeek)
     notify('Meal removed')
+  }
+
+  // Start a fresh week: clear current week's flags (meals stay in your library),
+  // reset reuse picks, and open the planning flow.
+  const startFreshWeek = async () => {
+    if (thisWeek.length && session) {
+      const ids = thisWeek.map(m => m.id)
+      await supa.from('saved_meals').update({ this_week: false }).in('id', ids)
+      setSavedMeals(ms => ms.map(m => ids.includes(m.id) ? { ...m, this_week: false } : m))
+      setThisWeek([])
+      setShop([])
+    }
+    setReuseSelected([])
+    setView('generate'); setPhase('prefs'); setShowPrefs(true)
+  }
+
+  // Mark reused saved meals as this-week, returns the reused meal objects
+  const commitReused = async () => {
+    if (!reuseSelected.length || !session) return []
+    await supa.from('saved_meals').update({ this_week: true }).in('id', reuseSelected)
+    setSavedMeals(ms => ms.map(m => reuseSelected.includes(m.id) ? { ...m, this_week: true } : m))
+    return savedMeals.filter(m => reuseSelected.includes(m.id))
+  }
+
+  const finishWeek = (reusedMeals, newMeals) => {
+    const all = [...thisWeek, ...reusedMeals, ...newMeals]
+    setThisWeek(all)
+    buildShoppingList(all)
+    setView('plan'); setPhase('prefs'); setOptions({}); setSelected({}); setStepIdx(0); setReuseSelected([])
   }
 
   const saveSelectedMeals = async selections => {
@@ -82,13 +130,14 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
         if (m) toInsert.push({ user_id: session.user.id, household_id: prof?.household_id, name: m.name, meal_type: typeKey, description: m.description, calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat, ingredients: m.ingredients || [], uses_pantry: m.uses_pantry || [], this_week: true })
       })
     })
+    let inserted = []
     if (toInsert.length > 0) {
       const { data } = await supa.from('saved_meals').insert(toInsert).select()
-      if (data) { setSavedMeals(ms => [...data, ...ms]); setThisWeek(tw => [...tw, ...data]) }
+      if (data) { inserted = data; setSavedMeals(ms => [...data, ...ms]) }
     }
-    buildShoppingList([...thisWeek, ...toInsert])
-    notify(`${toInsert.length} meals added to this week!`)
-    setView('plan'); setPhase('prefs'); setOptions({}); setSelected({}); setStepIdx(0)
+    const reusedMeals = await commitReused()
+    finishWeek(reusedMeals, inserted.length ? inserted : toInsert)
+    notify(`${reusedMeals.length + (inserted.length || toInsert.length)} meals set for this week!`)
   }
 
   const buildShoppingList = meals => {
@@ -128,14 +177,22 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
 
   const generate = async () => {
     if (mealTypeKeys.length === 0) { notify('Set meal preferences first', 'err'); return }
+    // If reused saved meals already cover everything, skip generation entirely
+    if (totalRemaining === 0) {
+      const reusedMeals = await commitReused()
+      finishWeek(reusedMeals, [])
+      notify(`${reusedMeals.length} meals set for this week!`)
+      return
+    }
     // Paywall gate: free users capped at FREE_GENERATION_LIMIT per month
     if (!isPaid && generationsUsed >= FREE_GENERATION_LIMIT) { onShowPaywall(); return }
     setPhase('generating')
     const ps = pantry.map(i => { const d = i.expiry ? Math.ceil((i.expiry - Date.now()) / 864e5) : null; return `- ${i.name} (${i.qty} ${i.unit}${d !== null ? `, expires ${d}d` : ''})` }).join('\n')
     const cuisineStr = cuisines.length ? `Preferred cuisines: ${cuisines.join(', ')}.` : ''
     const ratingCtx = buildRatingContext()
-    const optionsSpec = mealTypeKeys.map(t => { const key = MEAL_TYPE_LABELS[t] || t.toLowerCase().replace(/\s+/g, '_'); const count = Math.min((mealPrefs[t] || 1) * 2, 10); return `"${key}": ${count} options` }).join(', ')
-    const exKey = MEAL_TYPE_LABELS[mealTypeKeys[0]] || 'dinner'
+    // Only generate the REMAINING count per type (after reuse)
+    const optionsSpec = genTypeKeys.map(t => { const key = typeKeyFor(t); const count = Math.min(remainingForType(t) * 2, 10); return `"${key}": ${count} options` }).join(', ')
+    const exKey = typeKeyFor(genTypeKeys[0] || mealTypeKeys[0]) || 'dinner'
     const sys = `You are a home cooking expert. Respond with ONLY raw JSON. No markdown, no backticks, no explanation.\nStructure: {"options":{"${exKey}":[{"name":"...","description":"...","uses_pantry":["..."],"calories":500,"protein":35,"carbs":55,"fat":15,"ingredients":["1 cup white rice","2 boneless skinless chicken breasts"]}]}}\nRules: suggest FAMILIAR, PRACTICAL home meals that real families actually cook — like "Chicken Stir Fry", "Beef Tacos", "Pasta Bolognese", "Grilled Salmon", "Chicken Soup". Avoid exotic or unusual combinations. Names under 5 words, descriptions under 10 words, 4-8 common grocery ingredients per meal.\nCRITICAL — ingredient naming for grocery matching: write each ingredient as the EXACT phrase a shopper would type into a grocery search, specific enough that one obvious product comes back. Whenever a generic word maps to many different products, specify the variety, cut, or type. Examples of the rule (apply the same logic to every ingredient): "unsalted butter" not "butter"; "yellow onion" not "onion"; "boneless skinless chicken breast" not "chicken"; "whole milk" not "milk"; "extra virgin olive oil" not "oil"; "granulated sugar" not "sugar"; "all-purpose flour" not "flour"; "roma tomato" not "tomato"; "russet potato" not "potato"; "low-sodium chicken broth" not "broth"; "sharp cheddar cheese" not "cheese". Keep the quantity in the string (e.g. "2 tbsp unsalted butter").`
     const usr = `Generate meal options. Household: ${goals.householdSize}. Calorie target: ${macros.calories}/day. Goal: ${goals.goalType}. Diet: ${goals.diet}. Allergies: ${goals.allergies.join(',') || 'none'}. ${cuisineStr} ${ratingCtx}\nGenerate: ${optionsSpec}.\nPantry (prioritize expiring): ${ps.split('\n').slice(0, 8).join(', ')}.`
     let full = ''
@@ -154,15 +211,18 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
     setSelected(s => {
       const cur = s[typeKey] || []
       const typeLabel = Object.keys(MEAL_TYPE_LABELS).find(k => MEAL_TYPE_LABELS[k] === typeKey) || typeKey
-      const needed = mealPrefs[typeLabel] || 1
+      const needed = remainingForType(typeLabel) || 1
       if (cur.includes(idx)) return { ...s, [typeKey]: cur.filter(i => i !== idx) }
       if (cur.length < needed) return { ...s, [typeKey]: [...cur, idx] }
       return s
     })
   }
 
+  // Reuse step: toggle a saved meal in/out of this week's reuse set
+  const toggleReuse = id => setReuseSelected(rs => rs.includes(id) ? rs.filter(x => x !== id) : [...rs, id])
+
   const advanceStep = () => {
-    if (stepIdx < mealTypeKeys.length - 1) setStepIdx(s => s + 1)
+    if (stepIdx < genTypeKeys.length - 1) setStepIdx(s => s + 1)
     else saveSelectedMeals(selected)
   }
 
@@ -196,7 +256,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
   }
 
   const hasMealPrefs = Object.keys(mealPrefs).length > 0
-  const allTypesDone = mealTypeKeys.every(t => { const key = MEAL_TYPE_LABELS[t] || t.toLowerCase().replace(/\s+/g, '_'); return (selected[key] || []).length >= (mealPrefs[t] || 1) })
+  const allTypesDone = genTypeKeys.every(t => { const key = typeKeyFor(t); return (selected[key] || []).length >= remainingForType(t) })
 
   if (view === 'recipe' && activeRecipe) {
     if (activeRecipe.loading) return (
@@ -252,18 +312,18 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
     return (
       <div className="page">
         <div style={{ display: 'flex', gap: 4, marginBottom: 20 }}>
-          {mealTypeKeys.map((t, i) => { const key = MEAL_TYPE_LABELS[t] || t.toLowerCase().replace(/\s+/g, '_'); const done = (selected[key] || []).length >= (mealPrefs[t] || 1); return <div key={t} style={{ flex: 1, height: 3, borderRadius: 3, background: done ? 'var(--sage)' : i === stepIdx ? 'var(--plum2)' : 'var(--border)', transition: 'background .3s' }} /> })}
+          {genTypeKeys.map((t, i) => { const key = typeKeyFor(t); const done = (selected[key] || []).length >= remainingForType(t); return <div key={t} style={{ flex: 1, height: 3, borderRadius: 3, background: done ? 'var(--sage)' : i === stepIdx ? 'var(--plum2)' : 'var(--border)', transition: 'background .3s' }} /> })}
         </div>
         <div className="step-header">
           {stepIdx > 0 && <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 22, padding: 0 }} onClick={() => setStepIdx(s => s - 1)}>←</button>}
           <div style={{ flex: 1 }}>
-            <div className="step-counter">Step {stepIdx + 1} of {mealTypeKeys.length}</div>
+            <div className="step-counter">Step {stepIdx + 1} of {genTypeKeys.length}</div>
             <div className="step-title">Pick your {currentTypeLabel.toLowerCase()}s</div>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div className={`sel-counter${isFull ? ' full' : ''}`}>{currentSelected.length} of {neededCount} selected{isFull ? ' ✓' : ''}</div>
-          {isFull && <button className="btn-sm" onClick={advanceStep}>{stepIdx < mealTypeKeys.length - 1 ? 'Next →' : 'Save to my meals →'}</button>}
+          {isFull && <button className="btn-sm" onClick={advanceStep}>{stepIdx < genTypeKeys.length - 1 ? 'Next →' : 'Save to my meals →'}</button>}
         </div>
         <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 12, marginBottom: 8 }}>
           {currentOptions.map((opt, idx) => {
@@ -374,10 +434,63 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
             {generationsUsed >= FREE_GENERATION_LIMIT && <span style={{ color: 'var(--plum2)', fontWeight: 500, cursor: 'pointer' }} onClick={onShowPaywall}>Upgrade →</span>}
           </div>
         )}
-        <button className="btn-generate" onClick={generate} disabled={!hasMealPrefs}>
-          {!isPaid && generationsUsed >= FREE_GENERATION_LIMIT ? '🔒 Upgrade to generate' : 'Generate meal options'}
+        <button className="btn-generate" onClick={() => { setReuseSelected([]); setPhase('reuse') }} disabled={!hasMealPrefs}>
+          Next: reuse your saved meals →
         </button>
         {!hasMealPrefs && <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', marginTop: 8 }}>Set preferences above to get started</p>}
+      </div>
+    )
+  }
+
+  // ── REUSE SAVED MEALS VIEW (step 2 of the weekly flow) ──
+  if (view === 'generate' && phase === 'reuse') {
+    return (
+      <div className="page">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 20 }} onClick={() => setPhase('prefs')}>←</button>
+          <div><div className="page-label">Step 2 of 3</div><h1 className="page-title" style={{ marginBottom: 0 }}>Reuse saved meals</h1></div>
+        </div>
+        <p className="page-sub">Fill this week from meals you've saved. We'll only generate what's left.</p>
+        {savedMeals.length === 0 && <div style={{ background: 'var(--plumLL)', border: '1px solid var(--plum3)22', borderRadius: 12, padding: 14, fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>No saved meals yet — your first generated meals will land here for reuse next week.</div>}
+        {mealTypeKeys.map(label => {
+          const key = typeKeyFor(label)
+          const pool = savedMeals.filter(m => m.meal_type === key)
+          const filled = reusedCountForType(label)
+          const needed = mealPrefs[label] || 0
+          if (pool.length === 0) return null
+          return (
+            <div key={label} className="card" style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div style={{ fontWeight: 500, fontSize: 14, color: 'var(--plum)' }}>{label}</div>
+                <div style={{ fontSize: 12, color: filled >= needed ? 'var(--sage)' : 'var(--muted)' }}>{filled} of {needed} filled</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {pool.map(m => {
+                  const on = reuseSelected.includes(m.id)
+                  const blocked = !on && filled >= needed
+                  return (
+                    <button key={m.id} disabled={blocked} onClick={() => toggleReuse(m.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, background: on ? 'var(--plumLL)' : 'var(--card)', border: `1px solid ${on ? 'var(--plum3)' : 'var(--border)'}`, borderRadius: 12, padding: '10px 12px', cursor: blocked ? 'not-allowed' : 'pointer', opacity: blocked ? 0.4 : 1, textAlign: 'left', fontFamily: "'DM Sans',system-ui,sans-serif" }}>
+                      <div style={{ width: 18, height: 18, borderRadius: '50%', border: `1.5px solid ${on ? 'var(--plum2)' : 'var(--border2)'}`, background: on ? 'var(--plum2)' : 'transparent', color: '#fff', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{on ? '✓' : ''}</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{m.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted)' }}>{m.calories} cal · P {m.protein}g{m.rating ? ` · ${'★'.repeat(m.rating)}` : ''}</div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+        <div style={{ position: 'sticky', bottom: 84, background: 'linear-gradient(transparent, var(--cream) 24%)', paddingTop: 12 }}>
+          <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', marginBottom: 8 }}>
+            Reusing {reuseSelected.length} · generating {totalRemaining} more
+          </div>
+          <button className="btn-generate" style={{ marginBottom: 0 }} onClick={generate} disabled={!hasMealPrefs}>
+            {totalRemaining === 0 ? 'Finish week — all reused →' : (!isPaid && generationsUsed >= FREE_GENERATION_LIMIT ? '🔒 Upgrade to generate' : `Generate ${totalRemaining} new meal${totalRemaining !== 1 ? 's' : ''} →`)}
+          </button>
+        </div>
       </div>
     )
   }
@@ -412,9 +525,17 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
           <div style={{ fontSize: 13, color: 'var(--muted)' }}>Generate new options or add meals from your history</div>
         </div>
       )}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <button className="btn-full" onClick={() => { setView('generate'); setPhase('prefs'); setShowPrefs(true) }}>+ Generate new meals</button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+        <button className="btn-full" onClick={startFreshWeek}>
+          {thisWeek.length > 0 ? 'Plan a fresh week →' : 'Plan this week →'}
+        </button>
+        {thisWeek.length > 0 && (
+          <button className="btn-sm" style={{ width: '100%', textAlign: 'center', padding: 11 }} onClick={() => { setReuseSelected([]); setView('generate'); setPhase('prefs'); setShowPrefs(true) }}>
+            + Add more meals to this week
+          </button>
+        )}
       </div>
+      {thisWeek.length > 0 && <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--muted2)', marginTop: -8, marginBottom: 14 }}>Planning fresh clears this week (meals stay in your library)</p>}
       <button className="btn-sm" style={{ width: '100%', textAlign: 'center', padding: 12 }} onClick={() => setView('history')}>Browse meal history ({savedMeals.length} saved)</button>
     </div>
   )
