@@ -9,7 +9,11 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
   const [checked, setChk] = useState({})
   const [ordered, setOrd] = useState(false)
   const [krogerToken, setKrogerToken] = useState(() => localStorage.getItem('nq_kroger_token'))
+  const [krogerClientToken, setKrogerClientToken] = useState(() => localStorage.getItem('nq_kroger_client_token'))
   const [krogerStore, setKrogerStore] = useState(() => JSON.parse(localStorage.getItem('nq_kroger_store') || 'null'))
+
+  // Auto-fetch client credentials token for product search (no user auth needed)
+  const getSearchToken = () => krogerToken || krogerClientToken
   const [matchedProducts, setMatchedProducts] = useState({})
   const [matching, setMatching] = useState(false)
   const [placingOrder, setPlacingOrder] = useState(false)
@@ -28,11 +32,25 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
     }
   }, [])
 
+  // Auto-fetch client token if we don't have any token yet
   useEffect(() => {
-    if (krogerToken && shop.length > 0 && store === 'kroger' && Object.keys(matchedProducts).length === 0) {
+    if (store !== 'kroger') return
+    if (krogerToken || krogerClientToken) return
+    krogerApi('get_client_token').then(data => {
+      if (data.access_token) {
+        localStorage.setItem('nq_kroger_client_token', data.access_token)
+        setKrogerClientToken(data.access_token)
+      }
+    }).catch(() => {})
+  }, [store])
+
+  // Auto-match products whenever we have any token + shop items
+  useEffect(() => {
+    const token = getSearchToken()
+    if (token && shop.length > 0 && store === 'kroger' && Object.keys(matchedProducts).length === 0) {
       matchAllProducts()
     }
-  }, [krogerToken, shop, store])
+  }, [krogerToken, krogerClientToken, shop, store])
 
   const connectKroger = async () => {
     const data = await krogerApi('get_auth_url')
@@ -88,7 +106,8 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
   }
 
   const matchAllProducts = async () => {
-    if (!krogerToken || shop.length === 0) return
+    const token = getSearchToken()
+    if (!token || shop.length === 0) return
     setMatching(true)
     const results = {}
     for (let i = 0; i < shop.length; i += 3) {
@@ -96,7 +115,7 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
       await Promise.all(batch.map(async (item, idx) => {
         try {
           const data = await krogerApi('search_products', {
-            access_token: krogerToken,
+            access_token: token,
             query: cleanIngredient(item.item),
             location_id: krogerStore?.id,
           })
@@ -187,8 +206,9 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '8px 0' }}>
-              <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>Connect your Kroger account to auto-fill your cart</div>
-              <button className="btn-full" onClick={connectKroger}>Connect Kroger account</button>
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 4 }}>Products are matched automatically.</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>Connect your Kroger account to add items to your cart.</div>
+              <button className="btn-full" onClick={connectKroger}>Connect Kroger to order</button>
             </div>
           )}
         </div>
@@ -269,7 +289,7 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
                   )}
                 </div>
               )}
-              {!matched && !matching && krogerToken && !checked[i] && (
+              {!matched && !matching && getSearchToken() && !checked[i] && (
                 <div style={{ padding: '6px 14px 10px', background: 'var(--warm)', borderTop: '1px solid var(--border)' }}>
                   <span style={{ fontSize: 11, color: 'var(--muted)' }}>No match found</span>
                 </div>
@@ -278,9 +298,9 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
           )
         })}
         <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {store === 'kroger' && krogerToken && (<>
+          {store === 'kroger' && getSearchToken() && (<>
             {!matching && Object.keys(matchedProducts).length < shop.length && (
-              <button className="btn-full" style={{ background: 'none', border: '1px solid var(--plum3)', color: 'var(--plum2)' }} onClick={matchAllProducts}>Match products to Kroger</button>
+              <button className="btn-full" style={{ background: 'none', border: '1px solid var(--plum3)', color: 'var(--plum2)' }} onClick={matchAllProducts}>Re-match products</button>
             )}
             <button className="btn-full" onClick={placeKrogerOrder} disabled={placingOrder || Object.keys(matchedProducts).length === 0}>
               {placingOrder ? <span style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}><span className="spin" />Adding to cart...</span> : `Add to Kroger cart · ${Object.keys(matchedProducts).length} items`}

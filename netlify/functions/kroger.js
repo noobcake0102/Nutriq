@@ -1,52 +1,70 @@
 const KROGER_BASE = "https://api-ce.kroger.com/v1";
 const KROGER_AUTH_BASE = "https://api-ce.kroger.com/v1/connect/oauth2";
 
-// Maps ingredient categories to search prefixes that push raw/whole products
-// to the top of Kroger results and avoid deli/prepared alternatives.
+// Maps ingredient categories to Kroger-optimized search terms.
+// Strategy: use terms that match how shoppers search on Kroger.com,
+// NOT overly descriptive phrases. Kroger's algorithm rewards grocery-natural language.
 const INGREDIENT_ENRICHMENT = {
-  // Proteins — always want raw, not deli/pre-cooked
-  meat: {
-    terms: ["chicken breast","chicken thigh","chicken leg","chicken wing","ground chicken",
-            "ground beef","ground turkey","beef","steak","pork chop","pork loin",
-            "pork tenderloin","bacon","sausage","lamb","veal","bison"],
-    prefix: "fresh raw",
+  // Poultry — "boneless skinless" is the magic phrase that separates raw from deli
+  poultry: {
+    terms: ["chicken breast","chicken thigh","chicken leg","chicken wing","ground chicken","whole chicken","chicken"],
+    transform: q => q.includes("ground") ? q : `boneless skinless ${q}`,
   },
+  // Other meat — "fresh" prefix avoids deli/pre-cooked
+  meat: {
+    terms: ["ground beef","ground turkey","beef","steak","pork chop","pork loin",
+            "pork tenderloin","sausage","lamb","veal","bison","pork"],
+    transform: q => q.includes("ground") ? `${q} 80/20` : `fresh ${q}`,
+  },
+  // Bacon separate — "raw bacon" returns wrong results, just "bacon" is fine
+  bacon: {
+    terms: ["bacon"],
+    transform: q => q,
+  },
+  // Seafood — "fresh" pushes past frozen/smoked/canned
   seafood: {
     terms: ["salmon","tuna","shrimp","tilapia","cod","halibut","mahi","scallop",
             "crab","lobster","clam","oyster","fish fillet","fish"],
-    prefix: "fresh raw",
+    transform: q => q.includes("canned") ? q : `fresh ${q}`,
   },
+  // Produce — "fresh" is helpful for items that also come dried/canned
   produce: {
     terms: ["spinach","kale","arugula","lettuce","tomato","onion","garlic","ginger",
-            "broccoli","cauliflower","carrot","celery","zucchini","cucumber","pepper",
+            "broccoli","cauliflower","carrot","celery","zucchini","cucumber","bell pepper",
             "mushroom","potato","sweet potato","avocado","lemon","lime","apple",
-            "banana","strawberry","blueberry","mango","peach","herb","basil",
+            "banana","strawberry","blueberry","mango","peach","basil",
             "cilantro","parsley","thyme","rosemary"],
-    prefix: "fresh",
+    transform: q => `fresh ${q}`,
   },
+  // Dairy — no prefix needed, Kroger handles these well
   dairy: {
-    terms: ["milk","cream","butter","cheese","yogurt","egg","eggs","sour cream",
+    terms: ["milk","cream","butter","cheese","yogurt","sour cream",
             "cream cheese","cottage cheese","ricotta","mozzarella","cheddar",
-            "parmesan","feta","goat cheese"],
-    prefix: "",
+            "parmesan","feta","goat cheese","heavy cream","half and half"],
+    transform: q => q,
+  },
+  // Eggs — just "eggs" works perfectly
+  eggs: {
+    terms: ["egg","eggs"],
+    transform: () => "large eggs",
   },
 };
 
 function enrichIngredientQuery(raw) {
-  // Strip quantities and cooking descriptors
-  const descriptors = ["cooked","fresh","frozen","dried","chopped","diced","sliced",
-    "minced","grilled","fried","baked","raw","large","small","medium","ripe",
-    "whole","boneless","skinless","lean","ground","organic"];
+  // Strip quantities and cooking descriptors to get the core ingredient
+  const descriptors = ["cooked","frozen","dried","chopped","diced","sliced","minced",
+    "grilled","fried","baked","raw","ripe","whole","boneless","skinless","lean","organic",
+    "fresh","large","small","medium"];
   let q = raw.toLowerCase()
-    .replace(/^\d[\d./\s]*(cup|tbsp|tsp|oz|lb|g|kg|clove|cloves|can|bunch|piece|medium|large|small)s?\s*/i, "")
+    .replace(/^\d[\d./\s]*(cup|tbsp|tsp|oz|lb|lbs|g|kg|clove|cloves|can|bunch|piece|medium|large|small)s?\s*/i, "")
     .trim();
   descriptors.forEach(w => { q = q.replace(new RegExp(`\\b${w}\\b`, "gi"), "").trim(); });
-  q = q.replace(/\s+/g, " ").trim() || raw;
+  q = q.replace(/\s+/g, " ").trim() || raw.toLowerCase();
 
-  // Find matching category and prepend the right prefix
-  for (const { terms, prefix } of Object.values(INGREDIENT_ENRICHMENT)) {
+  // Apply category-specific transform
+  for (const { terms, transform } of Object.values(INGREDIENT_ENRICHMENT)) {
     if (terms.some(t => q.includes(t) || t.includes(q))) {
-      return prefix ? `${prefix} ${q}` : q;
+      return transform(q);
     }
   }
   return q;
@@ -89,6 +107,35 @@ exports.handler = async function (event) {
   }
 
   const { action } = body;
+
+  // ── ACTION: Get client credentials token (no user auth — for product search only) ──
+  if (action === "get_client_token") {
+    try {
+      const credentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
+      const response = await fetch(`${KROGER_AUTH_BASE}/token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${credentials}`,
+        },
+        body: new URLSearchParams({
+          grant_type: "client_credentials",
+          scope: "product.compact",
+        }).toString(),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        return { statusCode: 400, headers: { "Access-Control-Allow-Origin": "*" }, body: JSON.stringify({ error: data.error_description || "Token fetch failed" }) };
+      }
+      return {
+        statusCode: 200,
+        headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+        body: JSON.stringify({ access_token: data.access_token, expires_in: data.expires_in }),
+      };
+    } catch (err) {
+      return { statusCode: 500, headers: { "Access-Control-Allow-Origin": "*" }, body: JSON.stringify({ error: err.message }) };
+    }
+  }
 
   // ── ACTION: Get auth URL for user to authorize Kroger ──
   if (action === "get_auth_url") {
