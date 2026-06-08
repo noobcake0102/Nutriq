@@ -41,7 +41,9 @@ export const PLANS = [
   },
 ]
 
-export const FREE_GENERATION_LIMIT = 3
+// TEMP: limit lifted for testing/dev. Set back to 3 (or final value) before
+// launch to re-enable the free-tier cap. Paywall UI stays fully intact.
+export const FREE_GENERATION_LIMIT = 99999
 
 let _initialized = false
 
