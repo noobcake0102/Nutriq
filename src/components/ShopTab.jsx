@@ -18,6 +18,7 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
   const getSearchToken = () => krogerToken || krogerClientToken
   const [matchedProducts, setMatchedProducts] = useState({})
   const [matching, setMatching] = useState(false)
+  const [matchProgress, setMatchProgress] = useState({ done: 0, total: 0 })
   const [placingOrder, setPlacingOrder] = useState(false)
   const [stores, setStores] = useState([])
   const [showStores, setShowStores] = useState(false)
@@ -147,10 +148,14 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
     const token = getSearchToken()
     if (!token || shop.length === 0) return
     setMatching(true)
-    const results = {}
+    setMatchedProducts({})
+    setMatchProgress({ done: 0, total: shop.length })
     let authFailed = false
-    for (let i = 0; i < shop.length; i += 3) {
-      const batch = shop.slice(i, i + 3)
+    let matchedCount = 0
+    const BATCH = 5
+    for (let i = 0; i < shop.length; i += BATCH) {
+      const batch = shop.slice(i, i + BATCH)
+      const batchResults = {}
       await Promise.all(batch.map(async (item, idx) => {
         try {
           const key = cleanIngredient(item.item)
@@ -162,19 +167,19 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
           if (data.needs_reauth) { authFailed = true; return }
           if (data.products?.length > 0) {
             const options = data.products.slice(0, 6)
-            results[i + idx] = { selected: preferredIndex(options, key), options, key }
+            batchResults[i + idx] = { selected: preferredIndex(options, key), options, key }
           }
         } catch (e) { console.error('Match error for', item.item, e) }
       }))
-      if (i + 3 < shop.length) await new Promise(r => setTimeout(r, 300))
+      matchedCount += Object.keys(batchResults).length
+      // Stream each batch into the UI so matches appear as they arrive
+      setMatchedProducts(prev => ({ ...prev, ...batchResults }))
+      setMatchProgress({ done: Math.min(i + BATCH, shop.length), total: shop.length })
+      if (i + BATCH < shop.length) await new Promise(r => setTimeout(r, 120))
     }
-    setMatchedProducts(results)
     setMatching(false)
-    if (authFailed) {
-      notify('Your Kroger session expired — reconnect to match products', 'err')
-    } else if (Object.keys(results).length === 0) {
-      notify('No product matches found — try re-matching', 'err')
-    }
+    if (authFailed) notify('Your Kroger session expired — reconnect to match products', 'err')
+    else if (matchedCount === 0) notify('No product matches found — try re-matching', 'err')
   }
 
   const placeKrogerOrder = async () => {
@@ -288,9 +293,14 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
           <div className="sum-cell"><div className="sum-val" style={{ color: 'var(--plum)', fontSize: totalEstimate > 0 ? 18 : 22 }}>{totalEstimate > 0 ? `$${totalEstimate.toFixed(2)}` : '-'}</div><div className="sum-lbl">est. total</div></div>
         </div>
         {matching && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'var(--plumLL)', borderRadius: 12, marginBottom: 12, fontSize: 13, color: 'var(--plum)' }}>
-            <span className="spin" style={{ borderTopColor: 'var(--plum)', borderColor: 'var(--plum3)44' }} />
-            Matching items to Kroger products...
+          <div style={{ padding: '12px 14px', background: 'var(--plumLL)', borderRadius: 12, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--plum)', marginBottom: 8 }}>
+              <span className="spin" style={{ borderTopColor: 'var(--plum)', borderColor: 'var(--plum3)44' }} />
+              Matching {matchProgress.done} of {matchProgress.total} items...
+            </div>
+            <div style={{ height: 4, background: 'var(--plum3)22', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: 'var(--plum2)', borderRadius: 4, width: `${matchProgress.total ? (matchProgress.done / matchProgress.total) * 100 : 0}%`, transition: 'width .2s' }} />
+            </div>
           </div>
         )}
         {shop.map((item, i) => {

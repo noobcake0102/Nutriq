@@ -100,8 +100,13 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
         if (name) allIngredients[name.toLowerCase()] = (allIngredients[name.toLowerCase()] || 0) + 1
       })
     })
+    // Common pantry staples nobody adds to a weekly pickup — skip them so the
+    // list stays short and we don't waste a Kroger lookup on each.
+    const STAPLES = /\b(salt|pepper|black pepper|kosher salt|sea salt|water|ice|cooking spray|nonstick spray|salt and pepper)\b/i
     const pantryNames = pantry.map(p => p.name.toLowerCase())
-    const needed = Object.keys(allIngredients).filter(item => !pantryNames.some(p => p.includes(item) || item.includes(p)))
+    const needed = Object.keys(allIngredients)
+      .filter(item => !STAPLES.test(item))
+      .filter(item => !pantryNames.some(p => p.includes(item) || item.includes(p)))
     const using = Object.keys(allIngredients).filter(item => pantryNames.some(p => p.includes(item) || item.includes(p)))
     if (using.length > 0) notify(`Using ${using.length} pantry item${using.length !== 1 ? 's' : ''} you already have`)
     setShop(needed.map(item => ({ item, quantity: 'as needed', reason: 'For your meals this week', priority: 'high' })))
