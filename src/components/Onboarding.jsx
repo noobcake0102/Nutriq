@@ -69,7 +69,7 @@ export default function Onboarding({ user, onComplete }) {
       <div className="ob-step">Step 2 of 4 — Your goals</div>
       <div className="ob-progress">{[0,1,2,3].map(i => <div key={i} className={`ob-dot${i <= 1 ? ' on' : ''}`} />)}</div>
       {bmr > 0 && <div style={{ background: 'var(--plumLL)', border: '1px solid var(--plum3)22', borderRadius: 14, padding: 14, marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div><div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Your daily target</div><div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 28, fontWeight: 600, color: 'var(--plum)' }}>{macros.calories} <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--muted)' }}>kcal</span></div></div>
+        <div><div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1 }}>Your daily target</div><div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 28, fontWeight: 600, color: 'var(--plum)' }}>{macros.calories} <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--muted)' }}>kcal</span></div></div>
         <div style={{ textAlign: 'right', fontSize: 12, color: 'var(--muted)', lineHeight: 1.8 }}><div>P: {macros.protein}g</div><div>C: {macros.carbs}g</div><div>F: {macros.fat}g</div></div>
       </div>}
       <div className="ob-field"><label className="ob-label">Goal</label>

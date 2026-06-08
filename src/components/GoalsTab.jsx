@@ -38,7 +38,7 @@ export default function GoalsTab({ goals, setGoals, weights, setWeights, macros,
         <div className="card-title">Weight log</div>
         {latest && (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 14, marginBottom: 12 }}>
-            <span style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 42, fontWeight: 600, color: 'var(--plum)' }}>{latest}<span style={{ fontSize: 16, fontWeight: 400, color: 'var(--muted)' }}>lbs</span></span>
+            <span style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 42, fontWeight: 600, color: 'var(--plum)' }}>{latest}<span style={{ fontSize: 16, fontWeight: 400, color: 'var(--muted)' }}>lbs</span></span>
             <div>
               {change !== null && <div style={{ fontSize: 13, fontWeight: 500, color: +change < 0 ? 'var(--sage)' : 'var(--orange)' }}>{+change < 0 ? '▼' : '▲'} {Math.abs(change)} lbs</div>}
               {toGoal && <div style={{ fontSize: 12, color: 'var(--muted)' }}>{+toGoal > 0 ? `${toGoal} lbs to goal` : 'Goal reached!'}</div>}
@@ -121,7 +121,7 @@ export default function GoalsTab({ goals, setGoals, weights, setWeights, macros,
         <div className="card-title">Household size</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <button className="qty-btn" onClick={() => up('householdSize', Math.max(1, goals.householdSize - 1))}>-</button>
-          <span style={{ fontSize: 24, fontWeight: 500, color: 'var(--plum)', fontFamily: "'Cormorant Garamond',Georgia,serif", minWidth: 32, textAlign: 'center' }}>{goals.householdSize}</span>
+          <span style={{ fontSize: 24, fontWeight: 500, color: 'var(--plum)', fontFamily: "'Fraunces',Georgia,serif", minWidth: 32, textAlign: 'center' }}>{goals.householdSize}</span>
           <button className="qty-btn" onClick={() => up('householdSize', goals.householdSize + 1)}>+</button>
           <span style={{ fontSize: 13, color: 'var(--muted)' }}>people</span>
         </div>

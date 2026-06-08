@@ -38,7 +38,7 @@ export default function PaywallModal({ onClose, onSuccess, generationsUsed = 0 }
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
           <BloomLogo size={72} />
-          <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 26, fontWeight: 600, color: 'var(--plum)', marginTop: 10, marginBottom: 4 }}>
+          <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 26, fontWeight: 600, color: 'var(--plum)', marginTop: 10, marginBottom: 4 }}>
             Unlock Nutriq
           </div>
           <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
@@ -68,7 +68,7 @@ export default function PaywallModal({ onClose, onSuccess, generationsUsed = 0 }
                 {plan.sub && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{plan.sub}</div>}
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 18, fontWeight: 600, color: 'var(--plum)' }}>{plan.price}</div>
+                <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 18, fontWeight: 600, color: 'var(--plum)' }}>{plan.price}</div>
               </div>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>

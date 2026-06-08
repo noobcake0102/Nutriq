@@ -244,7 +244,7 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
     <div className="page">
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '80px 20px', textAlign: 'center' }}>
         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--sage)" strokeWidth="1.5" strokeLinecap="round" style={{ marginBottom: 20 }}><path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
-        <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 28, color: 'var(--plum)', marginBottom: 8 }}>Added to your cart!</div>
+        <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 28, color: 'var(--plum)', marginBottom: 8 }}>Added to your cart!</div>
         <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 8 }}>Your items are waiting in your Kroger cart.</p>
         <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 24 }}>Open the Kroger app or kroger.com to complete checkout.</p>
         <button className="btn-full" style={{ maxWidth: 220, marginBottom: 12 }} onClick={() => window.open('https://www.kroger.com/cart', '_blank')}>Open Kroger cart</button>

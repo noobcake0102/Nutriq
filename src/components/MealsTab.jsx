@@ -3,6 +3,7 @@ import { supa } from '../lib/supabase.js'
 import { streamClaude } from '../lib/claude.js'
 import { CUISINES, MEAL_TYPES, MEAL_TYPE_LABELS } from '../constants.js'
 import { FREE_GENERATION_LIMIT } from '../lib/purchases.js'
+import Celebration from './Celebration.jsx'
 
 export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop, setTab, notify, session, isPaid, generationsUsed, onShowPaywall, onGenerate }) {
   const [view, setView] = useState('plan')
@@ -20,6 +21,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
   const [historyFilter, setHistoryFilter] = useState('all')
   const [savedRatings, setSavedRatings] = useState([])
   const [reuseSelected, setReuseSelected] = useState([]) // saved-meal ids reused this week
+  const [celebrate, setCelebrate] = useState(false)
 
   const toggleCuisine = c => setCuisines(cs => cs.includes(c) ? cs.filter(x => x !== c) : [...cs, c])
   const toggleMealType = t => setMealPrefs(mp => { const n = { ...mp }; if (n[t]) delete n[t]; else n[t] = 1; return n })
@@ -117,6 +119,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
     setThisWeek(all)
     buildShoppingList(all)
     setView('plan'); setPhase('prefs'); setOptions({}); setSelected({}); setStepIdx(0); setReuseSelected([])
+    setCelebrate(true)
   }
 
   const saveSelectedMeals = async selections => {
@@ -262,13 +265,13 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
     if (activeRecipe.loading) return (
       <div className="page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16 }}>
         <span className="spin" style={{ width: 28, height: 28, borderWidth: 3, borderTopColor: 'var(--plum)', borderColor: 'var(--plum3)44' }} />
-        <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 22, color: 'var(--plum)' }}>Writing your recipe...</div>
+        <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 22, color: 'var(--plum)' }}>Writing your recipe...</div>
       </div>
     )
     return (
       <div className="page">
         <button className="btn-sm" style={{ marginBottom: 16 }} onClick={() => setView('plan')}>Back to plan</button>
-        <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 30, fontWeight: 600, color: 'var(--plum)', marginBottom: 4 }}>{activeRecipe.title || activeRecipe.name}</div>
+        <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 30, fontWeight: 600, color: 'var(--plum)', marginBottom: 4 }}>{activeRecipe.title || activeRecipe.name}</div>
         <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--muted)', marginBottom: 20, flexWrap: 'wrap' }}>
           {activeRecipe.servings && <span>Serves {activeRecipe.servings}</span>}
           {activeRecipe.prep_time && <span>Prep: {activeRecipe.prep_time}</span>}
@@ -351,7 +354,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
     return (
       <div className="page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', gap: 16 }}>
         <span className="spin" style={{ width: 32, height: 32, borderWidth: 3, borderTopColor: 'var(--plum)', borderColor: 'var(--plum3)44' }} />
-        <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 26, color: 'var(--plum)' }}>Finding your meals</div>
+        <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 26, color: 'var(--plum)' }}>Finding your meals</div>
         <div style={{ fontSize: 13, color: 'var(--muted)' }}>Personalizing based on your preferences...</div>
       </div>
     )
@@ -375,7 +378,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
           <div key={m.id} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, marginBottom: 8, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 10, color: 'var(--rose)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>{(m.meal_type || '').replace(/_/g, ' ')}</div>
-              <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 17, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>{m.name}</div>
+              <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 17, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>{m.name}</div>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>{m.calories} cal · P {m.protein}g · C {m.carbs}g · F {m.fat}g</div>
               {m.times_made > 0 && <div style={{ fontSize: 11, color: 'var(--muted2)' }}>Made {m.times_made}x{m.last_made ? ` · last ${m.last_made}` : ''}</div>}
               {m.rating && <div style={{ fontSize: 11, color: 'var(--gold)', marginTop: 2 }}>{'★'.repeat(m.rating)}{'☆'.repeat(5 - m.rating)}</div>}
@@ -497,6 +500,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
 
   return (
     <div className="page">
+      {celebrate && <Celebration message="Your week is planned! 🌸" onDone={() => setCelebrate(false)} />}
       <div className="page-label">AI Planner</div>
       <h1 className="page-title">This week's meals</h1>
       {thisWeek.length > 0 ? (<>
@@ -509,7 +513,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
             <div className="plan-meal-icon">{(m.meal_type || 'meal').replace(/_/g, ' ').split(' ').map(w => w[0] || '').join('').toUpperCase()}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 10, color: 'var(--rose)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>{(m.meal_type || '').replace(/_/g, ' ')}</div>
-              <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 17, fontWeight: 500, color: 'var(--text)' }}>{m.name}</div>
+              <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 17, fontWeight: 500, color: 'var(--text)' }}>{m.name}</div>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{m.calories} cal · P {m.protein}g · C {m.carbs}g</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end', flexShrink: 0 }}>
@@ -521,7 +525,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
         <div style={{ height: 1, background: 'var(--border)', margin: '16px 0' }} />
       </>) : (
         <div style={{ background: 'var(--plumLL)', border: '1px solid var(--plum3)22', borderRadius: 14, padding: 20, textAlign: 'center', marginBottom: 16 }}>
-          <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 20, color: 'var(--plum)', marginBottom: 6 }}>No meals planned yet</div>
+          <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 20, color: 'var(--plum)', marginBottom: 6 }}>No meals planned yet</div>
           <div style={{ fontSize: 13, color: 'var(--muted)' }}>Generate new options or add meals from your history</div>
         </div>
       )}

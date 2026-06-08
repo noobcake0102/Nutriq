@@ -64,7 +64,7 @@ export default function AccountModals({ acctModal, setAcctModal, session, userNa
           <div className="modal-sub">Your current plan</div>
           <div style={{ background: 'var(--plumLL)', border: '1px solid var(--plum3)22', borderRadius: 14, padding: 16, marginBottom: 16 }}>
             <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 4 }}>Current plan</div>
-            <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 22, color: 'var(--plum)', fontWeight: 600 }}>Free</div>
+            <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 22, color: 'var(--plum)', fontWeight: 600 }}>Free</div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>3 meal plan generations per month</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
