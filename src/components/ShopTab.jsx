@@ -148,6 +148,7 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
     if (!token || shop.length === 0) return
     setMatching(true)
     const results = {}
+    let authFailed = false
     for (let i = 0; i < shop.length; i += 3) {
       const batch = shop.slice(i, i + 3)
       await Promise.all(batch.map(async (item, idx) => {
@@ -157,8 +158,8 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
             access_token: token,
             query: key,
             location_id: krogerStore?.id,
-            fresh_pref: 'fresh',
           })
+          if (data.needs_reauth) { authFailed = true; return }
           if (data.products?.length > 0) {
             const options = data.products.slice(0, 6)
             results[i + idx] = { selected: preferredIndex(options, key), options, key }
@@ -169,6 +170,11 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
     }
     setMatchedProducts(results)
     setMatching(false)
+    if (authFailed) {
+      notify('Your Kroger session expired — reconnect to match products', 'err')
+    } else if (Object.keys(results).length === 0) {
+      notify('No product matches found — try re-matching', 'err')
+    }
   }
 
   const placeKrogerOrder = async () => {

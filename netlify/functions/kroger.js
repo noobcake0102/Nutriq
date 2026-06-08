@@ -40,22 +40,21 @@ const STAPLE_DEFAULTS = {
 // swap alternatives in the result list).
 const INGREDIENT_ENRICHMENT = {
   poultry: {
-    fresh: true,
     terms: ["chicken breast","chicken thigh","chicken leg","chicken wing","ground chicken","whole chicken","chicken"],
-    transform: q => q.includes("ground") || q.includes("whole") ? q : `boneless skinless ${q}`,
+    // "boneless skinless" is the phrase that separates raw cuts from deli meat,
+    // but only makes sense for breast/thigh — keep it short.
+    transform: q => /breast|thigh/.test(q) && !q.includes("ground") ? `boneless skinless ${q}` : q,
   },
   meat: {
-    fresh: true,
     terms: ["ground beef","ground turkey","beef","steak","pork chop","pork loin",
             "pork tenderloin","sausage","lamb","veal","bison","pork"],
-    transform: q => q.includes("ground") ? `${q} 80/20` : q,
+    transform: q => q,
   },
-  bacon: { fresh: false, terms: ["bacon"], transform: q => q },
+  bacon: { terms: ["bacon"], transform: q => q },
   seafood: {
-    fresh: true,
     terms: ["salmon","tuna","shrimp","tilapia","cod","halibut","mahi","scallop",
             "crab","lobster","clam","oyster","fish fillet","fish"],
-    transform: q => q.includes("canned") ? q : q,
+    transform: q => q,
   },
   produce: {
     fresh: true,
@@ -76,11 +75,9 @@ const INGREDIENT_ENRICHMENT = {
   eggs: { fresh: false, terms: ["egg","eggs"], transform: () => "large eggs" },
 };
 
-// freshPref: "fresh" | "frozen" | "any" — controls fresh/frozen prefix
-function enrichIngredientQuery(raw, freshPref = "fresh") {
-  // Strip quantities and cooking descriptors to get the core ingredient.
-  // NOTE: we deliberately do NOT strip qualifiers like salted/yellow/red/green —
-  // those are the specificity we want to keep.
+// Core term: strip quantities + cooking methods, fill bare-generic staples.
+// Keeps it SHORT — Kroger search rewards 1-3 word grocery-natural terms.
+function coreTerm(raw) {
   const descriptors = ["cooked","frozen","dried","chopped","diced","sliced","minced",
     "grilled","fried","baked","raw","ripe","whole","lean","organic",
     "fresh","large","small","medium"];
@@ -89,21 +86,27 @@ function enrichIngredientQuery(raw, freshPref = "fresh") {
     .trim();
   descriptors.forEach(w => { q = q.replace(new RegExp(`\\b${w}\\b`, "gi"), "").trim(); });
   q = q.replace(/\s+/g, " ").trim() || raw.toLowerCase();
-
-  // Fill in a default variant for bare generic staples
   if (STAPLE_DEFAULTS[q]) q = STAPLE_DEFAULTS[q];
+  return q;
+}
 
-  // Apply category-specific transform + fresh/frozen prefix
+// Specific term: core + a light category transform (e.g. boneless skinless chicken).
+function specificTerm(raw) {
+  const q = coreTerm(raw);
   for (const cat of Object.values(INGREDIENT_ENRICHMENT)) {
-    if (cat.terms.some(t => q.includes(t) || t.includes(q))) {
-      let out = cat.transform(q);
-      if (cat.fresh && freshPref !== "any" && !/\b(fresh|frozen)\b/.test(out)) {
-        out = `${freshPref} ${out}`;
-      }
-      return out;
-    }
+    if (cat.terms.some(t => q.includes(t) || t.includes(q))) return cat.transform(q);
   }
   return q;
+}
+
+// Ordered query candidates: try the specific phrase first, then fall back to the
+// shorter core term so we never strand an item with zero matches.
+function queryCandidates(raw) {
+  const specific = specificTerm(raw);
+  const core = coreTerm(raw);
+  const out = [specific];
+  if (core !== specific) out.push(core);
+  return out;
 }
 
 exports.handler = async function (event) {
@@ -292,44 +295,53 @@ exports.handler = async function (event) {
       };
     }
     try {
-      const enrichedQuery = enrichIngredientQuery(query, fresh_pref || "fresh");
-      const params = new URLSearchParams({
-        "filter.term": enrichedQuery,
-        "filter.limit": "10",
-        "filter.fulfillment": "ais",
-      });
-      if (location_id) params.set("filter.locationId", location_id);
+      // Try specific phrase first, then fall back to the shorter core term.
+      // Relax the in-store-availability filter on fallback so nothing is stranded.
+      const candidates = queryCandidates(query);
+      let products = [];
+      let usedTerm = "";
+      for (let attempt = 0; attempt < candidates.length; attempt++) {
+        const term = candidates[attempt];
+        const params = new URLSearchParams({
+          "filter.term": term,
+          "filter.limit": "10",
+        });
+        if (location_id) params.set("filter.locationId", location_id);
+        // Only restrict to in-store availability on the most-specific first try.
+        if (attempt === 0 && location_id) params.set("filter.fulfillment", "ais");
 
-      const response = await fetch(`${KROGER_BASE}/products?${params}`, {
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-          Accept: "application/json",
-        },
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        return {
-          statusCode: response.status,
-          headers: { "Access-Control-Allow-Origin": "*" },
-          body: JSON.stringify({ error: data.message || "Product search failed" }),
-        };
+        const response = await fetch(`${KROGER_BASE}/products?${params}`, {
+          headers: { Authorization: `Bearer ${access_token}`, Accept: "application/json" },
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          // Surface auth errors so the client can prompt a reconnect
+          return {
+            statusCode: response.status,
+            headers: { "Access-Control-Allow-Origin": "*" },
+            body: JSON.stringify({
+              error: data.message || "Product search failed",
+              needs_reauth: response.status === 401 || response.status === 403,
+            }),
+          };
+        }
+        products = (data.data || []).map((p) => ({
+          id: p.productId,
+          name: p.description,
+          brand: p.brand,
+          image: p.images?.[0]?.sizes?.find((s) => s.size === "medium")?.url || null,
+          price: p.items?.[0]?.price?.regular || null,
+          promo_price: p.items?.[0]?.price?.promo || null,
+          size: p.items?.[0]?.size || null,
+          upc: p.upc,
+          in_stock: p.items?.[0]?.inventory?.stockLevel !== "TEMPORARILY_OUT_OF_STOCK",
+        }));
+        if (products.length > 0) { usedTerm = term; break; }
       }
-      // Return simplified product list
-      const products = (data.data || []).map((p) => ({
-        id: p.productId,
-        name: p.description,
-        brand: p.brand,
-        image: p.images?.[0]?.sizes?.find((s) => s.size === "medium")?.url || null,
-        price: p.items?.[0]?.price?.regular || null,
-        promo_price: p.items?.[0]?.price?.promo || null,
-        size: p.items?.[0]?.size || null,
-        upc: p.upc,
-        in_stock: p.items?.[0]?.inventory?.stockLevel !== "TEMPORARILY_OUT_OF_STOCK",
-      }));
       return {
         statusCode: 200,
         headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-        body: JSON.stringify({ products }),
+        body: JSON.stringify({ products, term: usedTerm }),
       };
     } catch (err) {
       return {
