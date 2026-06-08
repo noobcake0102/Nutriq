@@ -14,6 +14,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/revenuecat-webhook"
+  to = "/.netlify/functions/revenuecat-webhook"
+  status = 200
+
+[[redirects]]
   from = "/kroger-callback"
   to = "/index.html"
   status = 200

@@ -98,6 +98,9 @@ export default function App() {
     if (error) console.error('loadProfile error:', error)
     if (!data || !data.onboarding_complete) { setNeedsOnboard(true); return }
     setProfile(data)
+    // Backend source of truth for paid status (works on web too, where the
+    // RevenueCat native SDK can't run). The webhook keeps profiles.plan current.
+    if (data.plan === 'plus' && (!data.plan_expires_at || new Date(data.plan_expires_at) > new Date())) setIsPaid(true)
     const { data: g } = await supa.from('goals').select('*').eq('user_id', uid).maybeSingle()
     if (g) setGoals({ weight: g.weight, goalWeight: g.goal_weight, height: g.height, age: g.age, sex: g.sex, activity: g.activity, goalType: g.goal_type, diet: g.diet, allergies: g.allergies || [], householdSize: g.household_size, meal_cuisines: g.meal_cuisines || [], meal_preferences: g.meal_preferences || {} })
     if (data.household_id) loadPantry(data.household_id)
