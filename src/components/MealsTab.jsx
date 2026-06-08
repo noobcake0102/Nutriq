@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { supa } from '../lib/supabase.js'
 import { streamClaude } from '../lib/claude.js'
 import { CUISINES, MEAL_TYPES, MEAL_TYPE_LABELS } from '../constants.js'
+import { FREE_GENERATION_LIMIT } from '../lib/purchases.js'
 
-export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop, setTab, notify, session }) {
+export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop, setTab, notify, session, isPaid, generationsUsed, onShowPaywall, onGenerate }) {
   const [view, setView] = useState('plan')
   const [phase, setPhase] = useState('prefs')
   const [showPrefs, setShowPrefs] = useState(false)
@@ -122,6 +123,8 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
 
   const generate = async () => {
     if (mealTypeKeys.length === 0) { notify('Set meal preferences first', 'err'); return }
+    // Paywall gate: free users capped at FREE_GENERATION_LIMIT per month
+    if (!isPaid && generationsUsed >= FREE_GENERATION_LIMIT) { onShowPaywall(); return }
     setPhase('generating')
     const ps = pantry.map(i => { const d = i.expiry ? Math.ceil((i.expiry - Date.now()) / 864e5) : null; return `- ${i.name} (${i.qty} ${i.unit}${d !== null ? `, expires ${d}d` : ''})` }).join('\n')
     const cuisineStr = cuisines.length ? `Preferred cuisines: ${cuisines.join(', ')}.` : ''
@@ -136,6 +139,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
       const cleaned = full.replace(/```json/g, '').replace(/```/g, '').trim()
       const parsed = JSON.parse(cleaned)
       setOptions(parsed.options || {}); setSelected({}); setStepIdx(0); setPhase('picking')
+      if (onGenerate) onGenerate() // increment counter after successful generation
     } catch (e) {
       notify('Generation failed — try again', 'err'); console.error(e, full); setPhase('prefs')
     }
@@ -359,7 +363,15 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
             </div>
           )}
         </div>
-        <button className="btn-generate" onClick={generate} disabled={!hasMealPrefs}>Generate meal options</button>
+        {!isPaid && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8, fontSize: 12, color: generationsUsed >= FREE_GENERATION_LIMIT ? 'var(--red)' : 'var(--muted)' }}>
+            <span>{generationsUsed}/{FREE_GENERATION_LIMIT} free plans used this month</span>
+            {generationsUsed >= FREE_GENERATION_LIMIT && <span style={{ color: 'var(--plum2)', fontWeight: 500, cursor: 'pointer' }} onClick={onShowPaywall}>Upgrade →</span>}
+          </div>
+        )}
+        <button className="btn-generate" onClick={generate} disabled={!hasMealPrefs}>
+          {!isPaid && generationsUsed >= FREE_GENERATION_LIMIT ? '🔒 Upgrade to generate' : 'Generate meal options'}
+        </button>
         {!hasMealPrefs && <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', marginTop: 8 }}>Set preferences above to get started</p>}
       </div>
     )

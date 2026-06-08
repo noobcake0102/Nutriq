@@ -75,7 +75,7 @@ export default function AccountModals({ acctModal, setAcctModal, session, userNa
               </div>
             ))}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center', marginBottom: 16 }}>Subscription billing coming soon via App Store</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center', marginBottom: 16 }}>Billing managed securely via the App Store</div>
           <button className="btn-ghost" onClick={() => setAcctModal(null)}>Close</button>
         </>}
         {acctModal === 'delete' && <>

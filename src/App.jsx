@@ -3,10 +3,12 @@ import { supa } from './lib/supabase.js'
 import { DB } from './lib/db.js'
 import { calcBMR, ACT, calcMacros } from './lib/nutrition.js'
 import { SP, DG, du } from './constants.js'
+import { initPurchases, isPaidUser } from './lib/purchases.js'
 import BloomLogo from './components/BloomLogo.jsx'
 import AuthScreen from './components/AuthScreen.jsx'
 import Onboarding from './components/Onboarding.jsx'
 import AccountModals from './components/AccountModals.jsx'
+import PaywallModal from './components/PaywallModal.jsx'
 import HomeTab from './components/HomeTab.jsx'
 import ScannerTab from './components/ScannerTab.jsx'
 import PantryTab from './components/PantryTab.jsx'
@@ -31,6 +33,9 @@ export default function App() {
   const [pantryEnabled, setPantryEnabled] = useState(() => DB.get('nq_pantry_on', true))
   const [preferredStore, setPreferredStore] = useState(() => DB.get('nq_store', 'kroger'))
   const [userName, setUserName] = useState('')
+  const [isPaid, setIsPaid] = useState(false)
+  const [generationsUsed, setGenerationsUsed] = useState(0)
+  const [showPaywall, setShowPaywall] = useState(false)
 
   useEffect(() => {
     supa.auth.getSession().then(({ data: { session } }) => {
@@ -46,6 +51,32 @@ export default function App() {
   }, [])
 
   useEffect(() => { setUserName(profile?.name || session?.user?.email?.split('@')[0] || '') }, [profile, session])
+
+  // Init RevenueCat + check entitlement on login
+  useEffect(() => {
+    if (!session) return
+    initPurchases(session.user.id).then(() => isPaidUser().then(setIsPaid))
+  }, [session])
+
+  // Load generation counter from Supabase profile
+  useEffect(() => {
+    if (!session) return
+    const loadCounter = async () => {
+      const { data } = await supa.from('profiles')
+        .select('monthly_generations, generations_reset_at')
+        .eq('id', session.user.id).maybeSingle()
+      if (!data) return
+      // Reset locally if new month
+      const resetAt = new Date(data.generations_reset_at)
+      const now = new Date()
+      if (resetAt.getMonth() !== now.getMonth() || resetAt.getFullYear() !== now.getFullYear()) {
+        setGenerationsUsed(0)
+      } else {
+        setGenerationsUsed(data.monthly_generations || 0)
+      }
+    }
+    loadCounter()
+  }, [session])
   useEffect(() => DB.set('nq_p', pantry), [pantry])
   useEffect(() => DB.set('nq_g', goals), [goals])
   useEffect(() => DB.set('nq_m', meal), [meal])
@@ -83,6 +114,14 @@ export default function App() {
     const { data: prof } = await supa.from('profiles').select('household_id').eq('id', session.user.id).maybeSingle()
     const { data } = await supa.from('pantry_items').insert({ household_id: prof?.household_id, name: item.name, brand: item.brand, calories: item.calories, protein: item.protein, carbs: item.carbs, fat: item.fat, category: item.category, perishable: item.perishable, price: item.price || 0, qty: item.qty, unit: item.unit, expiry: item.expiry ? new Date(item.expiry).toISOString() : null, added_by: item.by || 'Me' }).select().single()
     return data ? { ...item, id: data.id } : item
+  }
+
+  const incrementGenerations = async () => {
+    if (!session || isPaid) return
+    try {
+      const { data } = await supa.rpc('increment_generation_count', { p_user_id: session.user.id })
+      if (data) setGenerationsUsed(data)
+    } catch { setGenerationsUsed(g => g + 1) } // fallback: local only
   }
 
   const deletePantryItem = async id => { if (session) await supa.from('pantry_items').delete().eq('id', id) }
@@ -160,11 +199,12 @@ export default function App() {
       </div>
 
       <AccountModals acctModal={acctModal} setAcctModal={setAcctModal} session={session} userName={userName} setUserName={setUserName} notify={notify} />
+      {showPaywall && <PaywallModal generationsUsed={generationsUsed} onClose={() => setShowPaywall(false)} onSuccess={() => { setIsPaid(true); notify('Welcome to Nutriq Premium! 🎉') }} />}
 
       {tab === 'home'   && <HomeTab    pantry={pantry} goals={goals} weights={weights} meal={meal} macros={macros} setTab={setTab} userName={userName} notify={notify} />}
       {tab === 'scan'   && <ScannerTab pantry={pantry} setPantry={setPantry} savePantryItem={savePantryItem} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify} />}
       {tab === 'pantry' && <PantryTab  pantry={pantry} setPantry={setPantry} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify} />}
-      {tab === 'meals'  && <MealsTab   pantry={pantry} goals={goals} macros={macros} meal={meal} setMeal={setMeal} setShop={setShop} setTab={setTab} notify={notify} session={session} />}
+      {tab === 'meals'  && <MealsTab   pantry={pantry} goals={goals} macros={macros} meal={meal} setMeal={setMeal} setShop={setShop} setTab={setTab} notify={notify} session={session} isPaid={isPaid} generationsUsed={generationsUsed} onShowPaywall={() => setShowPaywall(true)} onGenerate={incrementGenerations} />}
       {tab === 'shop'   && <ShopTab    shop={shop} notify={notify} session={session} preferredStore={preferredStore} />}
       {tab === 'goals'  && <GoalsTab   goals={goals} setGoals={setGoals} weights={weights} setWeights={setWeights} macros={macros} tdee={tdee} bmr={bmr} logWeight={logWeight} saveGoals={saveGoals} notify={notify} />}
 
