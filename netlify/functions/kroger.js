@@ -41,9 +41,10 @@ const STAPLE_DEFAULTS = {
 const INGREDIENT_ENRICHMENT = {
   poultry: {
     terms: ["chicken breast","chicken thigh","chicken leg","chicken wing","ground chicken","whole chicken","chicken"],
-    // "boneless skinless" is the phrase that separates raw cuts from deli meat,
-    // but only makes sense for breast/thigh — keep it short.
-    transform: q => /breast|thigh/.test(q) && !q.includes("ground") ? `boneless skinless ${q}` : q,
+    // "boneless skinless" separates raw cuts from deli meat — but only add it for
+    // breast/thigh, and only if Claude didn't already write it (avoid doubling).
+    transform: q => /breast|thigh/.test(q) && !q.includes("ground") && !q.includes("boneless")
+      ? `boneless skinless ${q}` : q,
   },
   meat: {
     terms: ["ground beef","ground turkey","beef","steak","pork chop","pork loin",
