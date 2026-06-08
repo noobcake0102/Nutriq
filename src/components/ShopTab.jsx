@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { krogerApi } from '../lib/kroger.js'
 import { cleanIngredient } from '../lib/ingredients.js'
+import { supa } from '../lib/supabase.js'
 import { I } from './Icons.jsx'
 
 export default function ShopTab({ shop, notify, session, preferredStore }) {
+  const [productPrefs, setProductPrefs] = useState({}) // ingredient_key -> { chosen_upc, chosen_brand, chosen_name }
   const [store, setStore] = useState(preferredStore || 'kroger')
   const [method, setMethod] = useState('pickup')
   const [checked, setChk] = useState({})
@@ -105,6 +107,42 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
     if (shop.length > 0) matchAllProducts()
   }
 
+  // Load this user's learned product/brand preferences
+  useEffect(() => {
+    if (!session) return
+    supa.from('product_preferences').select('*').eq('user_id', session.user.id)
+      .then(({ data }) => {
+        if (!data) return
+        const map = {}
+        data.forEach(p => { map[p.ingredient_key] = { chosen_upc: p.chosen_upc, chosen_brand: p.chosen_brand, chosen_name: p.chosen_name } })
+        setProductPrefs(map)
+      })
+  }, [session])
+
+  // Save a brand pick so it's remembered next time this ingredient appears
+  const saveProductPick = async (ingredientKey, prod) => {
+    const next = { chosen_upc: prod.upc, chosen_brand: prod.brand, chosen_name: prod.name }
+    setProductPrefs(p => ({ ...p, [ingredientKey]: next }))
+    if (!session) return
+    try {
+      await supa.rpc('record_product_pick', {
+        p_user_id: session.user.id, p_ingredient_key: ingredientKey,
+        p_upc: prod.upc, p_brand: prod.brand || '', p_name: prod.name || '',
+      })
+    } catch (e) { console.error('saveProductPick error:', e) }
+  }
+
+  // Given search results + the ingredient key, pick the index of the user's
+  // preferred product if it's present (match by UPC first, then brand).
+  const preferredIndex = (options, ingredientKey) => {
+    const pref = productPrefs[ingredientKey]
+    if (!pref) return 0
+    const byUpc = options.findIndex(o => o.upc && o.upc === pref.chosen_upc)
+    if (byUpc >= 0) return byUpc
+    const byBrand = options.findIndex(o => o.brand && pref.chosen_brand && o.brand.toLowerCase() === pref.chosen_brand.toLowerCase())
+    return byBrand >= 0 ? byBrand : 0
+  }
+
   const matchAllProducts = async () => {
     const token = getSearchToken()
     if (!token || shop.length === 0) return
@@ -114,13 +152,16 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
       const batch = shop.slice(i, i + 3)
       await Promise.all(batch.map(async (item, idx) => {
         try {
+          const key = cleanIngredient(item.item)
           const data = await krogerApi('search_products', {
             access_token: token,
-            query: cleanIngredient(item.item),
+            query: key,
             location_id: krogerStore?.id,
+            fresh_pref: 'fresh',
           })
           if (data.products?.length > 0) {
-            results[i + idx] = { selected: 0, options: data.products.slice(0, 3) }
+            const options = data.products.slice(0, 6)
+            results[i + idx] = { selected: preferredIndex(options, key), options, key }
           }
         } catch (e) { console.error('Match error for', item.item, e) }
       }))
@@ -264,10 +305,11 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
                     const prod = matched.options[matched.selected]
                     return prod ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                        {prod.image && <img src={prod.image} alt={prod.name} style={{ width: 38, height: 38, objectFit: 'contain', borderRadius: 6, background: 'white', flexShrink: 0 }} />}
+                        {prod.image && <img src={prod.image} alt={prod.name} style={{ width: 58, height: 58, objectFit: 'contain', borderRadius: 8, background: 'white', flexShrink: 0, border: '1px solid var(--border)' }} />}
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{prod.name}</div>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{prod.name}</div>
                           <div style={{ fontSize: 11, color: 'var(--muted)' }}>{prod.brand}{prod.size ? ` · ${prod.size}` : ''}</div>
+                          {productPrefs[matched.key]?.chosen_upc === prod.upc && <div style={{ fontSize: 10, color: 'var(--sage)', fontWeight: 500, marginTop: 1 }}>★ Your usual</div>}
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           {prod.promo_price ? (<><div style={{ fontSize: 13, fontWeight: 500, color: 'var(--sage)' }}>${prod.promo_price.toFixed(2)}</div><div style={{ fontSize: 11, color: 'var(--muted)', textDecoration: 'line-through' }}>${prod.price?.toFixed(2)}</div></>) : prod.price ? <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>${prod.price.toFixed(2)}</div> : null}
@@ -277,15 +319,21 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
                     ) : null
                   })()}
                   {matched.options.length > 1 && (
-                    <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
-                      {matched.options.map((opt, oi) => (
-                        <button key={oi} onClick={() => setMatchedProducts(mp => ({ ...mp, [i]: { ...mp[i], selected: oi } }))}
-                          style={{ flexShrink: 0, background: matched.selected === oi ? 'var(--plumL)' : 'var(--card)', border: `1px solid ${matched.selected === oi ? 'var(--plum3)' : 'var(--border)'}`, borderRadius: 8, padding: '4px 8px', cursor: 'pointer', textAlign: 'left', fontFamily: "'DM Sans',system-ui,sans-serif" }}>
-                          <div style={{ fontSize: 10, fontWeight: 500, color: matched.selected === oi ? 'var(--plum2)' : 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100 }}>{opt.name.split(' ').slice(0, 3).join(' ')}</div>
-                          <div style={{ fontSize: 10, color: matched.selected === oi ? 'var(--plum3)' : 'var(--muted)' }}>{opt.promo_price ? `$${opt.promo_price.toFixed(2)}` : opt.price ? `$${opt.price.toFixed(2)}` : '—'}</div>
-                        </button>
-                      ))}
-                    </div>
+                    <>
+                      <div style={{ fontSize: 10, color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>Swap · {matched.options.length} options</div>
+                      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+                        {matched.options.map((opt, oi) => (
+                          <button key={oi} onClick={() => { setMatchedProducts(mp => ({ ...mp, [i]: { ...mp[i], selected: oi } })); saveProductPick(matched.key, opt) }}
+                            style={{ flexShrink: 0, width: 96, background: matched.selected === oi ? 'var(--plumL)' : 'var(--card)', border: `1px solid ${matched.selected === oi ? 'var(--plum3)' : 'var(--border)'}`, borderRadius: 8, padding: 6, cursor: 'pointer', textAlign: 'center', fontFamily: "'DM Sans',system-ui,sans-serif" }}>
+                            {opt.image
+                              ? <img src={opt.image} alt={opt.name} style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 6, background: 'white', display: 'block', margin: '0 auto 4px' }} />
+                              : <div style={{ width: 44, height: 44, borderRadius: 6, background: 'var(--warm)', margin: '0 auto 4px' }} />}
+                            <div style={{ fontSize: 10, fontWeight: 500, color: matched.selected === oi ? 'var(--plum2)' : 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{opt.brand || opt.name.split(' ').slice(0, 2).join(' ')}</div>
+                            <div style={{ fontSize: 10, color: matched.selected === oi ? 'var(--plum3)' : 'var(--muted)' }}>{opt.promo_price ? `$${opt.promo_price.toFixed(2)}` : opt.price ? `$${opt.price.toFixed(2)}` : '—'}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </div>
               )}

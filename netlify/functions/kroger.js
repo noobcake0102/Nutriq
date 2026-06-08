@@ -1,59 +1,88 @@
 const KROGER_BASE = "https://api-ce.kroger.com/v1";
 const KROGER_AUTH_BASE = "https://api-ce.kroger.com/v1/connect/oauth2";
 
-// Maps ingredient categories to Kroger-optimized search terms.
-// Strategy: use terms that match how shoppers search on Kroger.com,
-// NOT overly descriptive phrases. Kroger's algorithm rewards grocery-natural language.
+// ── Ambiguous staple defaults ──────────────────────────────────────────
+// When a recipe lists a bare generic name, fill in the most common grocery
+// variant a shopper would actually buy. This avoids "butter" matching a random
+// flavored spread, or "onion" matching pearl/pickled onions.
+// Principle: every generic staple that comes in multiple distinct SKUs gets a
+// sensible default. Specific names from the recipe (e.g. "salted butter",
+// "red onion") are left untouched because they aren't bare generics.
+const STAPLE_DEFAULTS = {
+  "butter": "unsalted butter",
+  "onion": "yellow onion",
+  "onions": "yellow onion",
+  "pepper": "black pepper",
+  "bell pepper": "green bell pepper",
+  "sugar": "granulated sugar",
+  "brown sugar": "light brown sugar",
+  "flour": "all-purpose flour",
+  "rice": "white rice",
+  "milk": "whole milk",
+  "cheese": "shredded cheddar cheese",
+  "potato": "russet potato",
+  "potatoes": "russet potato",
+  "bread": "white sandwich bread",
+  "vinegar": "white vinegar",
+  "oil": "vegetable oil",
+  "broth": "chicken broth",
+  "stock": "chicken stock",
+  "tomatoes": "roma tomato",
+  "tomato": "roma tomato",
+  "lettuce": "romaine lettuce",
+  "yogurt": "plain greek yogurt",
+  "mustard": "yellow mustard",
+  "beans": "black beans",
+};
+
+// Categories. `fresh: true` means we prepend the fresh/frozen preference
+// (defaults to "fresh" so fresh ranks first; frozen variants still appear as
+// swap alternatives in the result list).
 const INGREDIENT_ENRICHMENT = {
-  // Poultry — "boneless skinless" is the magic phrase that separates raw from deli
   poultry: {
+    fresh: true,
     terms: ["chicken breast","chicken thigh","chicken leg","chicken wing","ground chicken","whole chicken","chicken"],
-    transform: q => q.includes("ground") ? q : `boneless skinless ${q}`,
+    transform: q => q.includes("ground") || q.includes("whole") ? q : `boneless skinless ${q}`,
   },
-  // Other meat — "fresh" prefix avoids deli/pre-cooked
   meat: {
+    fresh: true,
     terms: ["ground beef","ground turkey","beef","steak","pork chop","pork loin",
             "pork tenderloin","sausage","lamb","veal","bison","pork"],
-    transform: q => q.includes("ground") ? `${q} 80/20` : `fresh ${q}`,
+    transform: q => q.includes("ground") ? `${q} 80/20` : q,
   },
-  // Bacon separate — "raw bacon" returns wrong results, just "bacon" is fine
-  bacon: {
-    terms: ["bacon"],
-    transform: q => q,
-  },
-  // Seafood — "fresh" pushes past frozen/smoked/canned
+  bacon: { fresh: false, terms: ["bacon"], transform: q => q },
   seafood: {
+    fresh: true,
     terms: ["salmon","tuna","shrimp","tilapia","cod","halibut","mahi","scallop",
             "crab","lobster","clam","oyster","fish fillet","fish"],
-    transform: q => q.includes("canned") ? q : `fresh ${q}`,
+    transform: q => q.includes("canned") ? q : q,
   },
-  // Produce — "fresh" is helpful for items that also come dried/canned
   produce: {
+    fresh: true,
     terms: ["spinach","kale","arugula","lettuce","tomato","onion","garlic","ginger",
             "broccoli","cauliflower","carrot","celery","zucchini","cucumber","bell pepper",
             "mushroom","potato","sweet potato","avocado","lemon","lime","apple",
             "banana","strawberry","blueberry","mango","peach","basil",
             "cilantro","parsley","thyme","rosemary"],
-    transform: q => `fresh ${q}`,
+    transform: q => q,
   },
-  // Dairy — no prefix needed, Kroger handles these well
   dairy: {
+    fresh: false,
     terms: ["milk","cream","butter","cheese","yogurt","sour cream",
             "cream cheese","cottage cheese","ricotta","mozzarella","cheddar",
             "parmesan","feta","goat cheese","heavy cream","half and half"],
     transform: q => q,
   },
-  // Eggs — just "eggs" works perfectly
-  eggs: {
-    terms: ["egg","eggs"],
-    transform: () => "large eggs",
-  },
+  eggs: { fresh: false, terms: ["egg","eggs"], transform: () => "large eggs" },
 };
 
-function enrichIngredientQuery(raw) {
-  // Strip quantities and cooking descriptors to get the core ingredient
+// freshPref: "fresh" | "frozen" | "any" — controls fresh/frozen prefix
+function enrichIngredientQuery(raw, freshPref = "fresh") {
+  // Strip quantities and cooking descriptors to get the core ingredient.
+  // NOTE: we deliberately do NOT strip qualifiers like salted/yellow/red/green —
+  // those are the specificity we want to keep.
   const descriptors = ["cooked","frozen","dried","chopped","diced","sliced","minced",
-    "grilled","fried","baked","raw","ripe","whole","boneless","skinless","lean","organic",
+    "grilled","fried","baked","raw","ripe","whole","lean","organic",
     "fresh","large","small","medium"];
   let q = raw.toLowerCase()
     .replace(/^\d[\d./\s]*(cup|tbsp|tsp|oz|lb|lbs|g|kg|clove|cloves|can|bunch|piece|medium|large|small)s?\s*/i, "")
@@ -61,10 +90,17 @@ function enrichIngredientQuery(raw) {
   descriptors.forEach(w => { q = q.replace(new RegExp(`\\b${w}\\b`, "gi"), "").trim(); });
   q = q.replace(/\s+/g, " ").trim() || raw.toLowerCase();
 
-  // Apply category-specific transform
-  for (const { terms, transform } of Object.values(INGREDIENT_ENRICHMENT)) {
-    if (terms.some(t => q.includes(t) || t.includes(q))) {
-      return transform(q);
+  // Fill in a default variant for bare generic staples
+  if (STAPLE_DEFAULTS[q]) q = STAPLE_DEFAULTS[q];
+
+  // Apply category-specific transform + fresh/frozen prefix
+  for (const cat of Object.values(INGREDIENT_ENRICHMENT)) {
+    if (cat.terms.some(t => q.includes(t) || t.includes(q))) {
+      let out = cat.transform(q);
+      if (cat.fresh && freshPref !== "any" && !/\b(fresh|frozen)\b/.test(out)) {
+        out = `${freshPref} ${out}`;
+      }
+      return out;
     }
   }
   return q;
@@ -247,7 +283,7 @@ exports.handler = async function (event) {
 
   // ── ACTION: Search for products ──
   if (action === "search_products") {
-    const { query, location_id, access_token } = body;
+    const { query, location_id, access_token, fresh_pref } = body;
     if (!query || !access_token) {
       return {
         statusCode: 400,
@@ -256,10 +292,10 @@ exports.handler = async function (event) {
       };
     }
     try {
-      const enrichedQuery = enrichIngredientQuery(query);
+      const enrichedQuery = enrichIngredientQuery(query, fresh_pref || "fresh");
       const params = new URLSearchParams({
         "filter.term": enrichedQuery,
-        "filter.limit": "5",
+        "filter.limit": "10",
         "filter.fulfillment": "ais",
       });
       if (location_id) params.set("filter.locationId", location_id);
@@ -386,11 +422,22 @@ exports.handler = async function (event) {
           body: JSON.stringify({ success: true, items_added: items.length }),
         };
       }
-      const data = await response.json();
+      // Surface the real reason. The CE/sandbox environment does not maintain a
+      // live cart, so writes here commonly fail — cart only works on production.
+      let detail = "";
+      try { const d = await response.json(); detail = d.message || JSON.stringify(d); }
+      catch { detail = await response.text().catch(() => ""); }
+      const isSandbox = KROGER_BASE.includes("-ce.");
       return {
         statusCode: response.status,
         headers: { "Access-Control-Allow-Origin": "*" },
-        body: JSON.stringify({ error: data.message || "Add to cart failed" }),
+        body: JSON.stringify({
+          error: isSandbox
+            ? "Cart is only available on Kroger's live API. Product matching works in test mode, but adding to cart needs the production environment (enabled at launch)."
+            : (detail || "Add to cart failed"),
+          detail,
+          status: response.status,
+        }),
       };
     } catch (err) {
       return {
