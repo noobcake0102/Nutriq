@@ -6,38 +6,32 @@ import { Capacitor } from '@capacitor/core'
 export const RC_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY || ''
 
 export const ENTITLEMENTS = {
-  CORE: 'core',
-  FAMILY: 'family',
-  PREMIUM: 'premium',
+  PLUS: 'plus',
 }
 
 export const PRODUCTS = {
-  CORE: 'com.nutriq.core',
-  FAMILY: 'com.nutriq.family',
-  PREMIUM: 'com.nutriq.premium',
+  PLUS_ANNUAL: 'com.nutriq.plus.annual',
+  PLUS_MONTHLY: 'com.nutriq.plus.monthly',
 }
 
+// Free + Plus. Annual is the hero (priced as ~2 months free vs monthly).
 export const PLANS = [
   {
-    id: PRODUCTS.CORE,
-    entitlement: ENTITLEMENTS.CORE,
-    name: 'Core',
-    price: '$4.99/mo',
-    features: ['Unlimited meal plans', 'Full pantry tracking', 'Recipe generation'],
+    id: PRODUCTS.PLUS_ANNUAL,
+    entitlement: ENTITLEMENTS.PLUS,
+    name: 'Plus — Yearly',
+    price: '$49/yr',
+    sub: 'Just $4/mo, billed yearly',
+    badge: 'BEST VALUE · SAVE 40%',
+    features: ['Unlimited AI meal planning', 'Kroger cart integration', 'Learns your taste & brands', 'Pantry + expiry tracking'],
   },
   {
-    id: PRODUCTS.FAMILY,
-    entitlement: ENTITLEMENTS.FAMILY,
-    name: 'Family',
-    price: '$8.99/mo',
-    features: ['Everything in Core', 'Household sharing', 'Multi-user pantry'],
-  },
-  {
-    id: PRODUCTS.PREMIUM,
-    entitlement: ENTITLEMENTS.PREMIUM,
-    name: 'Premium',
-    price: '$12.99/mo',
-    features: ['Everything in Family', 'Grocery cart ordering', 'Priority AI'],
+    id: PRODUCTS.PLUS_MONTHLY,
+    entitlement: ENTITLEMENTS.PLUS,
+    name: 'Plus — Monthly',
+    price: '$6.99/mo',
+    sub: '7-day free trial, cancel anytime',
+    features: ['Everything in Plus', 'Billed monthly'],
   },
 ]
 

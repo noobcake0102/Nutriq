@@ -61,11 +61,11 @@ export default function PaywallModal({ onClose, onSuccess, generationsUsed = 0 }
         {/* Paid plans */}
         {PLANS.map((plan, i) => (
           <div key={plan.id} style={{ background: i === 0 ? 'var(--plumLL)' : 'var(--card)', border: `1.5px solid ${i === 0 ? 'var(--plum2)' : 'var(--border)'}`, borderRadius: 14, padding: '14px 16px', marginBottom: 10, position: 'relative' }}>
-            {i === 0 && <div style={{ position: 'absolute', top: -10, left: 16, background: 'var(--plum2)', color: '#fff', fontSize: 10, fontWeight: 600, padding: '2px 10px', borderRadius: 20, letterSpacing: .5 }}>MOST POPULAR</div>}
+            {plan.badge && <div style={{ position: 'absolute', top: -10, left: 16, background: 'var(--plum2)', color: '#fff', fontSize: 10, fontWeight: 600, padding: '2px 10px', borderRadius: 20, letterSpacing: .5 }}>{plan.badge}</div>}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <div>
                 <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)' }}>{plan.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{plan.features[0]}</div>
+                {plan.sub && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{plan.sub}</div>}
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 18, fontWeight: 600, color: 'var(--plum)' }}>{plan.price}</div>

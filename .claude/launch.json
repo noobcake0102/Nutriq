@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["serve", "LMS", "-l", "3500", "--no-clipboard"],
       "port": 3500
+    },
+    {
+      "name": "Nutriq",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173
     }
   ]
 }
