@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ACT, calcBMR, calcMacros } from '../lib/nutrition.js'
+import WeightChart from './WeightChart.jsx'
 
 export default function GoalsTab({ goals, setGoals, weights, setWeights, macros, tdee, bmr, logWeight, saveGoals, notify }) {
   const [wt, setWt] = useState('')
@@ -45,20 +46,15 @@ export default function GoalsTab({ goals, setGoals, weights, setWeights, macros,
             </div>
           </div>
         )}
-        {weights.length > 1 && (
-          <div className="sparkline">
-            {(() => {
-              const pts = weights.slice(-10), mn = Math.min(...pts.map(p => p.weight)), mx = Math.max(...pts.map(p => p.weight)), range = mx - mn || 1
-              return pts.map((p, i, a) => {
-                const h = ((p.weight - mn) / range) * 40 + 8
-                return <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                  <div className="spark-bar" style={{ height: h, background: i === a.length - 1 ? 'var(--plum2)' : 'var(--plum3)55' }} />
-                  <span className="spark-lbl">{p.date.slice(5)}</span>
-                </div>
-              })
-            })()}
+        {weights.length > 1 ? (
+          <div style={{ background: 'var(--warm)', border: '1px solid var(--border)', borderRadius: 14, padding: '12px 10px 6px', marginBottom: 14 }}>
+            <WeightChart weights={weights} goalWeight={goals.goalWeight} />
           </div>
-        )}
+        ) : weights.length === 1 ? (
+          <div style={{ background: 'var(--warm)', border: '1px solid var(--border)', borderRadius: 14, padding: 18, textAlign: 'center', marginBottom: 14, fontSize: 12, color: 'var(--muted)' }}>
+            Log another entry to see your trend line
+          </div>
+        ) : null}
         <div style={{ display: 'flex', gap: 8 }}>
           <input style={{ width: 90 }} type="number" placeholder="lbs" value={wt} onChange={e => setWt(e.target.value)} />
           <input style={{ flex: 1 }} type="date" value={wd} onChange={e => setWd(e.target.value)} />
