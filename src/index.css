@@ -217,6 +217,8 @@ input[type=date]{color:var(--muted);}
 @keyframes bloomBurst{0%{transform:scale(.2) rotate(-40deg);opacity:0}40%{opacity:1}100%{transform:scale(1.5) rotate(15deg);opacity:0}}
 @keyframes confettiFall{0%{transform:translateY(-30px) rotate(0);opacity:1}100%{transform:translateY(70vh) rotate(540deg);opacity:0}}
 @keyframes ringPulse{0%{box-shadow:0 0 0 0 rgba(123,47,214,.4)}70%{box-shadow:0 0 0 16px rgba(123,47,214,0)}100%{box-shadow:0 0 0 0 rgba(123,47,214,0)}}
+@keyframes genBloom{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.09) rotate(9deg)}}
+@keyframes genGlow{0%,100%{box-shadow:0 8px 30px rgba(123,47,214,.25)}50%{box-shadow:0 12px 44px rgba(239,77,138,.45)}}
 
 /* Springy tap on every primary control */
 .btn-full,.ob-next,.btn-generate,.btn-sm,.seg-btn,.chip,.opt-card,.goal-btn,.pill-btn,.store-btn,.qty-btn,.nb,.acct-btn{transition:transform .12s cubic-bezier(.34,1.56,.64,1),background .15s,border-color .15s,box-shadow .15s,color .15s;}

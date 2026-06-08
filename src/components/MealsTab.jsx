@@ -4,6 +4,7 @@ import { streamClaude } from '../lib/claude.js'
 import { CUISINES, MEAL_TYPES, MEAL_TYPE_LABELS } from '../constants.js'
 import { FREE_GENERATION_LIMIT } from '../lib/purchases.js'
 import Celebration from './Celebration.jsx'
+import GeneratingSequence from './GeneratingSequence.jsx'
 
 export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop, setTab, notify, session, isPaid, generationsUsed, onShowPaywall, onGenerate }) {
   const [view, setView] = useState('plan')
@@ -351,13 +352,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
   }
 
   if (view === 'generate' && phase === 'generating') {
-    return (
-      <div className="page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', gap: 16 }}>
-        <span className="spin" style={{ width: 32, height: 32, borderWidth: 3, borderTopColor: 'var(--plum)', borderColor: 'var(--plum3)44' }} />
-        <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 26, color: 'var(--plum)' }}>Finding your meals</div>
-        <div style={{ fontSize: 13, color: 'var(--muted)' }}>Personalizing based on your preferences...</div>
-      </div>
-    )
+    return <GeneratingSequence />
   }
 
   if (view === 'history') {
