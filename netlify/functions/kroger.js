@@ -100,14 +100,16 @@ function specificTerm(raw) {
   return q;
 }
 
-// Ordered query candidates: try the specific phrase first, then fall back to the
-// shorter core term so we never strand an item with zero matches.
-function queryCandidates(raw) {
-  const specific = specificTerm(raw);
-  const core = coreTerm(raw);
-  const out = [specific];
-  if (core !== specific) out.push(core);
-  return out;
+// fetch with a hard timeout so one slow Kroger response can't hang the whole
+// Netlify function (which would otherwise hit the 10s limit and 502).
+async function fetchWithTimeout(url, opts = {}, ms = 6000) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { ...opts, signal: controller.signal });
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 exports.handler = async function (event) {
@@ -296,53 +298,52 @@ exports.handler = async function (event) {
       };
     }
     try {
-      // Try specific phrase first, then fall back to the shorter core term.
-      // Relax the in-store-availability filter on fallback so nothing is stranded.
-      const candidates = queryCandidates(query);
-      let products = [];
-      let usedTerm = "";
-      for (let attempt = 0; attempt < candidates.length; attempt++) {
-        const term = candidates[attempt];
-        const params = new URLSearchParams({
-          "filter.term": term,
-          "filter.limit": "10",
-        });
-        if (location_id) params.set("filter.locationId", location_id);
-        // Only restrict to in-store availability on the most-specific first try.
-        if (attempt === 0 && location_id) params.set("filter.fulfillment", "ais");
+      // ONE Kroger call per item, with a hard 6s timeout. Specific term only —
+      // no second fallback call (that's what risked the Netlify 10s timeout).
+      const term = specificTerm(query);
+      const params = new URLSearchParams({ "filter.term": term, "filter.limit": "10" });
+      if (location_id) params.set("filter.locationId", location_id);
 
-        const response = await fetch(`${KROGER_BASE}/products?${params}`, {
+      let response;
+      try {
+        response = await fetchWithTimeout(`${KROGER_BASE}/products?${params}`, {
           headers: { Authorization: `Bearer ${access_token}`, Accept: "application/json" },
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          // Surface auth errors so the client can prompt a reconnect
-          return {
-            statusCode: response.status,
-            headers: { "Access-Control-Allow-Origin": "*" },
-            body: JSON.stringify({
-              error: data.message || "Product search failed",
-              needs_reauth: response.status === 401 || response.status === 403,
-            }),
-          };
-        }
-        products = (data.data || []).map((p) => ({
-          id: p.productId,
-          name: p.description,
-          brand: p.brand,
-          image: p.images?.[0]?.sizes?.find((s) => s.size === "medium")?.url || null,
-          price: p.items?.[0]?.price?.regular || null,
-          promo_price: p.items?.[0]?.price?.promo || null,
-          size: p.items?.[0]?.size || null,
-          upc: p.upc,
-          in_stock: p.items?.[0]?.inventory?.stockLevel !== "TEMPORARILY_OUT_OF_STOCK",
-        }));
-        if (products.length > 0) { usedTerm = term; break; }
+        }, 6000);
+      } catch (e) {
+        // Timed out / aborted — return empty so the client moves on, never hangs
+        return {
+          statusCode: 200,
+          headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+          body: JSON.stringify({ products: [], term, timed_out: true }),
+        };
       }
+
+      const data = await response.json();
+      if (!response.ok) {
+        return {
+          statusCode: response.status,
+          headers: { "Access-Control-Allow-Origin": "*" },
+          body: JSON.stringify({
+            error: data.message || "Product search failed",
+            needs_reauth: response.status === 401 || response.status === 403,
+          }),
+        };
+      }
+      const products = (data.data || []).map((p) => ({
+        id: p.productId,
+        name: p.description,
+        brand: p.brand,
+        image: p.images?.[0]?.sizes?.find((s) => s.size === "medium")?.url || null,
+        price: p.items?.[0]?.price?.regular || null,
+        promo_price: p.items?.[0]?.price?.promo || null,
+        size: p.items?.[0]?.size || null,
+        upc: p.upc,
+        in_stock: p.items?.[0]?.inventory?.stockLevel !== "TEMPORARILY_OUT_OF_STOCK",
+      }));
       return {
         statusCode: 200,
         headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
-        body: JSON.stringify({ products, term: usedTerm }),
+        body: JSON.stringify({ products, term }),
       };
     } catch (err) {
       return {
