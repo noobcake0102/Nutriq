@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { du, uc } from '../constants.js'
 import { CAT_ICON, I } from './Icons.jsx'
+import EmptyState from './EmptyState.jsx'
 
 export default function PantryTab({ pantry, setPantry, deletePantryItem, updatePantryQty, notify, setTab }) {
   const [search, setSearch] = useState('')
@@ -67,7 +68,11 @@ export default function PantryTab({ pantry, setPantry, deletePantryItem, updateP
           </div>
         )
       })}
-      {filtered.length === 0 && <div className="empty"><div className="empty-icon">{I.pantry('#b0a0be')}</div>Nothing found — scan something!</div>}
+      {filtered.length === 0 && (
+        pantry.length === 0
+          ? <EmptyState emoji="🧺" title="Your pantry's empty" sub="Scan a barcode or add items to start tracking what's in your kitchen — your meal plans build around it." cta="Scan an item" onCta={() => setTab && setTab('scan')} />
+          : <EmptyState emoji="🔍" title="Nothing here" sub="No items match your search or filter. Try a different category." />
+      )}
     </div>
   )
 }

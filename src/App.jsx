@@ -218,7 +218,7 @@ export default function App() {
       {tab === 'scan'   && <ScannerTab pantry={pantry} setPantry={setPantry} savePantryItem={savePantryItem} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify} setTab={setTab} />}
       {tab === 'pantry' && <PantryTab  pantry={pantry} setPantry={setPantry} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify} setTab={setTab} />}
       {tab === 'meals'  && <MealsTab   pantry={pantry} goals={goals} macros={macros} meal={meal} setMeal={setMeal} setShop={setShop} setTab={setTab} notify={notify} session={session} isPaid={isPaid} generationsUsed={generationsUsed} onShowPaywall={() => setShowPaywall(true)} onGenerate={incrementGenerations} />}
-      {tab === 'shop'   && <ShopTab    shop={shop} notify={notify} session={session} preferredStore={preferredStore} />}
+      {tab === 'shop'   && <ShopTab    shop={shop} notify={notify} session={session} preferredStore={preferredStore} setTab={setTab} />}
       {tab === 'goals'  && <GoalsTab   goals={goals} setGoals={setGoals} weights={weights} setWeights={setWeights} macros={macros} tdee={tdee} bmr={bmr} logWeight={logWeight} saveGoals={saveGoals} notify={notify} />}
 
       <div className="nav">

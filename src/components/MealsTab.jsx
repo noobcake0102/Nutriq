@@ -5,6 +5,7 @@ import { CUISINES, MEAL_TYPES, MEAL_TYPE_LABELS } from '../constants.js'
 import { FREE_GENERATION_LIMIT } from '../lib/purchases.js'
 import Celebration from './Celebration.jsx'
 import GeneratingSequence from './GeneratingSequence.jsx'
+import EmptyState from './EmptyState.jsx'
 
 export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop, setTab, notify, session, isPaid, generationsUsed, onShowPaywall, onGenerate }) {
   const [view, setView] = useState('plan')
@@ -368,7 +369,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
           {types.map(t => <button key={t} className={`chip${historyFilter === t ? ' on' : ''}`} onClick={() => setHistoryFilter(t)}>{t === 'all' ? 'All' : t.replace(/_/g, ' ')}</button>)}
         </div>
         {filtered.length === 0 ? (
-          <div className="empty"><div style={{ fontSize: 40, marginBottom: 12, opacity: .3 }}>🍽</div><p>No saved meals yet. Generate your first plan to build your library.</p></div>
+          <EmptyState emoji="📖" title="Your recipe book is empty" sub="Generate your first plan and every meal lands here — ready to reuse, rate, and cook again." cta="Plan this week" onCta={startFreshWeek} />
         ) : filtered.map(m => (
           <div key={m.id} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, marginBottom: 8, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -519,10 +520,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
         ))}
         <div style={{ height: 1, background: 'var(--border)', margin: '16px 0' }} />
       </>) : (
-        <div style={{ background: 'var(--plumLL)', border: '1px solid var(--plum3)22', borderRadius: 14, padding: 20, textAlign: 'center', marginBottom: 16 }}>
-          <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 20, color: 'var(--plum)', marginBottom: 6 }}>No meals planned yet</div>
-          <div style={{ fontSize: 13, color: 'var(--muted)' }}>Generate new options or add meals from your history</div>
-        </div>
+        <EmptyState emoji="🌸" title="A fresh week awaits" sub="Tell us what you're craving and we'll build a week of meals around your pantry and goals — then send it to grocery pickup." />
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
         <button className="btn-full" onClick={startFreshWeek}>

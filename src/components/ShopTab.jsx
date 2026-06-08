@@ -4,8 +4,9 @@ import { cleanIngredient } from '../lib/ingredients.js'
 import { streamClaude } from '../lib/claude.js'
 import { supa } from '../lib/supabase.js'
 import { I } from './Icons.jsx'
+import EmptyState from './EmptyState.jsx'
 
-export default function ShopTab({ shop, notify, session, preferredStore }) {
+export default function ShopTab({ shop, notify, session, preferredStore, setTab }) {
   const [productPrefs, setProductPrefs] = useState({}) // ingredient_key -> { chosen_upc, chosen_brand, chosen_name }
   const [store, setStore] = useState(preferredStore || 'kroger')
   const [method, setMethod] = useState('pickup')
@@ -315,7 +316,7 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
       )}
 
       {shop.length === 0 ? (
-        <div className="empty"><div className="empty-icon">{I.shop('#b0a0be')}</div><p>Generate a meal plan first to build your shopping list.</p></div>
+        <EmptyState emoji="🛒" title="Nothing to shop for yet" sub="Plan your meals and we'll build the list — matched to real products at your store, ready for pickup." cta="Plan meals" onCta={() => setTab && setTab('meals')} />
       ) : (<>
         <div className="seg">
           <button className={`seg-btn${method === 'pickup' ? ' on' : ''}`} onClick={() => setMethod('pickup')}>Pickup</button>
