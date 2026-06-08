@@ -5,6 +5,7 @@ import { calcBMR, ACT, calcMacros } from './lib/nutrition.js'
 import { SP, DG, du } from './constants.js'
 import { initPurchases, isPaidUser } from './lib/purchases.js'
 import { requestNotificationPermission, syncExpiryReminders, scheduleWeeklyPlanReminder } from './lib/notifications.js'
+import { setUserContext } from './lib/sentry.js'
 import BloomLogo from './components/BloomLogo.jsx'
 import AuthScreen from './components/AuthScreen.jsx'
 import Onboarding from './components/Onboarding.jsx'
@@ -52,6 +53,7 @@ export default function App() {
   }, [])
 
   useEffect(() => { setUserName(profile?.name || session?.user?.email?.split('@')[0] || '') }, [profile, session])
+  useEffect(() => { setUserContext(session?.user || null) }, [session])
 
   // Init RevenueCat + check entitlement on login
   useEffect(() => {

@@ -5,6 +5,7 @@ import { streamClaude } from '../lib/claude.js'
 import { supa } from '../lib/supabase.js'
 import { I } from './Icons.jsx'
 import EmptyState from './EmptyState.jsx'
+import { logError } from '../lib/sentry.js'
 
 export default function ShopTab({ shop, notify, session, preferredStore, setTab }) {
   const [productPrefs, setProductPrefs] = useState({}) // ingredient_key -> { chosen_upc, chosen_brand, chosen_name }
@@ -214,7 +215,7 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
         })
         return next
       })
-    } catch (e) { console.error('AI refine error:', e) }
+    } catch (e) { logError(e, { where: 'refineMatchesWithAI', items: entries.length }) }
     setRefining(false)
   }
 

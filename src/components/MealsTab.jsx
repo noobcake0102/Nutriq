@@ -6,6 +6,7 @@ import { FREE_GENERATION_LIMIT } from '../lib/purchases.js'
 import Celebration from './Celebration.jsx'
 import GeneratingSequence from './GeneratingSequence.jsx'
 import EmptyState from './EmptyState.jsx'
+import { logError } from '../lib/sentry.js'
 
 export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop, setTab, notify, session, isPaid, generationsUsed, onShowPaywall, onGenerate }) {
   const [view, setView] = useState('plan')
@@ -208,7 +209,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
       setOptions(parsed.options || {}); setSelected({}); setStepIdx(0); setPhase('picking')
       if (onGenerate) onGenerate() // increment counter after successful generation
     } catch (e) {
-      notify('Generation failed — try again', 'err'); console.error(e, full); setPhase('prefs')
+      notify('Generation failed — try again', 'err'); logError(e, { where: 'generate', raw: full.slice(0, 400) }); setPhase('prefs')
     }
   }
 
@@ -246,7 +247,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
         setSavedMeals(ms => ms.map(m => m.id === mealItem.id ? { ...m, recipe, times_made: (m.times_made || 0) + 1 } : m))
         setThisWeek(tw => tw.map(m => m.id === mealItem.id ? { ...m, recipe, times_made: (m.times_made || 0) + 1 } : m))
       }
-    } catch (e) { notify('Recipe failed — try again', 'err'); setView('plan') }
+    } catch (e) { notify('Recipe failed — try again', 'err'); logError(e, { where: 'generateRecipe', meal: mealItem?.name }); setView('plan') }
   }
 
   const rateFromRecipe = async rating => {
