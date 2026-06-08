@@ -4,6 +4,7 @@ import { DB } from './lib/db.js'
 import { calcBMR, ACT, calcMacros } from './lib/nutrition.js'
 import { SP, DG, du } from './constants.js'
 import { initPurchases, isPaidUser } from './lib/purchases.js'
+import { requestNotificationPermission, syncExpiryReminders, scheduleWeeklyPlanReminder } from './lib/notifications.js'
 import BloomLogo from './components/BloomLogo.jsx'
 import AuthScreen from './components/AuthScreen.jsx'
 import Onboarding from './components/Onboarding.jsx'
@@ -56,7 +57,15 @@ export default function App() {
   useEffect(() => {
     if (!session) return
     initPurchases(session.user.id).then(() => isPaidUser().then(setIsPaid))
+    // Ask for notification permission once, then schedule the weekly planner nudge
+    requestNotificationPermission().then(granted => { if (granted) scheduleWeeklyPlanReminder() })
   }, [session])
+
+  // Keep on-device expiry reminders in sync with the pantry
+  useEffect(() => {
+    if (!session) return
+    syncExpiryReminders(pantry, 3)
+  }, [session, pantry])
 
   // Load generation counter from Supabase profile
   useEffect(() => {
@@ -132,13 +141,17 @@ export default function App() {
   const exp = pantry.filter(i => { const d = du(i.expiry); return d !== null && d <= 5 })
   const bmr = calcBMR(goals), tdee = Math.round(bmr * (ACT[goals.activity]?.mult || 1.55)), macros = calcMacros(tdee, goals.diet, goals.goalType)
 
+  // Bottom nav. Scan is reachable from inside Pantry (it's how you add items),
+  // so it isn't a top-level tab — keeps the bar to a clean 5.
   const TABS = [
     { id: 'home', label: 'Home', icon: on => <svg viewBox="0 0 24 24" fill="none" stroke={on ? '#4a1a6e' : '#c0b0d0'} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg> },
-    { id: 'scan', label: 'Scan', icon: on => I.scan(on ? '#4a1a6e' : '#c0b0d0') },
+    { id: 'pantry', label: 'Pantry', icon: on => I.pantry(on ? '#4a1a6e' : '#c0b0d0') },
     { id: 'meals', label: 'Meals', icon: on => I.meals(on ? '#4a1a6e' : '#c0b0d0') },
     { id: 'shop', label: 'Shop', icon: on => I.shop(on ? '#4a1a6e' : '#c0b0d0') },
     { id: 'goals', label: 'Goals', icon: on => I.goals(on ? '#4a1a6e' : '#c0b0d0') },
   ]
+  // Highlight the Pantry nav item while the Scan sub-view is open
+  const navActive = tab === 'scan' ? 'pantry' : tab
 
   if (session === undefined) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream)' }}>
@@ -202,14 +215,14 @@ export default function App() {
       {showPaywall && <PaywallModal generationsUsed={generationsUsed} onClose={() => setShowPaywall(false)} onSuccess={() => { setIsPaid(true); notify('Welcome to Nutriq Premium! 🎉') }} />}
 
       {tab === 'home'   && <HomeTab    pantry={pantry} goals={goals} weights={weights} meal={meal} macros={macros} setTab={setTab} userName={userName} notify={notify} />}
-      {tab === 'scan'   && <ScannerTab pantry={pantry} setPantry={setPantry} savePantryItem={savePantryItem} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify} />}
-      {tab === 'pantry' && <PantryTab  pantry={pantry} setPantry={setPantry} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify} />}
+      {tab === 'scan'   && <ScannerTab pantry={pantry} setPantry={setPantry} savePantryItem={savePantryItem} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify} setTab={setTab} />}
+      {tab === 'pantry' && <PantryTab  pantry={pantry} setPantry={setPantry} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify} setTab={setTab} />}
       {tab === 'meals'  && <MealsTab   pantry={pantry} goals={goals} macros={macros} meal={meal} setMeal={setMeal} setShop={setShop} setTab={setTab} notify={notify} session={session} isPaid={isPaid} generationsUsed={generationsUsed} onShowPaywall={() => setShowPaywall(true)} onGenerate={incrementGenerations} />}
       {tab === 'shop'   && <ShopTab    shop={shop} notify={notify} session={session} preferredStore={preferredStore} />}
       {tab === 'goals'  && <GoalsTab   goals={goals} setGoals={setGoals} weights={weights} setWeights={setWeights} macros={macros} tdee={tdee} bmr={bmr} logWeight={logWeight} saveGoals={saveGoals} notify={notify} />}
 
       <div className="nav">
-        {TABS.map(t => <button key={t.id} className={`nb${tab === t.id ? ' on' : ''}`} onClick={() => setTab(t.id)}>{t.icon(tab === t.id)}<span>{t.label}</span></button>)}
+        {TABS.map(t => <button key={t.id} className={`nb${navActive === t.id ? ' on' : ''}`} onClick={() => setTab(t.id)}>{t.icon(navActive === t.id)}<span>{t.label}</span></button>)}
       </div>
 
       {toast && <div className={`toast${toast.type === 'err' ? ' err' : ''}`}>{toast.msg}</div>}
