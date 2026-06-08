@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "DF LMS",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "LMS", "-l", "3500", "--no-clipboard"],
+      "port": 3500
+    }
+  ]
+}
