@@ -85,7 +85,7 @@ exports.handler = async function (event) {
 
   const CLIENT_ID = process.env.KROGER_CLIENT_ID;
   const CLIENT_SECRET = process.env.KROGER_CLIENT_SECRET;
-  const REDIRECT_URI = "https://nutriq2.netlify.app/kroger-callback";
+  const REDIRECT_URI = "https://nutriqai.com/kroger-callback";
 
   if (!CLIENT_ID || !CLIENT_SECRET) {
     return {
