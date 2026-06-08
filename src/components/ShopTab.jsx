@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { krogerApi } from '../lib/kroger.js'
 import { cleanIngredient } from '../lib/ingredients.js'
+import { streamClaude } from '../lib/claude.js'
 import { supa } from '../lib/supabase.js'
 import { I } from './Icons.jsx'
 
@@ -18,6 +19,7 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
   const getSearchToken = () => krogerToken || krogerClientToken
   const [matchedProducts, setMatchedProducts] = useState({})
   const [matching, setMatching] = useState(false)
+  const [refining, setRefining] = useState(false)
   const [matchProgress, setMatchProgress] = useState({ done: 0, total: 0 })
   const [placingOrder, setPlacingOrder] = useState(false)
   const [stores, setStores] = useState([])
@@ -151,7 +153,7 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
     setMatchedProducts({})
     setMatchProgress({ done: 0, total: shop.length })
     let authFailed = false
-    let matchedCount = 0
+    const allResults = {}
     const BATCH = 5
     for (let i = 0; i < shop.length; i += BATCH) {
       const batch = shop.slice(i, i + BATCH)
@@ -171,15 +173,48 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
           }
         } catch (e) { console.error('Match error for', item.item, e) }
       }))
-      matchedCount += Object.keys(batchResults).length
+      Object.assign(allResults, batchResults)
       // Stream each batch into the UI so matches appear as they arrive
       setMatchedProducts(prev => ({ ...prev, ...batchResults }))
       setMatchProgress({ done: Math.min(i + BATCH, shop.length), total: shop.length })
       if (i + BATCH < shop.length) await new Promise(r => setTimeout(r, 120))
     }
     setMatching(false)
-    if (authFailed) notify('Your Kroger session expired — reconnect to match products', 'err')
-    else if (matchedCount === 0) notify('No product matches found — try re-matching', 'err')
+    if (authFailed) { notify('Your Kroger session expired — reconnect to match products', 'err'); return }
+    if (Object.keys(allResults).length === 0) { notify('No product matches found — try re-matching', 'err'); return }
+    // Let Claude pick the best real product per ingredient (fresh > deli, etc.)
+    refineMatchesWithAI(allResults)
+  }
+
+  // Send the real Kroger candidates back to Claude and let it choose the best
+  // match per ingredient. One batched call. Saved brand picks are left untouched.
+  const refineMatchesWithAI = async (results) => {
+    const entries = Object.entries(results).filter(([, m]) => !productPrefs[m.key] && m.options.length > 1)
+    if (entries.length === 0) return
+    setRefining(true)
+    try {
+      const lines = entries.map(([i, m], n) => {
+        const opts = m.options.slice(0, 5).map((o, oi) =>
+          `  ${oi}: ${o.name}${o.brand ? ` — ${o.brand}` : ''}${o.size ? `, ${o.size}` : ''}`).join('\n')
+        return `Ingredient ${n}: "${shop[i].item}"\n${opts}`
+      }).join('\n\n')
+      const sys = `You match recipe ingredients to real grocery products. For each ingredient, choose the index of the product a home cook would actually buy for that recipe. Rules: strongly prefer fresh/raw whole ingredients over deli, prepared, pre-cooked, canned, or seasoned versions UNLESS the ingredient name asks for them; prefer common package sizes; never pick prepared meals or snack versions. Respond with ONLY raw JSON mapping each ingredient number to the chosen product index, e.g. {"0":1,"1":0}. Use -1 if none fit.`
+      const usr = `Choose the best product index for each ingredient:\n\n${lines}`
+      let full = ''
+      await streamClaude(sys, usr, c => { full += c })
+      const picks = JSON.parse(full.replace(/```json/g, '').replace(/```/g, '').trim())
+      setMatchedProducts(prev => {
+        const next = { ...prev }
+        entries.forEach(([i], n) => {
+          const choice = picks[n]
+          if (typeof choice === 'number' && choice >= 0 && next[i] && choice < next[i].options.length) {
+            next[i] = { ...next[i], selected: choice, aiPicked: true }
+          }
+        })
+        return next
+      })
+    } catch (e) { console.error('AI refine error:', e) }
+    setRefining(false)
   }
 
   const placeKrogerOrder = async () => {
@@ -303,6 +338,12 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
             </div>
           </div>
         )}
+        {refining && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'var(--sageL)', borderRadius: 12, marginBottom: 12, fontSize: 13, color: 'var(--sage)' }}>
+            <span className="spin" style={{ borderTopColor: 'var(--sage)', borderColor: 'var(--sage)44' }} />
+            AI is picking the best match for each item...
+          </div>
+        )}
         {shop.map((item, i) => {
           const matched = matchedProducts[i]
           return (
@@ -325,7 +366,9 @@ export default function ShopTab({ shop, notify, session, preferredStore }) {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{prod.name}</div>
                           <div style={{ fontSize: 11, color: 'var(--muted)' }}>{prod.brand}{prod.size ? ` · ${prod.size}` : ''}</div>
-                          {productPrefs[matched.key]?.chosen_upc === prod.upc && <div style={{ fontSize: 10, color: 'var(--sage)', fontWeight: 500, marginTop: 1 }}>★ Your usual</div>}
+                          {productPrefs[matched.key]?.chosen_upc === prod.upc
+                            ? <div style={{ fontSize: 10, color: 'var(--sage)', fontWeight: 500, marginTop: 1 }}>★ Your usual</div>
+                            : matched.aiPicked && <div style={{ fontSize: 10, color: 'var(--plum3)', fontWeight: 500, marginTop: 1 }}>✦ AI matched</div>}
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           {prod.promo_price ? (<><div style={{ fontSize: 13, fontWeight: 500, color: 'var(--sage)' }}>${prod.promo_price.toFixed(2)}</div><div style={{ fontSize: 11, color: 'var(--muted)', textDecoration: 'line-through' }}>${prod.price?.toFixed(2)}</div></>) : prod.price ? <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>${prod.price.toFixed(2)}</div> : null}
