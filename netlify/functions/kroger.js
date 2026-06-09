@@ -301,7 +301,7 @@ exports.handler = async function (event) {
       // ONE Kroger call per item, with a hard 6s timeout. Specific term only —
       // no second fallback call (that's what risked the Netlify 10s timeout).
       const term = specificTerm(query);
-      const params = new URLSearchParams({ "filter.term": term, "filter.limit": "10" });
+      const params = new URLSearchParams({ "filter.term": term, "filter.limit": "20" });
       if (location_id) params.set("filter.locationId", location_id);
 
       let response;

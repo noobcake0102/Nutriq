@@ -51,6 +51,22 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
     }).catch(() => {})
   }, [store])
 
+  // Silently exchange the stored refresh token for a fresh access token so the
+  // user stays connected (Kroger access tokens expire ~30 min; refresh tokens
+  // last far longer and rotate on use). Returns the new token or null.
+  const refreshKrogerToken = async () => {
+    const refresh = localStorage.getItem('nq_kroger_refresh')
+    if (!refresh) return null
+    const data = await krogerApi('refresh_token', { refresh_token: refresh })
+    if (data.access_token) {
+      localStorage.setItem('nq_kroger_token', data.access_token)
+      if (data.refresh_token) localStorage.setItem('nq_kroger_refresh', data.refresh_token)
+      setKrogerToken(data.access_token)
+      return data.access_token
+    }
+    return null
+  }
+
   // Auto-match products whenever we have any token + shop items
   useEffect(() => {
     const token = getSearchToken()
@@ -148,8 +164,9 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
     return byBrand >= 0 ? byBrand : 0
   }
 
-  const matchAllProducts = async () => {
-    const token = getSearchToken()
+  const matchAllProducts = async (opts = {}) => {
+    const token = opts.token || getSearchToken()
+    const didRefresh = opts.didRefresh || false
     if (!token || shop.length === 0) return
     setMatching(true)
     setMatchedProducts({})
@@ -170,7 +187,7 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
           })
           if (data.needs_reauth) { authFailed = true; return }
           if (data.products?.length > 0) {
-            const options = data.products.slice(0, 6)
+            const options = data.products.slice(0, 10)
             batchResults[i + idx] = { selected: preferredIndex(options, key), options, key }
           }
         } catch (e) { console.error('Match error for', item.item, e) }
@@ -182,7 +199,14 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
       if (i + BATCH < shop.length) await new Promise(r => setTimeout(r, 120))
     }
     setMatching(false)
-    if (authFailed) { notify('Your Kroger session expired — reconnect to match products', 'err'); return }
+    if (authFailed) {
+      // Token likely expired mid-run — refresh once and retry transparently
+      if (!didRefresh) {
+        const newTok = await refreshKrogerToken()
+        if (newTok) return matchAllProducts({ token: newTok, didRefresh: true })
+      }
+      notify('Your Kroger session expired — reconnect to match products', 'err'); return
+    }
     if (Object.keys(allResults).length === 0) { notify('No product matches found — try re-matching', 'err'); return }
     // Let Claude pick the best real product per ingredient (fresh > deli, etc.)
     refineMatchesWithAI(allResults)
@@ -198,23 +222,24 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
     setRefining(true)
     try {
       const lines = entries.map(([i, m], n) => {
-        const opts = m.options.slice(0, 6).map((o, oi) =>
+        const opts = m.options.slice(0, 8).map((o, oi) =>
           `  ${oi}: ${o.name}${o.brand ? ` — ${o.brand}` : ''}${o.size ? `, ${o.size}` : ''}`).join('\n')
         return `Ingredient ${n}: "${shop[i].item}"\n${opts}`
       }).join('\n\n')
-      const sys = `You match a recipe ingredient to the correct real grocery product.
+      const sys = `You match a recipe ingredient to the correct real grocery product from a list.
 
-STEP 1 — CORRECTNESS (most important): the product MUST actually be the same food as the ingredient. A different food is NEVER acceptable, no matter how fresh or cheap. Examples of WRONG matches you must reject: green onions or red onions for "garlic"; any cheese for "ghee"; broth for "butter"; chips for "potato". If a product is a different food, it does not count.
+RULE 1 — CORRECTNESS first: the product MUST be the same food as the ingredient. A different food is NEVER acceptable, however fresh or cheap. Reject these: onions/green onions for "garlic"; any cheese for "ghee"; broth for "butter"; chips for "potato"; juice for "lemon". A product only counts if it genuinely IS the ingredient.
+RULE 2 — among genuine matches only, prefer fresh/whole over jarred, canned, powdered, frozen, or prepared (unless the ingredient asks for those, e.g. "minced garlic", "garlic powder", "frozen peas").
+RULE 3 — if none of the products are actually the ingredient, use -1. This is correct and expected; never force a wrong match.
 
-STEP 2 — only among products that ARE genuinely the ingredient, prefer fresh/whole over jarred, canned, powdered, or pre-prepared versions (unless the ingredient name asks for those, e.g. "minced garlic" or "garlic powder"). Prefer common package sizes. Never pick prepared meals or snacks.
-
-STEP 3 — if NONE of the listed products are actually the ingredient, return -1 for that ingredient. Returning -1 is correct and expected when Kroger returned unrelated products. Do not force a wrong match.
-
-Respond with ONLY raw JSON mapping each ingredient number to the chosen product index (or -1), e.g. {"0":2,"1":-1}.`
-      const usr = `Pick the correct product index (or -1 if none are actually the ingredient):\n\n${lines}`
+OUTPUT: a single raw JSON object, nothing else — no prose, no code fences. Map each ingredient number to the chosen index or -1. Example: {"0":2,"1":-1,"2":0}`
+      const usr = `Return the JSON object only.\n\n${lines}`
       let full = ''
       await streamClaude(sys, usr, c => { full += c })
-      const picks = JSON.parse(full.replace(/```json/g, '').replace(/```/g, '').trim())
+      // Robust parse: extract the JSON object even if the model added stray text
+      const cleaned = full.replace(/```json/gi, '').replace(/```/g, '').trim()
+      const objMatch = cleaned.match(/\{[\s\S]*\}/)
+      const picks = JSON.parse(objMatch ? objMatch[0] : cleaned)
       setMatchedProducts(prev => {
         const next = { ...prev }
         entries.forEach(([i], n) => {
