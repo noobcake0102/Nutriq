@@ -1,8 +1,9 @@
-export async function streamClaude(sys, usr, cb) {
+// model: 'haiku' (default, fast/cheap) or 'sonnet' (higher quality generation)
+export async function streamClaude(sys, usr, cb, model) {
   const res = await fetch('/api/claude', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ system: sys, messages: [{ role: 'user', content: usr }] }),
+    body: JSON.stringify({ system: sys, messages: [{ role: 'user', content: usr }], model }),
   })
   if (!res.ok) { const err = await res.text(); throw new Error('API error: ' + err) }
   const data = await res.json()

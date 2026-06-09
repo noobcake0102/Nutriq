@@ -19,6 +19,15 @@ exports.handler = async function (event) {
     return { statusCode: 400, body: JSON.stringify({ error: "Invalid JSON" }) };
   }
 
+  // Allowlisted tiers — Haiku for high-volume matching, Sonnet for quality
+  // meal/recipe generation. Client sends a tier name; never a raw model id.
+  const MODELS = {
+    haiku: "claude-haiku-4-5-20251001",
+    sonnet: "claude-sonnet-4-5-20250929",
+  };
+  const model = MODELS[body.model] || MODELS.haiku;
+  const maxTokens = body.model === "sonnet" ? 4000 : 3000;
+
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -28,8 +37,8 @@ exports.handler = async function (event) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 3000,
+        model,
+        max_tokens: maxTokens,
         system: body.system,
         messages: body.messages,
       }),
