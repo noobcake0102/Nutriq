@@ -258,6 +258,21 @@ OUTPUT: a single raw JSON object, nothing else — no prose, no code fences. Map
     setRefining(false)
   }
 
+  // Debug helper: copies exactly what each ingredient searched and what came
+  // back, so matching issues can be diagnosed from real data (not screenshots).
+  const copyMatchReport = async () => {
+    const lines = shop.map((item, i) => {
+      const m = matchedProducts[i]
+      if (!m) return `• "${item.item}" → searched "${cleanIngredient(item.item)}" → NO RESULTS`
+      const picked = m.noMatch ? 'NO MATCH (flagged)' : (m.options[m.selected]?.name || '?')
+      const opts = m.options.map(o => `${o.name}${o.brand ? ` [${o.brand}]` : ''}`).join(' | ')
+      return `• "${item.item}" → searched "${m.term || cleanIngredient(item.item)}" → picked: ${picked}\n    options: ${opts}`
+    }).join('\n')
+    const report = `NUTRIQ MATCH REPORT\nstore: ${krogerStore?.name || 'default'}\n\n${lines}`
+    try { await navigator.clipboard.writeText(report); notify('Match report copied — paste it to Claude') }
+    catch { notify('Copy failed', 'err') }
+  }
+
   const placeKrogerOrder = async () => {
     if (!krogerToken) { notify('Connect Kroger first', 'err'); return }
     setPlacingOrder(true)
@@ -469,6 +484,11 @@ OUTPUT: a single raw JSON object, nothing else — no prose, no code fences. Map
           {store !== 'kroger' && <button className="btn-full" onClick={() => setOrd(true)} disabled={unc.length === 0}>Place order · {unc.length} item{unc.length !== 1 ? 's' : ''}</button>}
         </div>
         <p style={{ textAlign: 'center', color: 'var(--muted2)', fontSize: 11, marginTop: 8 }}>{store === 'kroger' && krogerToken && krogerStore ? `${krogerStore.name} · ${method}` : `${store} · ${method}`}</p>
+        {Object.keys(matchedProducts).length > 0 && (
+          <button onClick={copyMatchReport} style={{ display: 'block', margin: '10px auto 0', background: 'none', border: 'none', color: 'var(--muted2)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline', fontFamily: "'DM Sans',system-ui,sans-serif" }}>
+            Copy match report (for debugging)
+          </button>
+        )}
       </>)}
     </div>
   )
