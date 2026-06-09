@@ -188,7 +188,7 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
           if (data.needs_reauth) { authFailed = true; return }
           if (data.products?.length > 0) {
             const options = data.products.slice(0, 10)
-            batchResults[i + idx] = { selected: preferredIndex(options, key), options, key }
+            batchResults[i + idx] = { selected: preferredIndex(options, key), options, key, term: data.term }
           }
         } catch (e) { console.error('Match error for', item.item, e) }
       }))
@@ -407,7 +407,7 @@ OUTPUT: a single raw JSON object, nothing else — no prose, no code fences. Map
                       <span style={{ fontSize: 16, lineHeight: 1.2 }}>⚠️</span>
                       <div style={{ fontSize: 12 }}>
                         <div style={{ fontWeight: 600, color: 'var(--orange)' }}>No confident match for "{item.item}"</div>
-                        <div style={{ color: 'var(--muted)', marginTop: 1 }}>Kroger didn't return a clear match. Pick one below if any fit — otherwise grab it in store.</div>
+                        <div style={{ color: 'var(--muted)', marginTop: 1 }}>Searched Kroger for "{matched.term || item.item}". Pick one below if any fit — otherwise grab it in store.</div>
                       </div>
                     </div>
                   ) : (() => {
