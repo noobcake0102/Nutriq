@@ -188,20 +188,30 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
     refineMatchesWithAI(allResults)
   }
 
-  // Send the real Kroger candidates back to Claude and let it choose the best
-  // match per ingredient. One batched call. Saved brand picks are left untouched.
+  // Send the real Kroger candidates back to Claude. Correctness FIRST: the
+  // product must genuinely be the ingredient. If Kroger returned junk (e.g.
+  // cheese for "ghee", onions for "garlic"), Claude returns -1 and we flag the
+  // item as "no match" rather than buying the wrong thing. Saved picks skipped.
   const refineMatchesWithAI = async (results) => {
-    const entries = Object.entries(results).filter(([, m]) => !productPrefs[m.key] && m.options.length > 1)
+    const entries = Object.entries(results).filter(([, m]) => !productPrefs[m.key])
     if (entries.length === 0) return
     setRefining(true)
     try {
       const lines = entries.map(([i, m], n) => {
-        const opts = m.options.slice(0, 5).map((o, oi) =>
+        const opts = m.options.slice(0, 6).map((o, oi) =>
           `  ${oi}: ${o.name}${o.brand ? ` — ${o.brand}` : ''}${o.size ? `, ${o.size}` : ''}`).join('\n')
         return `Ingredient ${n}: "${shop[i].item}"\n${opts}`
       }).join('\n\n')
-      const sys = `You match recipe ingredients to real grocery products. For each ingredient, choose the index of the product a home cook would actually buy for that recipe. Rules: strongly prefer fresh/raw whole ingredients over deli, prepared, pre-cooked, canned, or seasoned versions UNLESS the ingredient name asks for them; prefer common package sizes; never pick prepared meals or snack versions. Respond with ONLY raw JSON mapping each ingredient number to the chosen product index, e.g. {"0":1,"1":0}. Use -1 if none fit.`
-      const usr = `Choose the best product index for each ingredient:\n\n${lines}`
+      const sys = `You match a recipe ingredient to the correct real grocery product.
+
+STEP 1 — CORRECTNESS (most important): the product MUST actually be the same food as the ingredient. A different food is NEVER acceptable, no matter how fresh or cheap. Examples of WRONG matches you must reject: green onions or red onions for "garlic"; any cheese for "ghee"; broth for "butter"; chips for "potato". If a product is a different food, it does not count.
+
+STEP 2 — only among products that ARE genuinely the ingredient, prefer fresh/whole over jarred, canned, powdered, or pre-prepared versions (unless the ingredient name asks for those, e.g. "minced garlic" or "garlic powder"). Prefer common package sizes. Never pick prepared meals or snacks.
+
+STEP 3 — if NONE of the listed products are actually the ingredient, return -1 for that ingredient. Returning -1 is correct and expected when Kroger returned unrelated products. Do not force a wrong match.
+
+Respond with ONLY raw JSON mapping each ingredient number to the chosen product index (or -1), e.g. {"0":2,"1":-1}.`
+      const usr = `Pick the correct product index (or -1 if none are actually the ingredient):\n\n${lines}`
       let full = ''
       await streamClaude(sys, usr, c => { full += c })
       const picks = JSON.parse(full.replace(/```json/g, '').replace(/```/g, '').trim())
@@ -209,8 +219,12 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
         const next = { ...prev }
         entries.forEach(([i], n) => {
           const choice = picks[n]
-          if (typeof choice === 'number' && choice >= 0 && next[i] && choice < next[i].options.length) {
-            next[i] = { ...next[i], selected: choice, aiPicked: true }
+          if (!next[i]) return
+          if (typeof choice === 'number' && choice >= 0 && choice < next[i].options.length) {
+            next[i] = { ...next[i], selected: choice, aiPicked: true, noMatch: false }
+          } else {
+            // -1 or invalid → Kroger gave us nothing that's actually this ingredient
+            next[i] = { ...next[i], noMatch: true }
           }
         })
         return next
@@ -225,7 +239,7 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
     try {
       const items = shop.map((item, i) => {
         const m = matchedProducts[i]
-        if (!m) return null
+        if (!m || m.noMatch) return null
         const prod = m.options[m.selected]
         return prod ? { upc: prod.upc, quantity: 1 } : null
       }).filter(Boolean)
@@ -237,8 +251,11 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
     setPlacingOrder(false)
   }
 
+  const matchedCount = Object.values(matchedProducts).filter(m => !m.noMatch).length
   const totalEstimate = shop.reduce((sum, _, i) => {
-    const m = matchedProducts[i]; const p = m?.options?.[m.selected]
+    const m = matchedProducts[i]
+    if (!m || m.noMatch) return sum
+    const p = m.options?.[m.selected]
     return sum + (p?.promo_price || p?.price || 0)
   }, 0)
 
@@ -326,7 +343,7 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
         <div className="shop-summary">
           <div className="sum-cell"><div className="sum-val">{shop.length}</div><div className="sum-lbl">items</div></div>
           <div className="sum-cell"><div className="sum-val" style={{ color: 'var(--red)' }}>{shop.filter(i => i.priority === 'high').length}</div><div className="sum-lbl">urgent</div></div>
-          <div className="sum-cell"><div className="sum-val" style={{ color: 'var(--sage)' }}>{Object.keys(matchedProducts).length}</div><div className="sum-lbl">matched</div></div>
+          <div className="sum-cell"><div className="sum-val" style={{ color: 'var(--sage)' }}>{matchedCount}</div><div className="sum-lbl">matched</div></div>
           <div className="sum-cell"><div className="sum-val" style={{ color: 'var(--plum)', fontSize: totalEstimate > 0 ? 18 : 22 }}>{totalEstimate > 0 ? `$${totalEstimate.toFixed(2)}` : '-'}</div><div className="sum-lbl">est. total</div></div>
         </div>
         {matching && (
@@ -359,8 +376,16 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
                 {item.priority === 'high' && !checked[i] && <span className="urgent-tag">urgent</span>}
               </div>
               {matched && !checked[i] && (
-                <div style={{ background: 'var(--warm)', borderTop: '1px solid var(--border)', padding: '8px 14px 10px' }}>
-                  {(() => {
+                <div style={{ background: matched.noMatch ? '#fef7ed' : 'var(--warm)', borderTop: '1px solid var(--border)', padding: '8px 14px 10px' }}>
+                  {matched.noMatch ? (
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+                      <span style={{ fontSize: 16, lineHeight: 1.2 }}>⚠️</span>
+                      <div style={{ fontSize: 12 }}>
+                        <div style={{ fontWeight: 600, color: 'var(--orange)' }}>No confident match for "{item.item}"</div>
+                        <div style={{ color: 'var(--muted)', marginTop: 1 }}>Kroger didn't return a clear match. Pick one below if any fit — otherwise grab it in store.</div>
+                      </div>
+                    </div>
+                  ) : (() => {
                     const prod = matched.options[matched.selected]
                     return prod ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -379,18 +404,18 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
                       </div>
                     ) : null
                   })()}
-                  {matched.options.length > 1 && (
+                  {(matched.options.length > 1 || matched.noMatch) && (
                     <>
-                      <div style={{ fontSize: 10, color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>Swap · {matched.options.length} options</div>
+                      <div style={{ fontSize: 10, color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>{matched.noMatch ? 'Closest results · tap if one fits' : `Swap · ${matched.options.length} options`}</div>
                       <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
                         {matched.options.map((opt, oi) => (
-                          <button key={oi} onClick={() => { setMatchedProducts(mp => ({ ...mp, [i]: { ...mp[i], selected: oi } })); saveProductPick(matched.key, opt) }}
-                            style={{ flexShrink: 0, width: 96, background: matched.selected === oi ? 'var(--plumL)' : 'var(--card)', border: `1px solid ${matched.selected === oi ? 'var(--plum3)' : 'var(--border)'}`, borderRadius: 8, padding: 6, cursor: 'pointer', textAlign: 'center', fontFamily: "'DM Sans',system-ui,sans-serif" }}>
+                          <button key={oi} onClick={() => { setMatchedProducts(mp => ({ ...mp, [i]: { ...mp[i], selected: oi, noMatch: false } })); saveProductPick(matched.key, opt) }}
+                            style={{ flexShrink: 0, width: 96, background: !matched.noMatch && matched.selected === oi ? 'var(--plumL)' : 'var(--card)', border: `1px solid ${!matched.noMatch && matched.selected === oi ? 'var(--plum3)' : 'var(--border)'}`, borderRadius: 8, padding: 6, cursor: 'pointer', textAlign: 'center', fontFamily: "'DM Sans',system-ui,sans-serif" }}>
                             {opt.image
                               ? <img src={opt.image} alt={opt.name} style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 6, background: 'white', display: 'block', margin: '0 auto 4px' }} />
                               : <div style={{ width: 44, height: 44, borderRadius: 6, background: 'var(--warm)', margin: '0 auto 4px' }} />}
-                            <div style={{ fontSize: 10, fontWeight: 500, color: matched.selected === oi ? 'var(--plum2)' : 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{opt.brand || opt.name.split(' ').slice(0, 2).join(' ')}</div>
-                            <div style={{ fontSize: 10, color: matched.selected === oi ? 'var(--plum3)' : 'var(--muted)' }}>{opt.promo_price ? `$${opt.promo_price.toFixed(2)}` : opt.price ? `$${opt.price.toFixed(2)}` : '—'}</div>
+                            <div style={{ fontSize: 10, fontWeight: 500, color: !matched.noMatch && matched.selected === oi ? 'var(--plum2)' : 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{opt.brand || opt.name.split(' ').slice(0, 2).join(' ')}</div>
+                            <div style={{ fontSize: 10, color: !matched.noMatch && matched.selected === oi ? 'var(--plum3)' : 'var(--muted)' }}>{opt.promo_price ? `$${opt.promo_price.toFixed(2)}` : opt.price ? `$${opt.price.toFixed(2)}` : '—'}</div>
                           </button>
                         ))}
                       </div>
@@ -411,8 +436,8 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
             {!matching && Object.keys(matchedProducts).length < shop.length && (
               <button className="btn-full" style={{ background: 'none', border: '1px solid var(--plum3)', color: 'var(--plum2)' }} onClick={matchAllProducts}>Re-match products</button>
             )}
-            <button className="btn-full" onClick={placeKrogerOrder} disabled={placingOrder || Object.keys(matchedProducts).length === 0}>
-              {placingOrder ? <span style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}><span className="spin" />Adding to cart...</span> : `Add to Kroger cart · ${Object.keys(matchedProducts).length} items`}
+            <button className="btn-full" onClick={placeKrogerOrder} disabled={placingOrder || matchedCount === 0}>
+              {placingOrder ? <span style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}><span className="spin" />Adding to cart...</span> : `Add to Kroger cart · ${matchedCount} items`}
             </button>
           </>)}
           {store === 'kroger' && !krogerToken && <button className="btn-full" onClick={connectKroger}>Connect Kroger to place order</button>}
