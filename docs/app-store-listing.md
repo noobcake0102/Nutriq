@@ -65,13 +65,13 @@ Nutriq turns your week's meals into a smart shopping list, matches each ingredie
 - Weight logging and progress trends
 
 **Free to start**
-Plan up to 3 weeks free every month. Upgrade for unlimited planning, household sharing, and one-tap grocery ordering.
+Try Nutriq free with a couple of AI meal plans a month plus full pantry tracking. Upgrade to Plus for unlimited planning, the personalization that learns your taste and brands, and one-tap grocery pickup.
 
 Nutriq. Feed your family better, without the mental math.
 
 ---
 
-*Subscriptions: Core ($4.99/mo), Family ($8.99/mo), Premium ($12.99/mo). Payment charged to your Apple ID. Auto-renews unless canceled at least 24 hours before the period ends. Manage in App Store settings.*
+*Nutriq Plus: $6.99/month (7-day free trial) or $49/year (save 40%). Payment charged to your Apple ID at confirmation. Auto-renews unless canceled at least 24 hours before the period ends. Manage or cancel in App Store settings.*
 
 Privacy Policy: https://nutriqai.com/privacy
 Terms of Service: https://nutriqai.com/terms
