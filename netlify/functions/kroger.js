@@ -57,13 +57,32 @@ const INGREDIENT_ENRICHMENT = {
             "crab","lobster","clam","oyster","fish fillet","fish"],
     transform: q => q,
   },
+  // Fresh herbs — "dill" alone matches dill PICKLES; "fresh dill" finds the herb.
+  herbs: {
+    terms: ["dill","basil","cilantro","parsley","thyme","rosemary","mint","oregano",
+            "sage","chives","tarragon","bay leaf","dill weed"],
+    transform: q => /\b(fresh|dried|ground)\b/.test(q) ? q : `fresh ${q}`,
+  },
+  // Citrus — "lemon" alone matches lemon SODA/lemonade; "fresh lemon" finds fruit.
+  citrus: {
+    terms: ["lemon","lime","orange","lemons","limes","oranges"],
+    transform: q => /\b(fresh|juice|zest|bag)\b/.test(q) ? q : `fresh ${q}`,
+  },
+  // Spices — bare "cumin" matches seasoning blends; "ground cumin" finds the spice.
+  spices: {
+    terms: ["cumin","coriander","turmeric","paprika","cayenne","chili powder",
+            "curry powder","garlic powder","onion powder","cinnamon","nutmeg","oregano"],
+    transform: q => {
+      if (/\b(ground|powder|whole|seed|stick)\b/.test(q)) return q;
+      if (["cumin","coriander","turmeric"].includes(q)) return `ground ${q}`;
+      return q;
+    },
+  },
   produce: {
-    fresh: true,
     terms: ["spinach","kale","arugula","lettuce","tomato","onion","garlic","ginger",
             "broccoli","cauliflower","carrot","celery","zucchini","cucumber","bell pepper",
-            "mushroom","potato","sweet potato","avocado","lemon","lime","apple",
-            "banana","strawberry","blueberry","mango","peach","basil",
-            "cilantro","parsley","thyme","rosemary"],
+            "mushroom","potato","sweet potato","avocado","apple",
+            "banana","strawberry","blueberry","mango","peach"],
     transform: q => q,
   },
   dairy: {

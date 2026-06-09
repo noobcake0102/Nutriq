@@ -228,9 +228,9 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
       }).join('\n\n')
       const sys = `You match a recipe ingredient to the correct real grocery product from a list.
 
-RULE 1 — CORRECTNESS first: the product MUST be the same food as the ingredient. A different food is NEVER acceptable, however fresh or cheap. Reject these: onions/green onions for "garlic"; any cheese for "ghee"; broth for "butter"; chips for "potato"; juice for "lemon". A product only counts if it genuinely IS the ingredient.
-RULE 2 — among genuine matches only, prefer fresh/whole over jarred, canned, powdered, frozen, or prepared (unless the ingredient asks for those, e.g. "minced garlic", "garlic powder", "frozen peas").
-RULE 3 — if none of the products are actually the ingredient, use -1. This is correct and expected; never force a wrong match.
+RULE 1 — CORRECTNESS first: the product MUST be the same food as the ingredient. A DIFFERENT food is NEVER acceptable, however fresh or cheap. Reject these: onions for "garlic"; any cheese for "ghee"; soda/lemonade for "lemon"; pickles for "dill"; a seasoning blend for "cumin". A product only counts if it genuinely IS the ingredient.
+RULE 2 — a frozen, farmed, previously-frozen, jarred, canned, or store-brand version of the SAME food is still a VALID match — do not reject it just because it isn't "fresh". Among valid matches, only mildly prefer fresh/whole. (e.g. for "fresh salmon fillet", a farmed or previously-frozen salmon fillet absolutely counts.)
+RULE 3 — use -1 ONLY when none of the products are actually the same food. If a real version of the ingredient exists in any form, pick it — never return -1 just because the ideal form is missing.
 
 OUTPUT: a single raw JSON object, nothing else — no prose, no code fences. Map each ingredient number to the chosen index or -1. Example: {"0":2,"1":-1,"2":0}`
       const usr = `Return the JSON object only.\n\n${lines}`
