@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { krogerApi } from '../lib/kroger.js'
 import { cleanIngredient } from '../lib/ingredients.js'
 import { streamClaude } from '../lib/claude.js'
@@ -9,6 +9,7 @@ import { logError } from '../lib/sentry.js'
 
 export default function ShopTab({ shop, notify, session, preferredStore, setTab }) {
   const [productPrefs, setProductPrefs] = useState({}) // ingredient_key -> { chosen_upc, chosen_brand, chosen_name }
+  const lastAiRaw = useRef('') // last raw AI matcher response, for the debug report
   const [store, setStore] = useState(preferredStore || 'kroger')
   const [method, setMethod] = useState('pickup')
   const [checked, setChk] = useState({})
@@ -265,18 +266,23 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
       }).join('\n\n')
       const sys = `You match a recipe ingredient to the correct real grocery product from a list.
 
-RULE 1 — CORRECTNESS first: the product MUST be the same food as the ingredient. A DIFFERENT food is NEVER acceptable, however fresh or cheap. Reject these: onions for "garlic"; any cheese for "ghee"; soda/lemonade for "lemon"; pickles for "dill"; a seasoning blend for "cumin". A product only counts if it genuinely IS the ingredient.
-RULE 2 — a frozen, farmed, previously-frozen, jarred, canned, or store-brand version of the SAME food is still a VALID match — do not reject it just because it isn't "fresh". Among valid matches, only mildly prefer fresh/whole. (e.g. for "fresh salmon fillet", a farmed or previously-frozen salmon fillet absolutely counts.)
-RULE 3 — use -1 ONLY when none of the products are actually the same food. If a real version of the ingredient exists in any form, pick it — never return -1 just because the ideal form is missing.
+RULE 1 — CORRECTNESS first: the product MUST be the same food as the ingredient. A DIFFERENT food is NEVER acceptable, however fresh or cheap. Reject: onions for "garlic"; cheese for "ghee"; soda for "lemon"; pickles for "dill"; chips or sour cream for "yogurt".
+RULE 2 — the specific CUT / TYPE / ANIMAL matters. Chicken THIGHS are NOT chicken breasts. GROUND LAMB is NOT ground beef. GREEK yogurt is NOT sour cream. CURRY POWDER is NOT garam masala. If the exact cut/type isn't present, return -1 (a substitute is handled elsewhere).
+RULE 3 — form is flexible: a frozen, farmed, previously-frozen, jarred, canned, or store-brand version of the SAME food/cut is a VALID match. Don't reject just for not being "fresh". Among valid matches, mildly prefer fresh/whole.
+RULE 4 — use -1 when no product is genuinely the same food AND cut. Never force a wrong match; -1 is correct and expected.
 
-OUTPUT: a single raw JSON object, nothing else — no prose, no code fences. Map each ingredient number to the chosen index or -1. Example: {"0":2,"1":-1,"2":0}`
-      const usr = `Return the JSON object only.\n\n${lines}`
+OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no explanation. Map each ingredient number to the chosen index or -1. Example: {"0":2,"1":-1,"2":0}`
+      const usr = `Return ONLY the JSON object.\n\n${lines}`
       let full = ''
-      await streamClaude(sys, usr, c => { full += c })
-      // Robust parse: extract the JSON object even if the model added stray text
+      // Sonnet for the match decision — accuracy matters and it's one call per list
+      await streamClaude(sys, usr, c => { full += c }, 'sonnet')
+      lastAiRaw.current = full
+      // Bulletproof parse: try direct, then code-fence strip, then JSON extraction
+      let picks
+      const tryParse = s => { try { return JSON.parse(s) } catch { return null } }
       const cleaned = full.replace(/```json/gi, '').replace(/```/g, '').trim()
-      const objMatch = cleaned.match(/\{[\s\S]*\}/)
-      const picks = JSON.parse(objMatch ? objMatch[0] : cleaned)
+      picks = tryParse(cleaned) || tryParse((cleaned.match(/\{[\s\S]*\}/) || [])[0] || '')
+      if (!picks) throw new Error('AI match response did not parse: ' + full.slice(0, 200))
       const noMatchIndices = []
       entries.forEach(([i], n) => {
         const choice = picks[n]
@@ -314,7 +320,7 @@ OUTPUT: a single raw JSON object, nothing else — no prose, no code fences. Map
       const opts = m.options.map(o => `${o.name}${o.brand ? ` [${o.brand}]` : ''}`).join(' | ')
       return `• "${item.item}" → searched "${m.term || cleanIngredient(item.item)}" → picked: ${picked}\n    options: ${opts}`
     }).join('\n')
-    const report = `NUTRIQ MATCH REPORT\nstore: ${krogerStore?.name || 'default'}\n\n${lines}`
+    const report = `NUTRIQ MATCH REPORT\nstore: ${krogerStore?.name || 'default'}\n\n${lines}\n\n--- AI matcher raw output ---\n${lastAiRaw.current || '(none)'}`
     try { await navigator.clipboard.writeText(report); notify('Match report copied — paste it to Claude') }
     catch { notify('Copy failed', 'err') }
   }

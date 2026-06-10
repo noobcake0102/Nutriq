@@ -41,10 +41,13 @@ const STAPLE_DEFAULTS = {
 const INGREDIENT_ENRICHMENT = {
   poultry: {
     terms: ["chicken breast","chicken thigh","chicken leg","chicken wing","ground chicken","whole chicken","chicken"],
-    // "boneless skinless" separates raw cuts from deli meat — but only add it for
-    // breast/thigh, and only if Claude didn't already write it (avoid doubling).
-    transform: q => /breast|thigh/.test(q) && !q.includes("ground") && !q.includes("boneless")
-      ? `boneless skinless ${q}` : q,
+    // Kroger returns breasts for "boneless skinless chicken thighs" (it ignores
+    // "thighs"), so for thighs search the short term that actually surfaces them.
+    transform: q => {
+      if (q.includes("thigh")) return "chicken thighs";
+      if (q.includes("breast") && !q.includes("ground") && !q.includes("boneless")) return `boneless skinless ${q}`;
+      return q;
+    },
   },
   meat: {
     terms: ["ground beef","ground turkey","beef","steak","pork chop","pork loin",
@@ -90,7 +93,12 @@ const INGREDIENT_ENRICHMENT = {
     terms: ["milk","cream","butter","cheese","yogurt","sour cream",
             "cream cheese","cottage cheese","ricotta","mozzarella","cheddar",
             "parmesan","feta","goat cheese","heavy cream","half and half"],
-    transform: q => q,
+    // "plain greek yogurt" returns sour cream/dips on Kroger; the short term
+    // surfaces actual yogurt. Keep the greek qualifier, drop "plain".
+    transform: q => {
+      if (q.includes("yogurt")) return q.includes("greek") ? "greek yogurt" : "yogurt";
+      return q;
+    },
   },
   eggs: { fresh: false, terms: ["egg","eggs"], transform: () => "large eggs" },
 };
