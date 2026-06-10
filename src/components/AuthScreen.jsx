@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { supa } from '../lib/supabase.js'
 import BloomLogo from './BloomLogo.jsx'
 
-export default function AuthScreen() {
-  const [mode, setMode] = useState('login')
+export default function AuthScreen({ initialMode = 'login', onBack }) {
+  const [mode, setMode] = useState(initialMode)
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
   const [loading, setLoading] = useState(false)
@@ -33,6 +33,7 @@ export default function AuthScreen() {
         <div className="ob-field"><label className="ob-label">Password</label><input className="ob-input" type="password" placeholder="••••••••" value={pass} onChange={e => setPass(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} /></div>
         <button className="ob-next" onClick={submit} disabled={loading || !email || !pass}>{loading ? <span className="spin" /> : mode === 'login' ? 'Sign in' : 'Create account'}</button>
         <div className="auth-switch">{mode === 'login' ? "Don't have an account? " : 'Already have an account? '}<span onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setErr('') }}>{mode === 'login' ? 'Sign up' : 'Sign in'}</span></div>
+        {onBack && <div style={{ textAlign: 'center', marginTop: 14 }}><span onClick={onBack} style={{ fontSize: 13, color: 'var(--muted2)', cursor: 'pointer' }}>← Back to home</span></div>}
       </div>
     </div>
   )

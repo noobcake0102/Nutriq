@@ -8,6 +8,8 @@ import { requestNotificationPermission, syncExpiryReminders, scheduleWeeklyPlanR
 import { setUserContext } from './lib/sentry.js'
 import BloomLogo from './components/BloomLogo.jsx'
 import AuthScreen from './components/AuthScreen.jsx'
+import Landing from './components/Landing.jsx'
+import WelcomeTour from './components/WelcomeTour.jsx'
 import Onboarding from './components/Onboarding.jsx'
 import AccountModals from './components/AccountModals.jsx'
 import PaywallModal from './components/PaywallModal.jsx'
@@ -38,6 +40,9 @@ export default function App() {
   const [isPaid, setIsPaid] = useState(false)
   const [generationsUsed, setGenerationsUsed] = useState(0)
   const [showPaywall, setShowPaywall] = useState(false)
+  const [showAuth, setShowAuth] = useState(false)
+  const [authMode, setAuthMode] = useState('signup')
+  const [showTour, setShowTour] = useState(false)
 
   useEffect(() => {
     supa.auth.getSession().then(({ data: { session } }) => {
@@ -54,6 +59,10 @@ export default function App() {
 
   useEffect(() => { setUserName(profile?.name || session?.user?.email?.split('@')[0] || '') }, [profile, session])
   useEffect(() => { setUserContext(session?.user || null) }, [session])
+  // First-run tutorial: show once to any onboarded user who hasn't seen it
+  useEffect(() => {
+    if (session && !needsOnboard && profile && !DB.get('nq_seen_tour', false)) setShowTour(true)
+  }, [session, needsOnboard, profile])
 
   // Init RevenueCat + check entitlement on login
   useEffect(() => {
@@ -164,8 +173,10 @@ export default function App() {
     </div>
   )
 
-  if (!session) return <AuthScreen />
-  if (needsOnboard) return <Onboarding user={session.user} onComplete={g => { setGoals(g); setNeedsOnboard(false) }} />
+  if (!session) return showAuth
+    ? <AuthScreen initialMode={authMode} onBack={() => setShowAuth(false)} />
+    : <Landing onGetStarted={() => { setAuthMode('signup'); setShowAuth(true) }} onSignIn={() => { setAuthMode('login'); setShowAuth(true) }} />
+  if (needsOnboard) return <Onboarding user={session.user} onComplete={g => { setGoals(g); setNeedsOnboard(false); setShowTour(true) }} />
 
   return (
     <div>
@@ -218,6 +229,7 @@ export default function App() {
 
       <AccountModals acctModal={acctModal} setAcctModal={setAcctModal} session={session} userName={userName} setUserName={setUserName} notify={notify} />
       {showPaywall && <PaywallModal generationsUsed={generationsUsed} onClose={() => setShowPaywall(false)} onSuccess={() => { setIsPaid(true); notify('Welcome to Nutriq Premium! 🎉') }} />}
+      {showTour && <WelcomeTour onClose={() => { setShowTour(false); DB.set('nq_seen_tour', true) }} />}
 
       {tab === 'home'   && <HomeTab    pantry={pantry} goals={goals} weights={weights} meal={meal} macros={macros} setTab={setTab} userName={userName} notify={notify} />}
       {tab === 'scan'   && <ScannerTab pantry={pantry} setPantry={setPantry} savePantryItem={savePantryItem} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify} setTab={setTab} />}

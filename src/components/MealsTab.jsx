@@ -313,6 +313,16 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
     setSavingCustom(false)
   }
 
+  // Build a shopping list from just this recipe and jump to Shop (the
+  // recipe → shop step users couldn't find before)
+  const shopForRecipe = () => {
+    const ings = (activeRecipe?.ingredients || []).map(i => typeof i === 'string' ? i : i?.name).filter(Boolean)
+    if (ings.length === 0) { notify('No ingredients to shop for', 'err'); return }
+    buildShoppingList([{ ingredients: ings }])
+    notify('Added to your shopping list')
+    setTab('shop')
+  }
+
   const previewRecipe = async () => {
     if (!activeRecipe) return
     setSharing(true)
@@ -381,6 +391,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
             </div>
           ))}
         </div>
+        <button className="btn-full" onClick={shopForRecipe} style={{ marginBottom: 10 }}>🛒 Shop for this recipe →</button>
         <button className="btn-sm" onClick={previewRecipe} disabled={sharing} style={{ width: '100%', textAlign: 'center', padding: 11, marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
           📄 View recipe card
         </button>
