@@ -13,11 +13,14 @@
   "dependencies": {
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
+    "@capacitor/filesystem": "^8.1.2",
     "@capacitor/ios": "^8.4.0",
     "@capacitor/local-notifications": "^8.2.0",
+    "@capacitor/share": "^8.0.1",
     "@revenuecat/purchases-capacitor": "^13.1.5",
     "@sentry/react": "^10.56.0",
     "@supabase/supabase-js": "^2.108.0",
+    "jspdf": "^4.2.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "zxing-wasm": "^3.1.0"

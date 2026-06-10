@@ -7,6 +7,8 @@ import Celebration from './Celebration.jsx'
 import GeneratingSequence from './GeneratingSequence.jsx'
 import EmptyState from './EmptyState.jsx'
 import { logError } from '../lib/sentry.js'
+import { buildRecipePdf } from '../lib/recipePdf.js'
+import { shareRecipePdf } from '../lib/share.js'
 
 export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop, setTab, notify, session, isPaid, generationsUsed, onShowPaywall, onGenerate }) {
   const [view, setView] = useState('plan')
@@ -25,6 +27,8 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
   const [savedRatings, setSavedRatings] = useState([])
   const [reuseSelected, setReuseSelected] = useState([]) // saved-meal ids reused this week
   const [celebrate, setCelebrate] = useState(false)
+  const [sharing, setSharing] = useState(false)
+  const [historyRating, setHistoryRating] = useState('all') // all | 5 | 4 | unrated
 
   const toggleCuisine = c => setCuisines(cs => cs.includes(c) ? cs.filter(x => x !== c) : [...cs, c])
   const toggleMealType = t => setMealPrefs(mp => { const n = { ...mp }; if (n[t]) delete n[t]; else n[t] = 1; return n })
@@ -250,15 +254,38 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
     } catch (e) { notify('Recipe failed — try again', 'err'); logError(e, { where: 'generateRecipe', meal: mealItem?.name }); setView('plan') }
   }
 
-  const rateFromRecipe = async rating => {
-    if (!activeRecipe || !session) return
+  // Reusable: rate any meal from anywhere (recipe view, plan card, history card)
+  const rateMeal = async (mealObj, rating) => {
+    if (!mealObj || !session) return
     const { data: prof } = await supa.from('profiles').select('household_id').eq('id', session.user.id).maybeSingle()
-    await supa.from('meal_ratings').delete().eq('user_id', session.user.id).eq('meal_name', activeRecipe.name).eq('meal_type', activeRecipe.meal_type || '')
-    await supa.from('meal_ratings').insert({ user_id: session.user.id, household_id: prof?.household_id, meal_name: activeRecipe.name, meal_type: activeRecipe.meal_type || '', rating, never_again: rating <= 2 })
-    if (activeRecipe.id) await supa.from('saved_meals').update({ rating }).eq('id', activeRecipe.id)
-    setActiveRecipe(r => ({ ...r, rating }))
-    notify(rating >= 4 ? 'Glad you loved it!' : 'Got it — noted for next time')
+    await supa.from('meal_ratings').delete().eq('user_id', session.user.id).eq('meal_name', mealObj.name).eq('meal_type', mealObj.meal_type || '')
+    await supa.from('meal_ratings').insert({ user_id: session.user.id, household_id: prof?.household_id, meal_name: mealObj.name, meal_type: mealObj.meal_type || '', rating, never_again: rating <= 2 })
+    if (mealObj.id) await supa.from('saved_meals').update({ rating }).eq('id', mealObj.id)
+    setSavedMeals(ms => ms.map(m => m.id === mealObj.id ? { ...m, rating } : m))
+    setThisWeek(tw => tw.map(m => m.id === mealObj.id ? { ...m, rating } : m))
+    notify(rating >= 4 ? 'Glad you loved it! 🌟' : 'Got it — noted for next time')
     loadRatings()
+  }
+
+  const rateFromRecipe = async rating => {
+    if (!activeRecipe) return
+    await rateMeal(activeRecipe, rating)
+    setActiveRecipe(r => ({ ...r, rating }))
+    // 4-5 star recipes get a branded, shareable PDF prepped in the background
+    if (rating >= 4 && activeRecipe.recipe) {
+      buildRecipePdf({ ...activeRecipe, ...activeRecipe.recipe }).catch(() => {})
+    }
+  }
+
+  const shareRecipe = async () => {
+    if (!activeRecipe) return
+    setSharing(true)
+    try {
+      const blob = await buildRecipePdf(activeRecipe)
+      const result = await shareRecipePdf(blob, activeRecipe.title || activeRecipe.name)
+      notify(result === 'downloaded' ? 'Recipe saved as PDF' : 'Recipe shared!')
+    } catch (e) { notify('Could not create the recipe PDF', 'err'); logError(e, { where: 'shareRecipe', meal: activeRecipe?.name }) }
+    setSharing(false)
   }
 
   const hasMealPrefs = Object.keys(mealPrefs).length > 0
@@ -273,7 +300,14 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
     )
     return (
       <div className="page">
-        <button className="btn-sm" style={{ marginBottom: 16 }} onClick={() => setView('plan')}>Back to plan</button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <button className="btn-sm" onClick={() => setView('plan')}>Back to plan</button>
+          <button className="btn-sm" onClick={shareRecipe} disabled={sharing} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {sharing ? <span className="spin" style={{ width: 12, height: 12, borderTopColor: 'var(--plum)', borderColor: 'var(--plum3)44' }} /> : <>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/></svg>
+              Share</>}
+          </button>
+        </div>
         <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 30, fontWeight: 600, color: 'var(--plum)', marginBottom: 4 }}>{activeRecipe.title || activeRecipe.name}</div>
         <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--muted)', marginBottom: 20, flexWrap: 'wrap' }}>
           {activeRecipe.servings && <span>Serves {activeRecipe.servings}</span>}
@@ -309,6 +343,13 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
               </button>
             ))}
           </div>
+          {activeRecipe.rating >= 4 && (
+            <div style={{ marginTop: 14, padding: 14, background: 'var(--plumLL)', border: '1px solid var(--plum3)22', borderRadius: 12, textAlign: 'center' }}>
+              <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 17, color: 'var(--plum)', marginBottom: 6 }}>A keeper! 🌟</div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>We've made a beautiful recipe card. Send it to a friend.</div>
+              <button className="btn-full" onClick={shareRecipe} disabled={sharing}>{sharing ? 'Preparing…' : 'Share this recipe'}</button>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -359,12 +400,22 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
 
   if (view === 'history') {
     const types = ['all', ...new Set(savedMeals.map(m => m.meal_type).filter(Boolean))]
-    const filtered = savedMeals.filter(m => historyFilter === 'all' || m.meal_type === historyFilter)
+    const ratingMatch = m => historyRating === 'all' ? true : historyRating === 'unrated' ? !m.rating : m.rating >= +historyRating
+    const filtered = savedMeals
+      .filter(m => historyFilter === 'all' || m.meal_type === historyFilter)
+      .filter(ratingMatch)
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
     return (
       <div className="page">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 20 }} onClick={() => setView('plan')}>←</button>
           <div><div className="page-label">Library</div><h1 className="page-title" style={{ marginBottom: 0 }}>Meal history</h1></div>
+        </div>
+        {/* Score filter */}
+        <div className="chips" style={{ marginBottom: 8 }}>
+          {[['all', 'All'], ['5', '★★★★★'], ['4', '4★ & up'], ['unrated', 'Unrated']].map(([v, l]) => (
+            <button key={v} className={`chip${historyRating === v ? ' on' : ''}`} onClick={() => setHistoryRating(v)}>{l}</button>
+          ))}
         </div>
         <div className="chips" style={{ marginBottom: 16 }}>
           {types.map(t => <button key={t} className={`chip${historyFilter === t ? ' on' : ''}`} onClick={() => setHistoryFilter(t)}>{t === 'all' ? 'All' : t.replace(/_/g, ' ')}</button>)}
@@ -505,6 +556,14 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
           <div style={{ fontSize: 13, color: 'var(--muted)' }}>{thisWeek.length} meal{thisWeek.length !== 1 ? 's' : ''} planned</div>
           <button className="btn-sm" onClick={() => { buildShoppingList(thisWeek); setTab('shop') }}>Order ingredients</button>
         </div>
+        {thisWeek.filter(m => !m.rating).length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'var(--sageL)', border: '1px solid var(--sage)33', borderRadius: 12, marginBottom: 12 }}>
+            <span style={{ fontSize: 18 }}>🍽️</span>
+            <div style={{ fontSize: 12, color: 'var(--sage)', lineHeight: 1.4 }}>
+              <strong>Made one already?</strong> Tap the stars to rate it — Nutriq learns your taste and only suggests meals you'll love.
+            </div>
+          </div>
+        )}
         {thisWeek.map(m => (
           <div key={m.id} className="plan-meal-card" style={{ cursor: 'pointer' }} onClick={() => generateRecipe(m)}>
             <div className="plan-meal-icon">{(m.meal_type || 'meal').replace(/_/g, ' ').split(' ').map(w => w[0] || '').join('').toUpperCase()}</div>
@@ -512,6 +571,12 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
               <div style={{ fontSize: 10, color: 'var(--rose)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>{(m.meal_type || '').replace(/_/g, ' ')}</div>
               <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 17, fontWeight: 500, color: 'var(--text)' }}>{m.name}</div>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{m.calories} cal · P {m.protein}g · C {m.carbs}g</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 6 }} onClick={e => e.stopPropagation()}>
+                {[1, 2, 3, 4, 5].map(r => (
+                  <button key={r} onClick={() => rateMeal(m, r)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 16, lineHeight: 1, color: (m.rating || 0) >= r ? 'var(--gold)' : 'var(--border2)' }}>★</button>
+                ))}
+                {!m.rating && <span style={{ fontSize: 10, color: 'var(--muted2)', marginLeft: 4 }}>rate it</span>}
+              </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end', flexShrink: 0 }}>
               <span style={{ fontSize: 11, color: 'var(--plum3)' }}>Recipe →</span>
