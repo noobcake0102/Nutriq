@@ -29,6 +29,8 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
   const [celebrate, setCelebrate] = useState(false)
   const [sharing, setSharing] = useState(false)
   const [historyRating, setHistoryRating] = useState('all') // all | 5 | 4 | unrated
+  const [cookForm, setCookForm] = useState({ name: '', meal_type: 'dinner', servings: '', ingredients: '', steps: '', calories: '', protein: '', carbs: '', fat: '' })
+  const [savingCustom, setSavingCustom] = useState(false)
 
   const toggleCuisine = c => setCuisines(cs => cs.includes(c) ? cs.filter(x => x !== c) : [...cs, c])
   const toggleMealType = t => setMealPrefs(mp => { const n = { ...mp }; if (n[t]) delete n[t]; else n[t] = 1; return n })
@@ -277,6 +279,52 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
     }
   }
 
+  // Save a user's own recipe into the cookbook (flows into reuse + shopping)
+  const saveCustomRecipe = async () => {
+    if (!session || !cookForm.name.trim()) { notify('Give your recipe a name', 'err'); return }
+    setSavingCustom(true)
+    try {
+      const { data: prof } = await supa.from('profiles').select('household_id').eq('id', session.user.id).maybeSingle()
+      const ingLines = cookForm.ingredients.split('\n').map(s => s.trim()).filter(Boolean)
+      const stepLines = cookForm.steps.split('\n').map(s => s.trim()).filter(Boolean)
+      const recipe = {
+        title: cookForm.name.trim(),
+        servings: +cookForm.servings || goals.householdSize || 4,
+        ingredients: ingLines.map(l => ({ amount: '', name: l })),
+        steps: stepLines,
+      }
+      const row = {
+        user_id: session.user.id, household_id: prof?.household_id,
+        name: cookForm.name.trim(), meal_type: cookForm.meal_type,
+        description: '', calories: +cookForm.calories || 0, protein: +cookForm.protein || 0,
+        carbs: +cookForm.carbs || 0, fat: +cookForm.fat || 0,
+        ingredients: ingLines, recipe, source: 'custom', this_week: false,
+      }
+      const { data, error } = await supa.from('saved_meals').insert(row).select().single()
+      if (error) throw error
+      setSavedMeals(ms => [data, ...ms])
+      notify('Added to your cookbook!')
+      setCookForm({ name: '', meal_type: 'dinner', servings: '', ingredients: '', steps: '', calories: '', protein: '', carbs: '', fat: '' })
+      setView('history')
+    } catch (e) {
+      notify('Could not save — did you run the recipe-source migration?', 'err')
+      logError(e, { where: 'saveCustomRecipe' })
+    }
+    setSavingCustom(false)
+  }
+
+  const previewRecipe = async () => {
+    if (!activeRecipe) return
+    setSharing(true)
+    try {
+      const blob = await buildRecipePdf(activeRecipe)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch (e) { notify('Could not open the recipe card', 'err'); logError(e, { where: 'previewRecipe' }) }
+    setSharing(false)
+  }
+
   const shareRecipe = async () => {
     if (!activeRecipe) return
     setSharing(true)
@@ -333,6 +381,9 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
             </div>
           ))}
         </div>
+        <button className="btn-sm" onClick={previewRecipe} disabled={sharing} style={{ width: '100%', textAlign: 'center', padding: 11, marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          📄 View recipe card
+        </button>
         <div className="card">
           <div className="card-title">How was it?</div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -398,6 +449,46 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
     return <GeneratingSequence />
   }
 
+  if (view === 'createRecipe') {
+    const cf = (k, v) => setCookForm(f => ({ ...f, [k]: v }))
+    return (
+      <div className="page">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+          <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 20 }} onClick={() => setView('history')}>←</button>
+          <div><div className="page-label">Your cookbook</div><h1 className="page-title" style={{ marginBottom: 0 }}>Add your own recipe</h1></div>
+        </div>
+        <div className="card">
+          <div><label className="input-label">Recipe name *</label><input value={cookForm.name} onChange={e => cf('name', e.target.value)} placeholder="e.g. Grandma's Chili" /></div>
+          <div className="form-row" style={{ marginTop: 10 }}>
+            <div><label className="input-label">Meal type</label>
+              <select value={cookForm.meal_type} onChange={e => cf('meal_type', e.target.value)}>
+                {Object.values(MEAL_TYPE_LABELS).filter((v, i, a) => a.indexOf(v) === i).map(k => <option key={k} value={k}>{k.replace(/_/g, ' ')}</option>)}
+              </select>
+            </div>
+            <div><label className="input-label">Servings</label><input type="number" value={cookForm.servings} onChange={e => cf('servings', e.target.value)} placeholder={String(goals.householdSize || 4)} /></div>
+          </div>
+          <div style={{ marginTop: 10 }}><label className="input-label">Ingredients (one per line)</label>
+            <textarea value={cookForm.ingredients} onChange={e => cf('ingredients', e.target.value)} rows={6} placeholder={'2 cups white rice\n1 lb ground beef\n1 yellow onion'} style={{ resize: 'vertical', minHeight: 110 }} />
+          </div>
+          <div style={{ marginTop: 10 }}><label className="input-label">Steps (one per line)</label>
+            <textarea value={cookForm.steps} onChange={e => cf('steps', e.target.value)} rows={6} placeholder={'Brown the beef\nAdd onion and cook 5 min\nStir in rice and simmer'} style={{ resize: 'vertical', minHeight: 110 }} />
+          </div>
+          <div style={{ marginTop: 10 }}><label className="input-label">Nutrition per serving (optional)</label>
+            <div className="form-row">
+              <input type="number" value={cookForm.calories} onChange={e => cf('calories', e.target.value)} placeholder="Calories" />
+              <input type="number" value={cookForm.protein} onChange={e => cf('protein', e.target.value)} placeholder="Protein g" />
+            </div>
+            <div className="form-row" style={{ marginTop: 8 }}>
+              <input type="number" value={cookForm.carbs} onChange={e => cf('carbs', e.target.value)} placeholder="Carbs g" />
+              <input type="number" value={cookForm.fat} onChange={e => cf('fat', e.target.value)} placeholder="Fat g" />
+            </div>
+          </div>
+          <button className="btn-full" style={{ marginTop: 16 }} onClick={saveCustomRecipe} disabled={savingCustom}>{savingCustom ? 'Saving…' : 'Save to my cookbook'}</button>
+        </div>
+      </div>
+    )
+  }
+
   if (view === 'history') {
     const types = ['all', ...new Set(savedMeals.map(m => m.meal_type).filter(Boolean))]
     const ratingMatch = m => historyRating === 'all' ? true : historyRating === 'unrated' ? !m.rating : m.rating >= +historyRating
@@ -407,9 +498,10 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
       .sort((a, b) => (b.rating || 0) - (a.rating || 0))
     return (
       <div className="page">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 20 }} onClick={() => setView('plan')}>←</button>
-          <div><div className="page-label">Library</div><h1 className="page-title" style={{ marginBottom: 0 }}>Meal history</h1></div>
+          <div style={{ flex: 1 }}><div className="page-label">Library</div><h1 className="page-title" style={{ marginBottom: 0 }}>My Cookbook</h1></div>
+          <button className="btn-sm" onClick={() => setView('createRecipe')}>+ Add your own</button>
         </div>
         {/* Score filter */}
         <div className="chips" style={{ marginBottom: 8 }}>
@@ -425,7 +517,11 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
         ) : filtered.map(m => (
           <div key={m.id} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, marginBottom: 8, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 10, color: 'var(--rose)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>{(m.meal_type || '').replace(/_/g, ' ')}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                <div style={{ fontSize: 10, color: 'var(--rose)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1 }}>{(m.meal_type || '').replace(/_/g, ' ')}</div>
+                {m.source === 'custom' && <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--plum2)', background: 'var(--plumL)', borderRadius: 5, padding: '1px 6px' }}>YOURS</span>}
+                {m.source === 'import' && <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--sage)', background: 'var(--sageL)', borderRadius: 5, padding: '1px 6px' }}>IMPORTED</span>}
+              </div>
               <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 17, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>{m.name}</div>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>{m.calories} cal · P {m.protein}g · C {m.carbs}g · F {m.fat}g</div>
               {m.times_made > 0 && <div style={{ fontSize: 11, color: 'var(--muted2)' }}>Made {m.times_made}x{m.last_made ? ` · last ${m.last_made}` : ''}</div>}
@@ -599,7 +695,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
         )}
       </div>
       {thisWeek.length > 0 && <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--muted2)', marginTop: -8, marginBottom: 14 }}>Planning fresh clears this week (meals stay in your library)</p>}
-      <button className="btn-sm" style={{ width: '100%', textAlign: 'center', padding: 12 }} onClick={() => setView('history')}>Browse meal history ({savedMeals.length} saved)</button>
+      <button className="btn-sm" style={{ width: '100%', textAlign: 'center', padding: 12 }} onClick={() => setView('history')}>📖 My Cookbook ({savedMeals.length})</button>
     </div>
   )
 }
