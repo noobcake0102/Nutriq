@@ -22,6 +22,7 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
   const [matchedProducts, setMatchedProducts] = useState({})
   const [matching, setMatching] = useState(false)
   const [refining, setRefining] = useState(false)
+  const [substituting, setSubstituting] = useState(false)
   const [matchProgress, setMatchProgress] = useState({ done: 0, total: 0 })
   const [placingOrder, setPlacingOrder] = useState(false)
   const [stores, setStores] = useState([])
@@ -209,7 +210,43 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
     }
     if (Object.keys(allResults).length === 0) { notify('No product matches found — try re-matching', 'err'); return }
     // Let Claude pick the best real product per ingredient (fresh > deli, etc.)
-    refineMatchesWithAI(allResults)
+    const noMatchIdx = (await refineMatchesWithAI(allResults)) || []
+    // Items Kroger returned nothing for at all
+    const missingIdx = shop.map((_, i) => i).filter(i => !allResults[i])
+    const toSubstitute = [...new Set([...noMatchIdx, ...missingIdx])]
+    if (toSubstitute.length > 0) suggestSubstitutes(toSubstitute, token)
+  }
+
+  // For items with no real grocery match (specialty ingredients like ghee),
+  // ask Claude for a common substitute that stores actually carry, then search
+  // and match THAT so the item still makes it onto the list.
+  const suggestSubstitutes = async (indices, token) => {
+    setSubstituting(true)
+    try {
+      const list = indices.map((i, n) => `${n}: "${shop[i].item}"`).join('\n')
+      const sys = `Some ingredients had no grocery-store match, usually because they're specialty items. For each, give the single best everyday substitute that ANY standard US supermarket reliably stocks, as a plain grocery product name. Examples: ghee -> "unsalted butter"; gochujang -> "sriracha"; mascarpone -> "cream cheese"; shallot -> "yellow onion"; buttermilk -> "plain yogurt"; crème fraîche -> "sour cream". OUTPUT raw JSON only, mapping each number to a substitute string: {"0":"unsalted butter","1":"sriracha"}`
+      const usr = `Return the JSON object only.\n${list}`
+      let full = ''
+      await streamClaude(sys, usr, c => { full += c })
+      const objMatch = full.replace(/```json/gi, '').replace(/```/g, '').trim().match(/\{[\s\S]*\}/)
+      const subs = JSON.parse(objMatch ? objMatch[0] : '{}')
+      // Search Kroger for each substitute and attach the top result
+      await Promise.all(indices.map(async (i, n) => {
+        const subName = subs[n]
+        if (!subName) return
+        try {
+          const data = await krogerApi('search_products', { access_token: token, query: subName, location_id: krogerStore?.id })
+          if (data.products?.length > 0) {
+            const options = data.products.slice(0, 8)
+            setMatchedProducts(prev => ({ ...prev, [i]: { options, selected: 0, key: cleanIngredient(subName), substitute: subName, noMatch: false } }))
+          } else {
+            // Substitute also not found — at least surface the suggestion as text
+            setMatchedProducts(prev => ({ ...prev, [i]: { ...(prev[i] || {}), noMatch: true, substitute: subName } }))
+          }
+        } catch (e) { logError(e, { where: 'substituteSearch', item: shop[i]?.item }) }
+      }))
+    } catch (e) { logError(e, { where: 'suggestSubstitutes', count: indices.length }) }
+    setSubstituting(false)
   }
 
   // Send the real Kroger candidates back to Claude. Correctness FIRST: the
@@ -240,6 +277,12 @@ OUTPUT: a single raw JSON object, nothing else — no prose, no code fences. Map
       const cleaned = full.replace(/```json/gi, '').replace(/```/g, '').trim()
       const objMatch = cleaned.match(/\{[\s\S]*\}/)
       const picks = JSON.parse(objMatch ? objMatch[0] : cleaned)
+      const noMatchIndices = []
+      entries.forEach(([i], n) => {
+        const choice = picks[n]
+        const valid = typeof choice === 'number' && choice >= 0 && choice < (results[i]?.options.length || 0)
+        if (!valid) noMatchIndices.push(Number(i))
+      })
       setMatchedProducts(prev => {
         const next = { ...prev }
         entries.forEach(([i], n) => {
@@ -254,8 +297,11 @@ OUTPUT: a single raw JSON object, nothing else — no prose, no code fences. Map
         })
         return next
       })
+      setRefining(false)
+      return noMatchIndices
     } catch (e) { logError(e, { where: 'refineMatchesWithAI', items: entries.length }) }
     setRefining(false)
+    return []
   }
 
   // Debug helper: copies exactly what each ingredient searched and what came
@@ -403,6 +449,12 @@ OUTPUT: a single raw JSON object, nothing else — no prose, no code fences. Map
             AI is picking the best match for each item...
           </div>
         )}
+        {substituting && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'var(--plumLL)', borderRadius: 12, marginBottom: 12, fontSize: 13, color: 'var(--plum)' }}>
+            <span className="spin" style={{ borderTopColor: 'var(--plum)', borderColor: 'var(--plum3)44' }} />
+            Finding substitutes for specialty items...
+          </div>
+        )}
         {shop.map((item, i) => {
           const matched = matchedProducts[i]
           return (
@@ -422,7 +474,11 @@ OUTPUT: a single raw JSON object, nothing else — no prose, no code fences. Map
                       <span style={{ fontSize: 16, lineHeight: 1.2 }}>⚠️</span>
                       <div style={{ fontSize: 12 }}>
                         <div style={{ fontWeight: 600, color: 'var(--orange)' }}>No confident match for "{item.item}"</div>
-                        <div style={{ color: 'var(--muted)', marginTop: 1 }}>Searched Kroger for "{matched.term || item.item}". Pick one below if any fit — otherwise grab it in store.</div>
+                        <div style={{ color: 'var(--muted)', marginTop: 1 }}>
+                          {matched.substitute
+                            ? <>We'd suggest <strong>{matched.substitute}</strong> as a substitute, but couldn't find it either — grab it in store.</>
+                            : <>Searched Kroger for "{matched.term || item.item}". Pick one below if any fit — otherwise grab it in store.</>}
+                        </div>
                       </div>
                     </div>
                   ) : (() => {
@@ -433,9 +489,11 @@ OUTPUT: a single raw JSON object, nothing else — no prose, no code fences. Map
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{prod.name}</div>
                           <div style={{ fontSize: 11, color: 'var(--muted)' }}>{prod.brand}{prod.size ? ` · ${prod.size}` : ''}</div>
-                          {productPrefs[matched.key]?.chosen_upc === prod.upc
-                            ? <div style={{ fontSize: 10, color: 'var(--sage)', fontWeight: 500, marginTop: 1 }}>★ Your usual</div>
-                            : matched.aiPicked && <div style={{ fontSize: 10, color: 'var(--plum3)', fontWeight: 500, marginTop: 1 }}>✦ AI matched</div>}
+                          {matched.substitute
+                            ? <div style={{ fontSize: 10, color: 'var(--orange)', fontWeight: 500, marginTop: 1 }}>↔ Substitute for {item.item}</div>
+                            : productPrefs[matched.key]?.chosen_upc === prod.upc
+                              ? <div style={{ fontSize: 10, color: 'var(--sage)', fontWeight: 500, marginTop: 1 }}>★ Your usual</div>
+                              : matched.aiPicked && <div style={{ fontSize: 10, color: 'var(--plum3)', fontWeight: 500, marginTop: 1 }}>✦ AI matched</div>}
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           {prod.promo_price ? (<><div style={{ fontSize: 13, fontWeight: 500, color: 'var(--sage)' }}>${prod.promo_price.toFixed(2)}</div><div style={{ fontSize: 11, color: 'var(--muted)', textDecoration: 'line-through' }}>${prod.price?.toFixed(2)}</div></>) : prod.price ? <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>${prod.price.toFixed(2)}</div> : null}
