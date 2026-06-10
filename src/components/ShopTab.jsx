@@ -272,7 +272,7 @@ RULE 3 — form is flexible: a frozen, farmed, previously-frozen, jarred, canned
 RULE 4 — HONOR modifiers in the ingredient name. "plain"/"unsweetened" → do NOT pick a flavored/sweetened version (e.g. for "plain greek yogurt", reject orange-creme or strawberry yogurt). "unsalted" → not salted. "low-sodium" → not regular. If only modified-wrong versions exist, return -1.
 RULE 5 — use -1 when no product is genuinely the same food, cut, AND modifier. Never force a wrong match; -1 is correct and expected.
 
-OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no explanation. Include a pick for EVERY ingredient number from 0 to ${entries.length - 1}. Map each to the chosen index or -1. Example: {"0":2,"1":-1,"2":0}`
+OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no explanation. For EVERY ingredient number from 0 to ${entries.length - 1}, return an ARRAY of the option indices that genuinely ARE that ingredient (same food, cut, and modifier), ranked best first — the first element is the top pick. Return an empty array [] if NONE of the options are correct. Exclude anything that isn't the actual food (e.g. for "fresh mint", exclude gum, toothpaste, and mouthwash). Example: {"0":[1,3],"1":[],"2":[0]}`
       const usr = `Return ONLY the JSON object.\n\n${lines}`
       let full = ''
       // Sonnet for the match decision — accuracy matters and it's one call per list
@@ -284,22 +284,27 @@ OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no ex
       const cleaned = full.replace(/```json/gi, '').replace(/```/g, '').trim()
       picks = tryParse(cleaned) || tryParse((cleaned.match(/\{[\s\S]*\}/) || [])[0] || '')
       if (!picks) throw new Error('AI match response did not parse: ' + full.slice(0, 200))
+      // Normalize a pick to an array of valid option indices (accepts the new
+      // array format and the legacy single-number/-1 format).
+      const toValid = (choice, len) => {
+        const arr = Array.isArray(choice) ? choice : (typeof choice === 'number' ? [choice] : [])
+        return arr.filter(x => Number.isInteger(x) && x >= 0 && x < len)
+      }
       const noMatchIndices = []
       entries.forEach(([i], n) => {
-        const choice = picks[n]
-        const valid = typeof choice === 'number' && choice >= 0 && choice < (results[i]?.options.length || 0)
-        if (!valid) noMatchIndices.push(Number(i))
+        const valid = toValid(picks[n], results[i]?.options.length || 0)
+        if (valid.length === 0) noMatchIndices.push(Number(i))
       })
       setMatchedProducts(prev => {
         const next = { ...prev }
         entries.forEach(([i], n) => {
-          const choice = picks[n]
           if (!next[i]) return
-          if (typeof choice === 'number' && choice >= 0 && choice < next[i].options.length) {
-            next[i] = { ...next[i], selected: choice, aiPicked: true, noMatch: false }
+          const valid = toValid(picks[n], next[i].options.length)
+          if (valid.length > 0) {
+            // selected = best pick; validIndices = only the real alternatives
+            next[i] = { ...next[i], selected: valid[0], validIndices: valid, aiPicked: true, noMatch: false }
           } else {
-            // -1 or invalid → Kroger gave us nothing that's actually this ingredient
-            next[i] = { ...next[i], noMatch: true }
+            next[i] = { ...next[i], noMatch: true, validIndices: [] }
           }
         })
         return next
@@ -509,23 +514,36 @@ OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no ex
                       </div>
                     ) : null
                   })()}
-                  {(matched.options.length > 1 || matched.noMatch) && (
-                    <>
-                      <div style={{ fontSize: 10, color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>{matched.noMatch ? 'Closest results · tap if one fits' : `Swap · ${matched.options.length} options`}</div>
-                      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
-                        {matched.options.map((opt, oi) => (
-                          <button key={oi} onClick={() => { setMatchedProducts(mp => ({ ...mp, [i]: { ...mp[i], selected: oi, noMatch: false } })); saveProductPick(matched.key, opt) }}
-                            style={{ flexShrink: 0, width: 96, background: !matched.noMatch && matched.selected === oi ? 'var(--plumL)' : 'var(--card)', border: `1px solid ${!matched.noMatch && matched.selected === oi ? 'var(--plum3)' : 'var(--border)'}`, borderRadius: 8, padding: 6, cursor: 'pointer', textAlign: 'center', fontFamily: "'DM Sans',system-ui,sans-serif" }}>
-                            {opt.image
-                              ? <img src={opt.image} alt={opt.name} style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 6, background: 'white', display: 'block', margin: '0 auto 4px' }} />
-                              : <div style={{ width: 44, height: 44, borderRadius: 6, background: 'var(--warm)', margin: '0 auto 4px' }} />}
-                            <div style={{ fontSize: 10, fontWeight: 500, color: !matched.noMatch && matched.selected === oi ? 'var(--plum2)' : 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{opt.brand || opt.name.split(' ').slice(0, 2).join(' ')}</div>
-                            <div style={{ fontSize: 10, color: !matched.noMatch && matched.selected === oi ? 'var(--plum3)' : 'var(--muted)' }}>{opt.promo_price ? `$${opt.promo_price.toFixed(2)}` : opt.price ? `$${opt.price.toFixed(2)}` : '—'}</div>
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
+                  {(() => {
+                    // Only show real alternatives the AI deemed the same food. For
+                    // no-match items we show all (closest results); for AI matches
+                    // we show only the valid set, so no Mentos/Listerine for mint.
+                    const swapIdx = (matched.validIndices && matched.validIndices.length > 0)
+                      ? matched.validIndices
+                      : matched.options.map((_, oi) => oi)
+                    if (!(swapIdx.length > 1 || matched.noMatch)) return null
+                    return (
+                      <>
+                        <div style={{ fontSize: 10, color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>{matched.noMatch ? 'Closest results · tap if one fits' : `Swap · ${swapIdx.length} option${swapIdx.length !== 1 ? 's' : ''}`}</div>
+                        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+                          {swapIdx.map(oi => {
+                            const opt = matched.options[oi]
+                            if (!opt) return null
+                            return (
+                              <button key={oi} onClick={() => { setMatchedProducts(mp => ({ ...mp, [i]: { ...mp[i], selected: oi, noMatch: false } })); saveProductPick(matched.key, opt) }}
+                                style={{ flexShrink: 0, width: 96, background: !matched.noMatch && matched.selected === oi ? 'var(--plumL)' : 'var(--card)', border: `1px solid ${!matched.noMatch && matched.selected === oi ? 'var(--plum3)' : 'var(--border)'}`, borderRadius: 8, padding: 6, cursor: 'pointer', textAlign: 'center', fontFamily: "'DM Sans',system-ui,sans-serif" }}>
+                                {opt.image
+                                  ? <img src={opt.image} alt={opt.name} style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 6, background: 'white', display: 'block', margin: '0 auto 4px' }} />
+                                  : <div style={{ width: 44, height: 44, borderRadius: 6, background: 'var(--warm)', margin: '0 auto 4px' }} />}
+                                <div style={{ fontSize: 10, fontWeight: 500, color: !matched.noMatch && matched.selected === oi ? 'var(--plum2)' : 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{opt.brand || opt.name.split(' ').slice(0, 2).join(' ')}</div>
+                                <div style={{ fontSize: 10, color: !matched.noMatch && matched.selected === oi ? 'var(--plum3)' : 'var(--muted)' }}>{opt.promo_price ? `$${opt.promo_price.toFixed(2)}` : opt.price ? `$${opt.price.toFixed(2)}` : '—'}</div>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </>
+                    )
+                  })()}
                 </div>
               )}
               {!matched && !matching && getSearchToken() && !checked[i] && (
