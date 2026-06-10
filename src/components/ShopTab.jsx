@@ -269,9 +269,10 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
 RULE 1 — CORRECTNESS first: the product MUST be the same food as the ingredient. A DIFFERENT food is NEVER acceptable, however fresh or cheap. Reject: onions for "garlic"; cheese for "ghee"; soda for "lemon"; pickles for "dill"; chips or sour cream for "yogurt".
 RULE 2 — the specific CUT / TYPE / ANIMAL matters. Chicken THIGHS are NOT chicken breasts. GROUND LAMB is NOT ground beef. GREEK yogurt is NOT sour cream. CURRY POWDER is NOT garam masala. If the exact cut/type isn't present, return -1 (a substitute is handled elsewhere).
 RULE 3 — form is flexible: a frozen, farmed, previously-frozen, jarred, canned, or store-brand version of the SAME food/cut is a VALID match. Don't reject just for not being "fresh". Among valid matches, mildly prefer fresh/whole.
-RULE 4 — use -1 when no product is genuinely the same food AND cut. Never force a wrong match; -1 is correct and expected.
+RULE 4 — HONOR modifiers in the ingredient name. "plain"/"unsweetened" → do NOT pick a flavored/sweetened version (e.g. for "plain greek yogurt", reject orange-creme or strawberry yogurt). "unsalted" → not salted. "low-sodium" → not regular. If only modified-wrong versions exist, return -1.
+RULE 5 — use -1 when no product is genuinely the same food, cut, AND modifier. Never force a wrong match; -1 is correct and expected.
 
-OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no explanation. Map each ingredient number to the chosen index or -1. Example: {"0":2,"1":-1,"2":0}`
+OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no explanation. Include a pick for EVERY ingredient number from 0 to ${entries.length - 1}. Map each to the chosen index or -1. Example: {"0":2,"1":-1,"2":0}`
       const usr = `Return ONLY the JSON object.\n\n${lines}`
       let full = ''
       // Sonnet for the match decision — accuracy matters and it's one call per list
