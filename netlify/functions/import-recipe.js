@@ -26,6 +26,16 @@ function flattenInstructions(ri) {
   return out.map(s => String(s).trim()).filter(Boolean);
 }
 
+// If a recipe's whole method came as one long block, split it into readable
+// numbered steps at sentence boundaries (won't split "350 degree" / "20-25 min").
+function splitSteps(steps) {
+  const clean = (steps || []).map(s => String(s).trim()).filter(Boolean)
+  if (clean.length > 1) return clean
+  const one = clean[0] || ''
+  const parts = one.split(/(?<=[.!?])\s+(?=[A-Z0-9])/).map(s => s.trim()).filter(Boolean)
+  return parts.length > 1 ? parts : clean
+}
+
 function findRecipeNode(json) {
   const nodes = [];
   const visit = n => {
@@ -50,9 +60,9 @@ function extractJsonLd(html) {
         const image = node.image?.url || (Array.isArray(node.image) ? node.image[0]?.url || node.image[0] : node.image) || null;
         return {
           name: node.name || '',
-          servings: node.recipeYield ? String(asArray(node.recipeYield)[0]).replace(/[^0-9]/g, '') || '' : '',
+          servings: node.recipeYield ? (String(asArray(node.recipeYield)[0]).match(/\d+/)?.[0] || '') : '',
           ingredients: asArray(node.recipeIngredient).map(s => String(s).trim()).filter(Boolean),
-          steps: flattenInstructions(node.recipeInstructions),
+          steps: splitSteps(flattenInstructions(node.recipeInstructions)),
           image: typeof image === 'string' ? image : null,
         };
       }
@@ -116,7 +126,7 @@ exports.handler = async function (event) {
     return {
       statusCode: 200,
       headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ recipe: { ...recipe, source_url: url }, via }),
+      body: JSON.stringify({ recipe: { ...recipe, steps: splitSteps(recipe.steps || []), source_url: url }, via }),
     };
   } catch (err) {
     return { statusCode: 200, headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ error: err.name === 'AbortError' ? 'That page took too long to load.' : err.message }) };
