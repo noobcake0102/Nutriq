@@ -1,5 +1,8 @@
-const KROGER_BASE = "https://api-ce.kroger.com/v1";
-const KROGER_AUTH_BASE = "https://api-ce.kroger.com/v1/connect/oauth2";
+// Production switch is config-only: set KROGER_ENV=production in Netlify (along
+// with the production client id/secret) to go live. Defaults to the CE sandbox.
+const KROGER_PROD = process.env.KROGER_ENV === "production";
+const KROGER_BASE = KROGER_PROD ? "https://api.kroger.com/v1" : "https://api-ce.kroger.com/v1";
+const KROGER_AUTH_BASE = `${KROGER_BASE}/connect/oauth2`;
 
 // ── Ambiguous staple defaults ──────────────────────────────────────────
 // When a recipe lists a bare generic name, fill in the most common grocery
@@ -156,7 +159,7 @@ exports.handler = async function (event) {
 
   const CLIENT_ID = process.env.KROGER_CLIENT_ID;
   const CLIENT_SECRET = process.env.KROGER_CLIENT_SECRET;
-  const REDIRECT_URI = "https://nutriqai.com/kroger-callback";
+  const REDIRECT_URI = process.env.KROGER_REDIRECT_URI || "https://nutriqai.com/kroger-callback";
 
   if (!CLIENT_ID || !CLIENT_SECRET) {
     return {
