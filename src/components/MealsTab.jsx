@@ -31,6 +31,9 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
   const [historyRating, setHistoryRating] = useState('all') // all | 5 | 4 | unrated
   const [cookForm, setCookForm] = useState({ name: '', meal_type: 'dinner', servings: '', ingredients: '', steps: '', calories: '', protein: '', carbs: '', fat: '' })
   const [savingCustom, setSavingCustom] = useState(false)
+  const [importUrl, setImportUrl] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importSource, setImportSource] = useState(null) // source URL when prefilled from a link
 
   const toggleCuisine = c => setCuisines(cs => cs.includes(c) ? cs.filter(x => x !== c) : [...cs, c])
   const toggleMealType = t => setMealPrefs(mp => { const n = { ...mp }; if (n[t]) delete n[t]; else n[t] = 1; return n })
@@ -279,6 +282,28 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
     }
   }
 
+  // Import a recipe from any URL — backend scrapes structured data or uses AI,
+  // then we prefill the cookbook form for the user to review and save.
+  const importFromLink = async () => {
+    const url = importUrl.trim()
+    if (!/^https?:\/\//i.test(url)) { notify('Paste a recipe link (https://…)', 'err'); return }
+    setImporting(true)
+    try {
+      const res = await fetch('/api/import-recipe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
+      const data = await res.json()
+      if (data.error) { notify(data.error, 'err'); setImporting(false); return }
+      const r = data.recipe
+      setCookForm({
+        name: r.name || '', meal_type: 'dinner', servings: r.servings || '',
+        ingredients: (r.ingredients || []).join('\n'), steps: (r.steps || []).join('\n'),
+        calories: '', protein: '', carbs: '', fat: '',
+      })
+      setImportSource(r.source_url || url)
+      notify('Recipe imported — review and save')
+    } catch (e) { notify('Could not import that link', 'err'); logError(e, { where: 'importFromLink' }) }
+    setImporting(false)
+  }
+
   // Save a user's own recipe into the cookbook (flows into reuse + shopping)
   const saveCustomRecipe = async () => {
     if (!session || !cookForm.name.trim()) { notify('Give your recipe a name', 'err'); return }
@@ -298,13 +323,14 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
         name: cookForm.name.trim(), meal_type: cookForm.meal_type,
         description: '', calories: +cookForm.calories || 0, protein: +cookForm.protein || 0,
         carbs: +cookForm.carbs || 0, fat: +cookForm.fat || 0,
-        ingredients: ingLines, recipe, source: 'custom', this_week: false,
+        ingredients: ingLines, recipe, source: importSource ? 'import' : 'custom', source_url: importSource || null, this_week: false,
       }
       const { data, error } = await supa.from('saved_meals').insert(row).select().single()
       if (error) throw error
       setSavedMeals(ms => [data, ...ms])
       notify('Added to your cookbook!')
       setCookForm({ name: '', meal_type: 'dinner', servings: '', ingredients: '', steps: '', calories: '', protein: '', carbs: '', fat: '' })
+      setImportSource(null); setImportUrl('')
       setView('history')
     } catch (e) {
       notify('Could not save — did you run the recipe-source migration?', 'err')
@@ -466,7 +492,19 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
       <div className="page">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 20 }} onClick={() => setView('history')}>←</button>
-          <div><div className="page-label">Your cookbook</div><h1 className="page-title" style={{ marginBottom: 0 }}>Add your own recipe</h1></div>
+          <div><div className="page-label">Your cookbook</div><h1 className="page-title" style={{ marginBottom: 0 }}>Add a recipe</h1></div>
+        </div>
+        {/* Import from a link */}
+        <div className="card" style={{ marginBottom: 12, background: 'var(--plumLL)', border: '1px solid var(--plum3)22' }}>
+          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--plum)', marginBottom: 8 }}>🔗 Import from a link</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>Paste a recipe URL from any site (or a Pinterest pin) and we'll fill it in for you.</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input value={importUrl} onChange={e => setImportUrl(e.target.value)} placeholder="https://…" onKeyDown={e => e.key === 'Enter' && importFromLink()} style={{ flex: 1 }} />
+            <button className="btn-sm" onClick={importFromLink} disabled={importing} style={{ padding: '0 16px', whiteSpace: 'nowrap' }}>
+              {importing ? <span className="spin" style={{ width: 12, height: 12, borderTopColor: 'var(--plum)', borderColor: 'var(--plum3)44' }} /> : 'Import'}
+            </button>
+          </div>
+          {importSource && <div style={{ fontSize: 11, color: 'var(--sage)', marginTop: 8 }}>✓ Imported — review below and save</div>}
         </div>
         <div className="card">
           <div><label className="input-label">Recipe name *</label><input value={cookForm.name} onChange={e => cf('name', e.target.value)} placeholder="e.g. Grandma's Chili" /></div>

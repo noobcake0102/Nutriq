@@ -19,6 +19,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/import-recipe"
+  to = "/.netlify/functions/import-recipe"
+  status = 200
+
+[[redirects]]
   from = "/kroger-callback"
   to = "/index.html"
   status = 200
