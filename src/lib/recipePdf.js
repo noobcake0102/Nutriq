@@ -98,7 +98,23 @@ export async function buildRecipePdf(recipe) {
     if (y > H - 70) { doc.addPage(); y = M }
   })
 
+  // ── Chef's tip ──
+  if (recipe.tip) {
+    if (y > H - 120) { doc.addPage(); y = M }
+    y += 6
+    const tipLines = doc.splitTextToSize(String(recipe.tip), W - M * 2 - 24)
+    const boxH = tipLines.length * 13 + 34
+    doc.setFillColor(243, 235, 253)
+    doc.roundedRect(M, y, W - M * 2, boxH, 8, 8, 'F')
+    doc.setFont('times', 'bold'); doc.setFontSize(11); doc.setTextColor(...PLUM2)
+    doc.text("Chef's tip", M + 14, y + 18)
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(...TEXT)
+    doc.text(tipLines, M + 14, y + 32)
+    y += boxH + 10
+  }
+
   // ── Footer ──
+  if (y > H - 60) { doc.addPage(); y = M }
   doc.setDrawColor(236, 229, 220); doc.setLineWidth(0.5)
   doc.line(M, H - 50, W - M, H - 50)
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...MUTED)

@@ -244,8 +244,18 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
   const generateRecipe = async mealItem => {
     if (mealItem.recipe) { setActiveRecipe({ ...mealItem, ...mealItem.recipe, loading: false }); setView('recipe'); return }
     setActiveRecipe({ ...mealItem, loading: true }); setView('recipe')
-    const sys = `You are a chef. Respond with ONLY raw JSON. No markdown. Structure: {"title":"...","servings":4,"prep_time":"15 min","cook_time":"30 min","ingredients":[{"amount":"1 cup","name":"white rice"}],"steps":["Step 1: ..."]}\nIngredient "name" must be grocery-specific (the exact phrase a shopper searches): specify variety/cut/type for anything generic — "unsalted butter" not "butter", "yellow onion" not "onion", "boneless skinless chicken breast" not "chicken", "whole milk" not "milk", "extra virgin olive oil" not "oil", "roma tomato" not "tomato". Put only the measurement in "amount".`
-    const usr = `Complete recipe for "${mealItem.name}" (${(mealItem.meal_type || '').replace(/_/g, ' ')}). Serves ${goals.householdSize}. Diet: ${goals.diet}. Known ingredients: ${(Array.isArray(mealItem.ingredients) ? mealItem.ingredients : []).join(', ') || 'standard'}.`
+    const servings = goals.householdSize || 4
+    const sys = `You are an award-winning chef writing a recipe a home cook can absolutely nail on the first try. Respond with ONLY raw JSON, no markdown. Structure: {"title":"...","servings":${servings},"prep_time":"15 min","cook_time":"30 min","ingredients":[{"amount":"1 lb","name":"boneless skinless chicken breast"}],"steps":["..."],"tip":"..."}
+
+Make it genuinely DELICIOUS and reliable — restaurant quality, home-cook simple:
+- Season properly and SAY SO: call out salt and black pepper amounts and exactly WHEN to add them. Build real flavor — sear proteins for deep color before simmering, sauté aromatics (onion/garlic) until soft, deglaze the pan, and finish with a brightener (a squeeze of lemon, a pat of butter, fresh herbs) where it fits the dish.
+- Give exact technique with sensory cues: temperatures in °F, real times, and how to KNOW it's done — e.g. "sear 4–5 min per side until deep golden", "cook to an internal temp of 165°F", "simmer 12–15 min until the sauce coats the back of a spoon", "sauté until the onions turn translucent". Never write a vague "cook until done".
+- 6–10 clear steps. Each step is one focused action, in order. Include resting/standing time for meats.
+- Scale every ingredient amount precisely to ${servings} servings.
+- "tip": ONE chef's secret that elevates THIS specific dish — a make-ahead note, the #1 mistake to avoid, or a finishing touch that makes people ask for the recipe.
+
+Ingredient "name" must be grocery-specific (the exact phrase a shopper searches): "unsalted butter" not "butter", "yellow onion" not "onion", "boneless skinless chicken breast" not "chicken", "extra virgin olive oil" not "oil", "kosher salt", "freshly ground black pepper". Put only the measurement in "amount".`
+    const usr = `Write the full recipe for "${mealItem.name}" (${(mealItem.meal_type || '').replace(/_/g, ' ')}), serving ${servings}. Diet: ${goals.diet}. ${goals.allergies?.length ? `Avoid (allergies): ${goals.allergies.join(', ')}. ` : ''}Work from these known ingredients where sensible: ${(Array.isArray(mealItem.ingredients) ? mealItem.ingredients : []).join(', ') || 'use your judgment'}. Make it a meal worth cooking again.`
     let full = ''
     try {
       await streamClaude(sys, usr, c => { full += c }, 'sonnet')
@@ -417,6 +427,17 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
             </div>
           ))}
         </div>
+        {activeRecipe.tip && (
+          <div className="card" style={{ marginBottom: 14, background: 'var(--plumLL)', border: '1px solid var(--plum3)22' }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <span style={{ fontSize: 20 }}>👨‍🍳</span>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--plum2)', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 3 }}>Chef's tip</div>
+                <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6 }}>{activeRecipe.tip}</div>
+              </div>
+            </div>
+          </div>
+        )}
         <button className="btn-full" onClick={shopForRecipe} style={{ marginBottom: 10 }}>🛒 Shop for this recipe →</button>
         <button className="btn-sm" onClick={previewRecipe} disabled={sharing} style={{ width: '100%', textAlign: 'center', padding: 11, marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
           📄 View recipe card
