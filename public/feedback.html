@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nutriq — Alpha Feedback</title>
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <meta name="theme-color" content="#4a1a6e" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream:#faf8f5; --warm:#f4efe8; --card:#ffffff;
+      --border:#ece5dc; --border2:#e0d5e8;
+      --plum:#4a1a6e; --plum2:#7b2fd6; --plum3:#9d5cf0; --plumL:#f3ebfd; --plumLL:#faf5fd;
+      --rose:#ef4d8a; --sage:#5fb37a;
+      --text:#2a1a3a; --muted:#8a7898; --muted2:#b0a0be; --red:#b5344a;
+      --grad:linear-gradient(135deg,#6a1fd0 0%,#9b2bd6 45%,#e83a82 100%);
+      --radius:14px;
+    }
+
+    body {
+      background: var(--cream);
+      color: var(--text);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 15px; line-height: 1.6; min-height: 100vh;
+      padding: 36px 16px 80px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .shell { max-width: 600px; margin: 0 auto; }
+
+    /* Header */
+    .header { text-align: center; margin-bottom: 32px; }
+    .logo { width: 64px; height: 64px; border-radius: 16px; }
+    .wordmark {
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 600; font-size: 2rem; color: var(--plum);
+      margin-top: 12px; letter-spacing: -0.01em;
+    }
+    .header p {
+      margin-top: 10px; color: var(--muted); font-size: 14px;
+      max-width: 420px; margin-left: auto; margin-right: auto;
+    }
+    .pill {
+      display: inline-block; background: var(--plumL); color: var(--plum2);
+      border: 1px solid #9d5cf044; border-radius: 100px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 4px 13px; margin-bottom: 8px;
+    }
+
+    /* Sections */
+    .section {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px; margin-bottom: 14px;
+      box-shadow: 0 1px 4px rgba(74,26,110,.04);
+    }
+    .section-title {
+      font-family: 'Fraunces', Georgia, serif; font-weight: 600;
+      font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--plum); margin-bottom: 18px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-title::after { content:''; flex:1; height:1px; background: var(--border); }
+
+    .field { margin-bottom: 18px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label { display: block; font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+    label .hint { font-weight: 400; color: var(--muted); font-size: 12px; }
+
+    input[type="text"], input[type="email"], textarea, select {
+      width: 100%; background: var(--warm); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text);
+      font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 11px 14px;
+      transition: border-color 0.15s; outline: none; appearance: none;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--plum3); }
+    input::placeholder, textarea::placeholder { color: var(--muted2); }
+    textarea { resize: vertical; min-height: 84px; }
+
+    /* Stars */
+    .stars { display: flex; gap: 6px; flex-direction: row-reverse; justify-content: flex-end; }
+    .stars input { display: none; }
+    .stars label { font-size: 28px; cursor: pointer; color: var(--border2); margin: 0; transition: color 0.1s; }
+    .stars input:checked ~ label, .stars label:hover, .stars label:hover ~ label { color: #e0b020; }
+
+    /* Tags */
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tags input { display: none; }
+    .tags label {
+      background: var(--warm); border: 1px solid var(--border); border-radius: 100px;
+      color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 500;
+      padding: 6px 14px; margin: 0; transition: all 0.15s; user-select: none;
+    }
+    .tags input:checked + label { background: var(--plumL); border-color: var(--plum3); color: var(--plum2); }
+    .tags label:hover { border-color: var(--plum3); }
+
+    /* Severity */
+    .severity-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .severity-row input { display: none; }
+    .severity-row label {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      background: var(--warm); border: 1px solid var(--border); border-radius: 10px;
+      cursor: pointer; font-size: 11px; font-weight: 500; padding: 10px 6px;
+      margin: 0; text-align: center; transition: all 0.15s; color: var(--muted);
+    }
+    .severity-row label .icon { font-size: 18px; }
+    .severity-row input:checked + label { background: var(--plumL); border-color: var(--plum3); color: var(--plum2); }
+    .severity-row label:hover { border-color: var(--plum3); }
+
+    /* NPS */
+    .nps-row { display: flex; gap: 5px; }
+    .nps-row input { display: none; }
+    .nps-row label {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      background: var(--warm); border: 1px solid var(--border); border-radius: 7px;
+      cursor: pointer; font-size: 13px; font-weight: 500; padding: 9px 4px;
+      margin: 0; min-width: 0; color: var(--muted); transition: all 0.12s;
+    }
+    .nps-row input:checked + label { background: var(--plumL); border-color: var(--plum3); color: var(--plum2); }
+    .nps-row label:hover { border-color: var(--plum3); color: var(--text); }
+    .nps-labels { display: flex; justify-content: space-between; margin-top: 6px; }
+    .nps-labels span { font-size: 11px; color: var(--muted); }
+
+    /* Submit */
+    .submit-wrap { text-align: center; margin-top: 24px; }
+    button[type="submit"] {
+      background: var(--grad); border: none; border-radius: 12px; color: #fff;
+      cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 15px;
+      font-weight: 600; padding: 14px 48px;
+      box-shadow: 0 6px 22px rgba(123,47,214,.34);
+      transition: transform 0.1s, box-shadow 0.15s;
+    }
+    button[type="submit"]:hover { box-shadow: 0 8px 30px rgba(123,47,214,.5); }
+    button[type="submit"]:active { transform: scale(0.98); }
+    .anon-note { margin-top: 12px; font-size: 12px; color: var(--muted); }
+
+    /* Success */
+    .success {
+      display: none; text-align: center; padding: 60px 24px;
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    }
+    .success .icon { font-size: 52px; margin-bottom: 14px; }
+    .success h2 { font-family: 'Fraunces', Georgia, serif; font-size: 1.5rem; color: var(--plum); margin-bottom: 8px; }
+    .success p { color: var(--muted); font-size: 14px; }
+
+    @media (max-width: 480px) {
+      .nps-row { gap: 3px; }
+      .nps-row label { font-size: 11px; padding: 8px 2px; }
+      .severity-row { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="header">
+    <img class="logo" src="/logo.png" alt="Nutriq" />
+    <div class="wordmark">Nutriq</div>
+    <div class="pill" style="margin-top:12px;">Alpha Feedback</div>
+    <p>Help us build something you'll actually use. Takes about 3 minutes — no fluff, just real feedback.</p>
+  </div>
+
+  <form id="feedback-form" action="https://formspree.io/f/xqeodqly" method="POST">
+
+    <!-- About you -->
+    <div class="section">
+      <div class="section-title">About you</div>
+      <div class="field">
+        <label>Name <span class="hint">(optional)</span></label>
+        <input type="text" name="name" placeholder="First name is fine" />
+      </div>
+      <div class="field">
+        <label>Email <span class="hint">(optional — only if you want us to follow up)</span></label>
+        <input type="email" name="email" placeholder="you@email.com" />
+      </div>
+      <div class="field">
+        <label>How did you use Nutriq?</label>
+        <div class="tags">
+          <input type="radio" name="access_method" id="am1" value="Web on my phone" />
+          <label for="am1">Web on my phone</label>
+          <input type="radio" name="access_method" id="am2" value="Web on desktop" />
+          <label for="am2">Web on desktop</label>
+          <input type="radio" name="access_method" id="am3" value="Added to home screen" />
+          <label for="am3">Added to home screen</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overall -->
+    <div class="section">
+      <div class="section-title">Overall impression</div>
+      <div class="field">
+        <label>How would you rate Nutriq overall?</label>
+        <div class="stars">
+          <input type="radio" name="overall_rating" id="s5" value="5" /><label for="s5">★</label>
+          <input type="radio" name="overall_rating" id="s4" value="4" /><label for="s4">★</label>
+          <input type="radio" name="overall_rating" id="s3" value="3" /><label for="s3">★</label>
+          <input type="radio" name="overall_rating" id="s2" value="2" /><label for="s2">★</label>
+          <input type="radio" name="overall_rating" id="s1" value="1" /><label for="s1">★</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>What's the single best thing about it? <span class="hint">(pros)</span></label>
+        <textarea name="best_thing" placeholder="The thing that made you think 'okay, this is useful'..."></textarea>
+      </div>
+      <div class="field">
+        <label>What's the single biggest problem? <span class="hint">(cons)</span></label>
+        <textarea name="biggest_problem" placeholder="The thing that frustrated you or made you want to stop using it..."></textarea>
+      </div>
+    </div>
+
+    <!-- UI -->
+    <div class="section">
+      <div class="section-title">Look &amp; feel</div>
+      <div class="field">
+        <label>Rate the visual design</label>
+        <div class="stars">
+          <input type="radio" name="ui_rating" id="ui5" value="5" /><label for="ui5">★</label>
+          <input type="radio" name="ui_rating" id="ui4" value="4" /><label for="ui4">★</label>
+          <input type="radio" name="ui_rating" id="ui3" value="3" /><label for="ui3">★</label>
+          <input type="radio" name="ui_rating" id="ui2" value="2" /><label for="ui2">★</label>
+          <input type="radio" name="ui_rating" id="ui1" value="1" /><label for="ui1">★</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>What stood out visually? <span class="hint">(good or bad — layout, colors, fonts, spacing)</span></label>
+        <textarea name="ui_notes" placeholder="e.g. 'the home screen felt cluttered' or 'colors looked great'..."></textarea>
+      </div>
+    </div>
+
+    <!-- UX -->
+    <div class="section">
+      <div class="section-title">Ease of use</div>
+      <div class="field">
+        <label>Rate how easy it was to use</label>
+        <div class="stars">
+          <input type="radio" name="ux_rating" id="ux5" value="5" /><label for="ux5">★</label>
+          <input type="radio" name="ux_rating" id="ux4" value="4" /><label for="ux4">★</label>
+          <input type="radio" name="ux_rating" id="ux3" value="3" /><label for="ux3">★</label>
+          <input type="radio" name="ux_rating" id="ux2" value="2" /><label for="ux2">★</label>
+          <input type="radio" name="ux_rating" id="ux1" value="1" /><label for="ux1">★</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Which screens did you actually use?</label>
+        <div class="tags">
+          <input type="checkbox" name="screens_used" id="sc1" value="Home" /><label for="sc1">Home</label>
+          <input type="checkbox" name="screens_used" id="sc2" value="Pantry" /><label for="sc2">Pantry</label>
+          <input type="checkbox" name="screens_used" id="sc3" value="Scan" /><label for="sc3">Scan</label>
+          <input type="checkbox" name="screens_used" id="sc4" value="Meals" /><label for="sc4">Meals</label>
+          <input type="checkbox" name="screens_used" id="sc5" value="Cookbook" /><label for="sc5">Cookbook</label>
+          <input type="checkbox" name="screens_used" id="sc6" value="Shop" /><label for="sc6">Shop</label>
+          <input type="checkbox" name="screens_used" id="sc7" value="Goals" /><label for="sc7">Goals</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>How did the meal planning flow feel? <span class="hint">(pantry → plan → shop)</span></label>
+        <textarea name="flow_notes" placeholder="Did it make sense moving from planning to grocery pickup? Where did you get stuck?..."></textarea>
+      </div>
+      <div class="field">
+        <label>How well did the grocery matching work? <span class="hint">(right products in your cart?)</span></label>
+        <textarea name="matching_notes" placeholder="e.g. 'most items matched, but it picked the wrong yogurt'..."></textarea>
+      </div>
+      <div class="field">
+        <label>Is anything missing that you expected to find?</label>
+        <textarea name="missing_features" placeholder="A feature, flow, or piece of info you went looking for..."></textarea>
+      </div>
+    </div>
+
+    <!-- Bugs -->
+    <div class="section">
+      <div class="section-title">Bugs &amp; issues</div>
+      <div class="field">
+        <label>Did you run into any bugs?</label>
+        <div class="tags">
+          <input type="radio" name="had_bugs" id="bug_yes" value="Yes" /><label for="bug_yes">Yes</label>
+          <input type="radio" name="had_bugs" id="bug_no" value="No" /><label for="bug_no">No</label>
+          <input type="radio" name="had_bugs" id="bug_unsure" value="Not sure" /><label for="bug_unsure">Not sure</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>If yes — describe what happened <span class="hint">(what you did, what broke, what you expected)</span></label>
+        <textarea name="bug_description" rows="4" placeholder="e.g. 'Tapped Generate, the spinner ran forever and nothing appeared.'"></textarea>
+      </div>
+      <div class="field">
+        <label>How bad was it?</label>
+        <div class="severity-row">
+          <input type="radio" name="bug_severity" id="sev1" value="Minor annoyance" />
+          <label for="sev1"><span class="icon">😑</span>Minor annoyance</label>
+          <input type="radio" name="bug_severity" id="sev2" value="Slowed me down" />
+          <label for="sev2"><span class="icon">😤</span>Slowed me down</label>
+          <input type="radio" name="bug_severity" id="sev3" value="Broke a feature" />
+          <label for="sev3"><span class="icon">😠</span>Broke a feature</label>
+          <input type="radio" name="bug_severity" id="sev4" value="App crashed / unusable" />
+          <label for="sev4"><span class="icon">🤯</span>Crashed / unusable</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Suggestions -->
+    <div class="section">
+      <div class="section-title">Suggestions</div>
+      <div class="field">
+        <label>If you could change one thing, what would it be?</label>
+        <textarea name="top_suggestion" placeholder="Be as specific or as vague as you want..."></textarea>
+      </div>
+      <div class="field">
+        <label>Anything else — ideas, feature requests, random thoughts?</label>
+        <textarea name="other_feedback" rows="5" placeholder="Wild ideas welcome."></textarea>
+      </div>
+    </div>
+
+    <!-- NPS -->
+    <div class="section">
+      <div class="section-title">Likelihood to use</div>
+      <div class="field">
+        <label>How likely are you to use Nutriq regularly once it's polished and in the App Store?</label>
+        <div class="nps-row">
+          <input type="radio" name="nps" id="nps0" value="0" /><label for="nps0">0</label>
+          <input type="radio" name="nps" id="nps1" value="1" /><label for="nps1">1</label>
+          <input type="radio" name="nps" id="nps2" value="2" /><label for="nps2">2</label>
+          <input type="radio" name="nps" id="nps3" value="3" /><label for="nps3">3</label>
+          <input type="radio" name="nps" id="nps4" value="4" /><label for="nps4">4</label>
+          <input type="radio" name="nps" id="nps5" value="5" /><label for="nps5">5</label>
+          <input type="radio" name="nps" id="nps6" value="6" /><label for="nps6">6</label>
+          <input type="radio" name="nps" id="nps7" value="7" /><label for="nps7">7</label>
+          <input type="radio" name="nps" id="nps8" value="8" /><label for="nps8">8</label>
+          <input type="radio" name="nps" id="nps9" value="9" /><label for="nps9">9</label>
+          <input type="radio" name="nps" id="nps10" value="10" /><label for="nps10">10</label>
+        </div>
+        <div class="nps-labels">
+          <span>Not a chance</span>
+          <span>Absolutely</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="submit-wrap">
+      <button type="submit">Send feedback →</button>
+      <p class="anon-note">Responses are confidential. Name and email are optional.</p>
+    </div>
+  </form>
+
+  <div class="success" id="success-msg">
+    <div class="icon">🌸</div>
+    <h2>Got it — thank you.</h2>
+    <p>Your feedback goes straight to the team. We genuinely read every response.</p>
+  </div>
+
+</div>
+
+<script>
+  const form = document.getElementById('feedback-form');
+  const success = document.getElementById('success-msg');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = new FormData(form);
+    try {
+      const res = await fetch(form.action, { method: 'POST', body: data, headers: { 'Accept': 'application/json' } });
+      if (res.ok) { form.style.display = 'none'; success.style.display = 'block'; window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      else { alert('Something went wrong. Please try again or email info@nutriqai.com directly.'); }
+    } catch { alert('Could not submit — check your connection and try again.'); }
+  });
+</script>
+</body>
+</html>
