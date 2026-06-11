@@ -1,4 +1,5 @@
-import { jsPDF } from 'jspdf'
+// jsPDF (+ its html2canvas/dompurify deps, ~370KB) is loaded on demand only
+// when a user actually makes a PDF — keeps it out of the initial bundle.
 
 // Brand palette (matches the app)
 const PLUM = [74, 26, 110]
@@ -20,6 +21,7 @@ async function logoDataUrl() {
 
 // Build a branded one-page recipe PDF. Returns a Blob.
 export async function buildRecipePdf(recipe) {
+  const { jsPDF } = await import('jspdf')
   const doc = new jsPDF({ unit: 'pt', format: 'a4' })
   const W = doc.internal.pageSize.getWidth()
   const H = doc.internal.pageSize.getHeight()

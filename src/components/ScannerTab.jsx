@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { readBarcodes } from 'zxing-wasm/reader'
 import { lookupBarcode, FD } from '../lib/barcode.js'
 import { CAT_ICON, I } from './Icons.jsx'
 
@@ -48,6 +47,7 @@ export default function ScannerTab({ pantry, setPantry, savePantryItem, deletePa
           try {
             const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.8))
             if (blob) {
+              const { readBarcodes } = await import('zxing-wasm/reader')
               const results = await readBarcodes(blob, { formats: ['EAN-13','EAN-8','UPC-A','UPC-E','Code128','Code39','QRCode'], tryHarder: true })
               if (results?.length > 0 && results[0].text) { const txt = results[0].text; stopCamera(); setCode(txt); doLookup(txt); return }
             }

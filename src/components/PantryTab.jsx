@@ -7,6 +7,14 @@ export default function PantryTab({ pantry, setPantry, deletePantryItem, updateP
   const [search, setSearch] = useState('')
   const [cat, setCat] = useState('all')
   const [sort, setSort] = useState('expiry')
+  const [clearConfirm, setClearConfirm] = useState(false)
+
+  const clearAll = () => {
+    pantry.forEach(i => deletePantryItem && deletePantryItem(i.id))
+    setPantry([])
+    setClearConfirm(false)
+    notify('Pantry cleared')
+  }
   const cats = ['all', ...new Set(pantry.map(i => i.category))]
   const filtered = pantry
     .filter(i => cat === 'all' || i.category === cat)
@@ -42,6 +50,25 @@ export default function PantryTab({ pantry, setPantry, deletePantryItem, updateP
         </select>
       </div>
       <div className="chips">{cats.map(c => <button key={c} className={`chip${cat === c ? ' on' : ''}`} onClick={() => setCat(c)}>{c === 'all' ? 'All items' : c}</button>)}</div>
+
+      {/* Clear "here are your items" signpost + manage row */}
+      {pantry.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 2px 10px' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--muted)' }}>
+            {cat === 'all' ? 'Your items' : cat} · {filtered.length}
+          </div>
+          {clearConfirm ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 12, color: 'var(--red)' }}>Remove all {pantry.length}?</span>
+              <button onClick={clearAll} style={{ background: 'var(--red)', color: '#fff', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans',system-ui,sans-serif" }}>Yes, clear</button>
+              <button onClick={() => setClearConfirm(false)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
+            </div>
+          ) : (
+            <button onClick={() => setClearConfirm(true)} style={{ background: 'none', border: 'none', color: 'var(--muted2)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline', fontFamily: "'DM Sans',system-ui,sans-serif" }}>Clear all</button>
+          )}
+        </div>
+      )}
+
       {filtered.map(item => {
         const days = du(item.expiry), color = uc(days)
         return (
