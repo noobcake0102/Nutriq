@@ -32,6 +32,31 @@ export default function ShopTab({ shop, notify, session, preferredStore, setTab 
   const [stores, setStores] = useState([])
   const [showStores, setShowStores] = useState(false)
 
+  const [extraItems, setExtraItems] = useState(() => JSON.parse(localStorage.getItem('nq_extra_items') || '[]'))
+  const [extraChecked, setExtraChecked] = useState({})
+  const [newItem, setNewItem] = useState('')
+
+  const STAPLE_CHIPS = ['Orange juice','Milk','Eggs','Bread','Peanut butter','Coffee','Butter','Cheese','Yogurt','Bananas','Apples','Pasta','Olive oil','Cereal','Paper towels']
+
+  const addExtraItem = (name) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    if (extraItems.some(i => i.toLowerCase() === trimmed.toLowerCase())) { setNewItem(''); return }
+    const updated = [...extraItems, trimmed]
+    setExtraItems(updated)
+    localStorage.setItem('nq_extra_items', JSON.stringify(updated))
+    setNewItem('')
+  }
+
+  const removeExtraItem = (idx) => {
+    const updated = extraItems.filter((_, i) => i !== idx)
+    setExtraItems(updated)
+    localStorage.setItem('nq_extra_items', JSON.stringify(updated))
+    setExtraChecked(c => { const n = { ...c }; delete n[idx]; return n })
+  }
+
+  const toggleExtra = i => setExtraChecked(c => ({ ...c, [i]: !c[i] }))
+
   const toggle = i => setChk(c => ({ ...c, [i]: !c[i] }))
   const unc = shop.filter((_, i) => !checked[i])
 
@@ -549,6 +574,37 @@ OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no ex
             </div>
           )
         })}
+        {/* ── Manual / staple items ── */}
+        <div style={{ marginTop: 20, marginBottom: 4 }}>
+          <div className="section-label" style={{ marginBottom: 10 }}>Add to list</div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+            <input
+              value={newItem}
+              onChange={e => setNewItem(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addExtraItem(newItem)}
+              placeholder="OJ, milk, peanut butter…"
+              style={{ flex: 1, fontSize: 14 }}
+            />
+            <button className="btn-sm" onClick={() => addExtraItem(newItem)} style={{ flexShrink: 0, padding: '0 14px' }}>Add</button>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: extraItems.length > 0 ? 14 : 0 }}>
+            {STAPLE_CHIPS.filter(c => !extraItems.some(e => e.toLowerCase() === c.toLowerCase())).slice(0, 8).map(chip => (
+              <button key={chip} onClick={() => addExtraItem(chip)}
+                style={{ background: 'var(--warm)', border: '1px solid var(--border)', borderRadius: 20, padding: '5px 12px', fontSize: 12, color: 'var(--muted)', cursor: 'pointer', fontFamily: "'DM Sans',system-ui,sans-serif" }}>
+                + {chip}
+              </button>
+            ))}
+          </div>
+          {extraItems.map((item, i) => (
+            <div key={i} className={`shop-row${extraChecked[i] ? ' done' : ''}`} style={{ padding: '12px 14px' }} onClick={() => toggleExtra(i)}>
+              <div className={`check-ring${extraChecked[i] ? ' on' : ''}`}>{extraChecked[i] ? '✓' : ''}</div>
+              <div style={{ flex: 1, fontWeight: 500, fontSize: 14, color: extraChecked[i] ? 'var(--muted2)' : 'var(--text)', textDecoration: extraChecked[i] ? 'line-through' : 'none' }}>{item}</div>
+              <button onClick={e => { e.stopPropagation(); removeExtraItem(i) }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--muted2)', padding: '0 4px', lineHeight: 1 }}>×</button>
+            </div>
+          ))}
+        </div>
+
         <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
           {store === 'kroger' && getSearchToken() && (<>
             {!matching && Object.keys(matchedProducts).length < shop.length && (

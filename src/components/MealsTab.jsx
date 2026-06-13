@@ -568,9 +568,14 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
       .sort((a, b) => (b.rating || 0) - (a.rating || 0))
     return (
       <div className="page">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 20 }} onClick={() => setView('plan')}>←</button>
-          <div style={{ flex: 1 }}><div className="page-label">Library</div><h1 className="page-title" style={{ marginBottom: 0 }}>My Cookbook</h1></div>
+        <div className="page-label">AI Planner</div>
+        <h1 className="page-title">Meals</h1>
+        <div className="seg" style={{ marginBottom: 20 }}>
+          <button className="seg-btn" onClick={() => setView('plan')}>This week</button>
+          <button className="seg-btn on">Cookbook</button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ fontSize: 13, color: 'var(--muted)' }}>{savedMeals.length} saved meal{savedMeals.length !== 1 ? 's' : ''}</div>
           <button className="btn-sm" onClick={() => setView('createRecipe')}>+ Add your own</button>
         </div>
         {/* Score filter */}
@@ -716,7 +721,11 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
     <div className="page">
       {celebrate && <Celebration message="Your week is planned! 🌸" onDone={() => setCelebrate(false)} />}
       <div className="page-label">AI Planner</div>
-      <h1 className="page-title">This week's meals</h1>
+      <h1 className="page-title">Meals</h1>
+      <div className="seg" style={{ marginBottom: 20 }}>
+        <button className="seg-btn on">This week</button>
+        <button className="seg-btn" onClick={() => setView('history')}>Cookbook {savedMeals.length > 0 && `(${savedMeals.length})`}</button>
+      </div>
       {thisWeek.length > 0 ? (<>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ fontSize: 13, color: 'var(--muted)' }}>{thisWeek.length} meal{thisWeek.length !== 1 ? 's' : ''} planned</div>
@@ -765,7 +774,6 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
         )}
       </div>
       {thisWeek.length > 0 && <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--muted2)', marginTop: -8, marginBottom: 14 }}>Planning fresh clears this week (meals stay in your library)</p>}
-      <button className="btn-sm" style={{ width: '100%', textAlign: 'center', padding: 12 }} onClick={() => setView('history')}>📖 My Cookbook ({savedMeals.length})</button>
     </div>
   )
 }
