@@ -35,7 +35,7 @@ export default function App() {
   const [showAcctMenu, setShowAcctMenu] = useState(false)
   const [acctModal, setAcctModal] = useState(null)
   const [pantryEnabled, setPantryEnabled] = useState(() => DB.get('nq_pantry_on', true))
-  const [preferredStore, setPreferredStore] = useState(() => DB.get('nq_store', 'kroger'))
+  const [preferredStore] = useState(() => DB.get('nq_store', 'kroger')) // Kroger-only for now; picker removed
   const [userName, setUserName] = useState('')
   const [isPaid, setIsPaid] = useState(false)
   const [generationsUsed, setGenerationsUsed] = useState(0)
@@ -199,17 +199,6 @@ export default function App() {
               <button className="acct-menu-item" onClick={() => { setShowAcctMenu(false); setAcctModal('password') }}>🔒 Change password</button>
               <button className="acct-menu-item" onClick={() => { setShowAcctMenu(false); setAcctModal('subscription') }}>⭐ Manage subscription</button>
               <div className="acct-divider" />
-              <div style={{ padding: '8px 16px' }}>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>Preferred store</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {[['kroger','Kroger'],['harris_teeter','Harris Teeter'],['instacart','Instacart'],['walmart','Walmart']].map(([k, l]) => (
-                    <button key={k} onClick={() => { setPreferredStore(k); DB.set('nq_store', k); notify(`${l} set as default`) }}
-                      style={{ background: preferredStore === k ? 'var(--plumL)' : 'var(--warm)', border: `1px solid ${preferredStore === k ? 'var(--plum3)' : 'var(--border)'}`, borderRadius: 8, padding: '4px 10px', fontSize: 11, color: preferredStore === k ? 'var(--plum2)' : 'var(--muted)', cursor: 'pointer', fontFamily: "'DM Sans',system-ui,sans-serif" }}>
-                      {l}
-                    </button>
-                  ))}
-                </div>
-              </div>
               <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div><div style={{ fontSize: 13, color: 'var(--text)' }}>Pantry tracking</div><div style={{ fontSize: 11, color: 'var(--muted)' }}>Track inventory and expiry dates</div></div>
                 <button onClick={() => { const n = !pantryEnabled; setPantryEnabled(n); DB.set('nq_pantry_on', n); notify(n ? 'Pantry enabled' : 'Pantry disabled') }}

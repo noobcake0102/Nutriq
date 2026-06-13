@@ -1,0 +1,114 @@
+# Fastlane configuration for NutriQ (Capacitor 8 + SwiftPM iOS app)
+#
+# Auth: App Store Connect API key (no Apple ID password / 2FA needed).
+# Signing: automatic, managed by Xcode using ASC_TEAM_ID.
+#
+# Usage (run from the ios/App directory on a Mac):
+#   bundle exec fastlane beta        # build + upload to TestFlight
+#   bundle exec fastlane release     # build + upload to App Store (for review)
+#   bundle exec fastlane build       # just build the .ipa, no upload
+#
+# All secrets come from fastlane/.env — copy fastlane/.env.example to
+# fastlane/.env and fill it in. See fastlane/README.md for the full walkthrough.
+
+default_platform(:ios)
+
+# Absolute paths so lanes work regardless of where fastlane is invoked from.
+APP_DIR  = File.expand_path("..", __dir__)          # .../ios/App
+REPO_ROOT = File.expand_path("../../..", __dir__)   # repo root (where package.json lives)
+XCODEPROJ = File.join(APP_DIR, "App.xcodeproj")
+OUTPUT_DIR = File.join(APP_DIR, "output")
+
+platform :ios do
+  before_all do
+    # Load the App Store Connect API key from env vars in fastlane/.env.
+    app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_filepath: ENV["ASC_KEY_PATH"],   # path to the AuthKey_XXXX.p8 file
+      duration: 1200,
+      in_house: false
+    )
+  end
+
+  desc "Build the web app and sync it into the native iOS project"
+  lane :sync_web do
+    # Capacitor needs the built web assets copied into the native project
+    # before archiving. Runs `vite build && npx cap sync ios` from the repo root.
+    Dir.chdir(REPO_ROOT) do
+      sh("npm", "run", "build")
+      sh("npx", "cap", "sync", "ios")
+    end
+  end
+
+  desc "Archive and export a signed App Store .ipa (no upload)"
+  lane :build do
+    sync_web
+
+    build_app(
+      project: XCODEPROJ,
+      scheme: "App",
+      configuration: "Release",
+      output_directory: OUTPUT_DIR,
+      output_name: "NutriQ.ipa",
+      clean: true,
+      export_method: "app-store",
+      xcargs: "-allowProvisioningUpdates",
+      export_options: {
+        signingStyle: "automatic",
+        teamID: ENV["ASC_TEAM_ID"]
+      }
+    )
+  end
+
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    sync_web
+
+    # Set the build number to the next available TestFlight build so uploads
+    # never collide. Keeps the human-facing MARKETING_VERSION untouched.
+    next_build = (latest_testflight_build_number(
+      app_identifier: "com.nutriq.app"
+    ) rescue 0) + 1
+    increment_build_number(
+      build_number: next_build,
+      xcodeproj: XCODEPROJ
+    )
+
+    build_app(
+      project: XCODEPROJ,
+      scheme: "App",
+      configuration: "Release",
+      output_directory: OUTPUT_DIR,
+      output_name: "NutriQ.ipa",
+      clean: true,
+      export_method: "app-store",
+      xcargs: "-allowProvisioningUpdates",
+      export_options: {
+        signingStyle: "automatic",
+        teamID: ENV["ASC_TEAM_ID"]
+      }
+    )
+
+    upload_to_testflight(
+      app_identifier: "com.nutriq.app",
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "Build and upload to App Store Connect for review"
+  lane :release do
+    build
+
+    upload_to_app_store(
+      app_identifier: "com.nutriq.app",
+      ipa: File.join(OUTPUT_DIR, "NutriQ.ipa"),
+      skip_screenshots: true,
+      skip_metadata: false,
+      precheck_include_in_app_purchases: false,
+      submit_for_review: false,           # set true once metadata is ready
+      automatic_release: false,
+      force: true                         # skip the HTML preview confirmation
+    )
+  end
+end

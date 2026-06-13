@@ -10,7 +10,10 @@ import { logError } from '../lib/sentry.js'
 export default function ShopTab({ shop, notify, session, preferredStore, setTab }) {
   const [productPrefs, setProductPrefs] = useState({}) // ingredient_key -> { chosen_upc, chosen_brand, chosen_name }
   const lastAiRaw = useRef('') // last raw AI matcher response, for the debug report
-  const [store, setStore] = useState(preferredStore || 'kroger')
+  // Kroger is the only supported grocery integration. Other stores (Instacart,
+  // Walmart, etc.) have no backend and crashed the order flow, so the picker was
+  // removed and the store is hardcoded. Ignore any stale `preferredStore`.
+  const [store] = useState('kroger')
   const [method, setMethod] = useState('pickup')
   const [checked, setChk] = useState({})
   const [ordered, setOrd] = useState(false)
@@ -376,15 +379,6 @@ OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no ex
       <h1 className="page-title">Shopping list</h1>
       <p className="page-sub">From your meal plan</p>
 
-      <div style={{ marginBottom: 14 }}>
-        <div className="section-label">Choose store</div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {[['kroger','Kroger'],['instacart','Instacart'],['walmart','Walmart'],['whole_foods','Whole Foods']].map(([k, l]) => (
-            <button key={k} className={`store-btn${store === k ? ' on' : ''}`} onClick={() => setStore(k)}>{l}</button>
-          ))}
-        </div>
-      </div>
-
       {store === 'kroger' && (
         <div className="card" style={{ marginBottom: 14 }}>
           {krogerToken ? (
@@ -563,10 +557,9 @@ OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no ex
               {placingOrder ? <span style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}><span className="spin" />Adding to cart...</span> : `Add to Kroger cart · ${matchedCount} items`}
             </button>
           </>)}
-          {store === 'kroger' && !krogerToken && <button className="btn-full" onClick={connectKroger}>Connect Kroger to place order</button>}
-          {store !== 'kroger' && <button className="btn-full" onClick={() => setOrd(true)} disabled={unc.length === 0}>Place order · {unc.length} item{unc.length !== 1 ? 's' : ''}</button>}
+          {!krogerToken && <button className="btn-full" onClick={connectKroger}>Connect Kroger to place order</button>}
         </div>
-        <p style={{ textAlign: 'center', color: 'var(--muted2)', fontSize: 11, marginTop: 8 }}>{store === 'kroger' && krogerToken && krogerStore ? `${krogerStore.name} · ${method}` : `${store} · ${method}`}</p>
+        <p style={{ textAlign: 'center', color: 'var(--muted2)', fontSize: 11, marginTop: 8 }}>{krogerToken && krogerStore ? `${krogerStore.name} · ${method}` : `Kroger · ${method}`}</p>
         {Object.keys(matchedProducts).length > 0 && (
           <button onClick={copyMatchReport} style={{ display: 'block', margin: '10px auto 0', background: 'none', border: 'none', color: 'var(--muted2)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline', fontFamily: "'DM Sans',system-ui,sans-serif" }}>
             Copy match report (for debugging)
