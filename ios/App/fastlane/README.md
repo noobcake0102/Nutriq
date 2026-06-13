@@ -28,7 +28,7 @@ just committed and ready — there's nothing to run until you're on a Mac.
    Team ID. This file is gitignored.
 
 4. **Make sure the app record exists** in App Store Connect with bundle ID
-   `com.nutriq.app` (that's the "Create the app record" launch task).
+   `com.nutriqai.app` (that's the "Create the app record" launch task).
 
 ## Everyday commands
 

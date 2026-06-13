@@ -1,4 +1,4 @@
-app_identifier("com.nutriq.app")        # The bundle identifier of your app
+app_identifier("com.nutriqai.app")       # The bundle identifier of your app
 
 # Apple Developer Team ID — set ASC_TEAM_ID in fastlane/.env (Membership page in
 # the Apple Developer portal). Used for code signing during the archive.

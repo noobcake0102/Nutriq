@@ -31,7 +31,7 @@ Add before launch:
 
 ## 4. Apple Developer + App Store Connect
 - [ ] Enroll in Apple Developer Program as an **Individual** ($99/yr)
-- [ ] Create the app in App Store Connect, bundle ID `com.nutriq.app`
+- [x] Create the app in App Store Connect, bundle ID `com.nutriqai.app`
 - [ ] Create the 2 subscription products (see revenuecat-setup.md §1)
 - [ ] Listing: paste from `docs/app-store-listing.md` (name, subtitle, keywords,
       description, what's new, categories, privacy labels)
