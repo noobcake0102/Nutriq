@@ -113,14 +113,35 @@ const INGREDIENT_ENRICHMENT = {
   eggs: { fresh: false, terms: ["egg","eggs"], transform: () => "large eggs" },
 };
 
-// Core term: strip quantities + cooking methods, fill bare-generic staples.
-// Keeps it SHORT — Kroger search rewards 1-3 word grocery-natural terms.
+// Units we strip from the front of an ingredient (imported recipes use a wide
+// range, including spelled-out and metric). Longest-first isn't needed because
+// we anchor to the start and require a word boundary.
+const UNITS = ["cups","cup","tablespoons","tablespoon","tbsp","teaspoons","teaspoon",
+  "tsp","ounces","ounce","oz","pounds","pound","lbs","lb","grams","gram","kg","g",
+  "ml","milliliters","liters","cloves","clove","cans","can","bunches","bunch",
+  "pieces","piece","stalks","stalk","slices","slice","sprigs","sprig","heads","head",
+  "pinch","pinches","dash","sticks","stick","packages","package","pkg","containers",
+  "container","jars","jar","medium","large","small"].join("|");
+
+// Core term: strip quantities (incl. unicode fractions), parenthetical notes,
+// units, and cooking methods, then fill bare-generic staples. Keeps it SHORT —
+// Kroger search rewards 1-3 word grocery-natural terms, and long literal strings
+// like "½ cup dry red wine (passata)" return junk.
 function coreTerm(raw) {
   const descriptors = ["cooked","frozen","dried","chopped","diced","sliced","minced",
     "grilled","fried","baked","raw","ripe","whole","lean","organic",
     "fresh","large","small","medium"];
   let q = raw.toLowerCase()
-    .replace(/^\d[\d./\s]*(cup|tbsp|tsp|oz|lb|lbs|g|kg|clove|cloves|can|bunch|piece|medium|large|small)s?\s*/i, "")
+    // 1. drop parenthetical notes: "(70-80%)", "(passata)", "(2% or whole milk)"
+    .replace(/\([^)]*\)/g, " ")
+    // 2. unicode fractions → space so "10½" and "½ cup" both clear cleanly
+    .replace(/[¼½¾⅓⅔⅛⅜⅝⅞]/g, " ")
+    // 3. strip a leading quantity: digits, fractions, ranges, percent signs
+    .replace(/^[\d./%\s-]+/, "")
+    // 4. strip a leading unit word (now that the number is gone)
+    .replace(new RegExp(`^(?:${UNITS})\\b\\s*`, "i"), "")
+    // 5. any stray leading non-letters (e.g. a leftover "/")
+    .replace(/^[^a-z]+/i, "")
     .trim();
   descriptors.forEach(w => { q = q.replace(new RegExp(`\\b${w}\\b`, "gi"), "").trim(); });
   q = q.replace(/\s+/g, " ").trim() || raw.toLowerCase();
