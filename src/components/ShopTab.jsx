@@ -503,7 +503,7 @@ OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no ex
                           <div style={{ fontSize: 11, color: 'var(--muted)' }}>{prod.brand}{prod.size ? ` · ${prod.size}` : ''}</div>
                           {matched.substitute
                             ? <div style={{ fontSize: 10, color: 'var(--orange)', fontWeight: 500, marginTop: 1 }}>↔ Substitute for {item.item}</div>
-                            : productPrefs[matched.key]?.chosen_upc === prod.upc
+                            : (productPrefs[matched.key] && prod.upc && productPrefs[matched.key].chosen_upc === prod.upc)
                               ? <div style={{ fontSize: 10, color: 'var(--sage)', fontWeight: 500, marginTop: 1 }}>★ Your usual</div>
                               : matched.aiPicked && <div style={{ fontSize: 10, color: 'var(--plum3)', fontWeight: 500, marginTop: 1 }}>✦ AI matched</div>}
                         </div>
