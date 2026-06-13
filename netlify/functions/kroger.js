@@ -98,10 +98,15 @@ const INGREDIENT_ENRICHMENT = {
     terms: ["milk","cream","butter","cheese","yogurt","sour cream",
             "cream cheese","cottage cheese","ricotta","mozzarella","cheddar",
             "parmesan","feta","goat cheese","heavy cream","half and half"],
-    // "plain greek yogurt" returns sour cream/dips on Kroger; the short term
-    // surfaces actual yogurt. Keep the greek qualifier, drop "plain".
+    // "plain greek yogurt" — keep both qualifiers so Kroger narrows to plain
+    // Greek varieties. Dropping "plain" surfaces flavored Yoplait as top result.
+    // Bare "yogurt" stays short to avoid matching dips/sour cream.
     transform: q => {
-      if (q.includes("yogurt")) return q.includes("greek") ? "greek yogurt" : "yogurt";
+      if (q.includes("yogurt")) {
+        if (q.includes("greek") && q.includes("plain")) return "plain greek yogurt";
+        if (q.includes("greek")) return "greek yogurt";
+        return "yogurt";
+      }
       return q;
     },
   },
