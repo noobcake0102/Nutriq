@@ -9,6 +9,7 @@ import EmptyState from './EmptyState.jsx'
 import { logError } from '../lib/sentry.js'
 import { buildRecipePdf } from '../lib/recipePdf.js'
 import { shareRecipePdf } from '../lib/share.js'
+import { NUTRIQ_FAVORITES } from '../data/nutriqFavorites.js'
 
 export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop, setTab, notify, session, isPaid, generationsUsed, onShowPaywall, onGenerate }) {
   const [view, setView] = useState('plan')
@@ -29,6 +30,8 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
   const [celebrate, setCelebrate] = useState(false)
   const [sharing, setSharing] = useState(false)
   const [historyRating, setHistoryRating] = useState('all') // all | 5 | 4 | unrated
+  const [cookbookTab, setCookbookTab] = useState('mine') // 'mine' | 'favorites'
+  const [addingFav, setAddingFav] = useState(null) // id of favorite being saved
   const [cookForm, setCookForm] = useState({ name: '', meal_type: 'dinner', servings: '', ingredients: '', steps: '', calories: '', protein: '', carbs: '', fat: '' })
   const [savingCustom, setSavingCustom] = useState(false)
   const [importUrl, setImportUrl] = useState('')
@@ -382,6 +385,37 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
     setSharing(false)
   }
 
+  const addFavoriteToMyCookbook = async (fav) => {
+    if (savedMeals.some(m => m.name === fav.name)) { notify('Already in your cookbook!'); return }
+    setAddingFav(fav.id)
+    try {
+      const { data: prof } = await supa.from('profiles').select('household_id').eq('id', session.user.id).single()
+      const row = {
+        user_id: session.user.id,
+        household_id: prof?.household_id,
+        name: fav.name,
+        meal_type: fav.meal_type,
+        description: fav.description,
+        calories: fav.calories,
+        protein: fav.protein,
+        carbs: fav.carbs,
+        fat: fav.fat,
+        ingredients: fav.ingredients,
+        recipe: fav.recipe,
+        source: 'nutriq_favorite',
+        this_week: false,
+      }
+      const { data, error } = await supa.from('saved_meals').insert(row).select().single()
+      if (error) throw error
+      setSavedMeals(ms => [data, ...ms])
+      notify(`"${fav.name}" added to your cookbook!`)
+    } catch (e) {
+      notify('Could not add recipe — try again', 'err')
+      logError(e, { where: 'addFavoriteToMyCookbook', fav: fav.name })
+    }
+    setAddingFav(null)
+  }
+
   const hasMealPrefs = Object.keys(mealPrefs).length > 0
   const allTypesDone = genTypeKeys.every(t => { const key = typeKeyFor(t); return (selected[key] || []).length >= remainingForType(t) })
 
@@ -566,49 +600,116 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
       .filter(m => historyFilter === 'all' || m.meal_type === historyFilter)
       .filter(ratingMatch)
       .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+
+    // Nutriq Favorites filtered by type
+    const favTypes = ['all', ...new Set(NUTRIQ_FAVORITES.map(f => f.meal_type))]
+    const filteredFavs = historyFilter === 'all'
+      ? NUTRIQ_FAVORITES
+      : NUTRIQ_FAVORITES.filter(f => f.meal_type === historyFilter)
+
     return (
       <div className="page">
         <div className="page-label">AI Planner</div>
         <h1 className="page-title">Meals</h1>
-        <div className="seg" style={{ marginBottom: 20 }}>
+        {/* Top nav: This week / Cookbook */}
+        <div className="seg" style={{ marginBottom: 16 }}>
           <button className="seg-btn" onClick={() => setView('plan')}>This week</button>
           <button className="seg-btn on">Cookbook</button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ fontSize: 13, color: 'var(--muted)' }}>{savedMeals.length} saved meal{savedMeals.length !== 1 ? 's' : ''}</div>
-          <button className="btn-sm" onClick={() => setView('createRecipe')}>+ Add your own</button>
+        {/* Cookbook sub-tabs: My Recipes / Nutriq's Favorites */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <button onClick={() => setCookbookTab('mine')}
+            style={{ flex: 1, padding: '9px 0', borderRadius: 12, border: `1.5px solid ${cookbookTab === 'mine' ? 'var(--plum3)' : 'var(--border)'}`, background: cookbookTab === 'mine' ? 'var(--plumL)' : 'var(--card)', color: cookbookTab === 'mine' ? 'var(--plum2)' : 'var(--muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',system-ui,sans-serif", transition: 'all .15s' }}>
+            My Recipes {savedMeals.length > 0 && `(${savedMeals.length})`}
+          </button>
+          <button onClick={() => setCookbookTab('favorites')}
+            style={{ flex: 1, padding: '9px 0', borderRadius: 12, border: `1.5px solid ${cookbookTab === 'favorites' ? 'var(--plum3)' : 'var(--border)'}`, background: cookbookTab === 'favorites' ? 'var(--plumL)' : 'var(--card)', color: cookbookTab === 'favorites' ? 'var(--plum2)' : 'var(--muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',system-ui,sans-serif", transition: 'all .15s' }}>
+            ⭐ Nutriq's Favorites
+          </button>
         </div>
-        {/* Score filter */}
-        <div className="chips" style={{ marginBottom: 8 }}>
-          {[['all', 'All'], ['5', '★★★★★'], ['4', '4★ & up'], ['unrated', 'Unrated']].map(([v, l]) => (
-            <button key={v} className={`chip${historyRating === v ? ' on' : ''}`} onClick={() => setHistoryRating(v)}>{l}</button>
+
+        {/* Type filter — shared across both tabs */}
+        <div className="chips" style={{ marginBottom: 16 }}>
+          {(cookbookTab === 'mine' ? types : favTypes).map(t => (
+            <button key={t} className={`chip${historyFilter === t ? ' on' : ''}`} onClick={() => setHistoryFilter(t)}>
+              {t === 'all' ? 'All' : t.replace(/_/g, ' ')}
+            </button>
           ))}
         </div>
-        <div className="chips" style={{ marginBottom: 16 }}>
-          {types.map(t => <button key={t} className={`chip${historyFilter === t ? ' on' : ''}`} onClick={() => setHistoryFilter(t)}>{t === 'all' ? 'All' : t.replace(/_/g, ' ')}</button>)}
-        </div>
-        {filtered.length === 0 ? (
-          <EmptyState emoji="📖" title="Your recipe book is empty" sub="Generate your first plan and every meal lands here — ready to reuse, rate, and cook again." cta="Plan this week" onCta={startFreshWeek} />
-        ) : filtered.map(m => (
-          <div key={m.id} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, marginBottom: 8, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                <div style={{ fontSize: 10, color: 'var(--rose)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1 }}>{(m.meal_type || '').replace(/_/g, ' ')}</div>
-                {m.source === 'custom' && <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--plum2)', background: 'var(--plumL)', borderRadius: 5, padding: '1px 6px' }}>YOURS</span>}
-                {m.source === 'import' && <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--sage)', background: 'var(--sageL)', borderRadius: 5, padding: '1px 6px' }}>IMPORTED</span>}
+
+        {/* ── MY RECIPES TAB ── */}
+        {cookbookTab === 'mine' && (<>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, color: 'var(--muted)' }}>{savedMeals.length} saved meal{savedMeals.length !== 1 ? 's' : ''}</div>
+            <button className="btn-sm" onClick={() => setView('createRecipe')}>+ Add your own</button>
+          </div>
+          {/* Rating filter */}
+          <div className="chips" style={{ marginBottom: 16 }}>
+            {[['all', 'All'], ['5', '★★★★★'], ['4', '4★ & up'], ['unrated', 'Unrated']].map(([v, l]) => (
+              <button key={v} className={`chip${historyRating === v ? ' on' : ''}`} onClick={() => setHistoryRating(v)}>{l}</button>
+            ))}
+          </div>
+          {filtered.length === 0 ? (
+            <EmptyState emoji="📖" title="Your recipe book is empty" sub="Generate your first plan and every meal lands here — ready to reuse, rate, and cook again." cta="Plan this week" onCta={startFreshWeek} />
+          ) : filtered.map(m => (
+            <div key={m.id} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, marginBottom: 8, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                  <div style={{ fontSize: 10, color: 'var(--rose)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1 }}>{(m.meal_type || '').replace(/_/g, ' ')}</div>
+                  {m.source === 'custom' && <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--plum2)', background: 'var(--plumL)', borderRadius: 5, padding: '1px 6px' }}>YOURS</span>}
+                  {m.source === 'import' && <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--sage)', background: 'var(--sageL)', borderRadius: 5, padding: '1px 6px' }}>IMPORTED</span>}
+                  {m.source === 'nutriq_favorite' && <span style={{ fontSize: 9, fontWeight: 600, color: '#b07d24', background: '#f7edd7', borderRadius: 5, padding: '1px 6px' }}>NUTRIQ ★</span>}
+                </div>
+                <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 17, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>{m.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>{m.calories} cal · P {m.protein}g · C {m.carbs}g · F {m.fat}g</div>
+                {m.times_made > 0 && <div style={{ fontSize: 11, color: 'var(--muted2)' }}>Made {m.times_made}x{m.last_made ? ` · last ${m.last_made}` : ''}</div>}
+                {m.rating && <div style={{ fontSize: 11, color: 'var(--gold)', marginTop: 2 }}>{'★'.repeat(m.rating)}{'☆'.repeat(5 - m.rating)}</div>}
               </div>
-              <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 17, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>{m.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>{m.calories} cal · P {m.protein}g · C {m.carbs}g · F {m.fat}g</div>
-              {m.times_made > 0 && <div style={{ fontSize: 11, color: 'var(--muted2)' }}>Made {m.times_made}x{m.last_made ? ` · last ${m.last_made}` : ''}</div>}
-              {m.rating && <div style={{ fontSize: 11, color: 'var(--gold)', marginTop: 2 }}>{'★'.repeat(m.rating)}{'☆'.repeat(5 - m.rating)}</div>}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                {m.this_week ? <button className="btn-sm" style={{ background: 'var(--sageL)', borderColor: 'var(--sage)55', color: 'var(--sage)' }} onClick={() => removeFromThisWeek(m.id)}>This week ✓</button> : <button className="btn-sm" onClick={() => addToThisWeek(m.id)}>Add to week</button>}
+                <button className="btn-sm" style={{ background: 'none', borderColor: 'var(--border)' }} onClick={() => generateRecipe(m)}>Recipe</button>
+                <button onClick={() => deleteSavedMeal(m.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--muted2)', padding: '4px 0' }}>Remove</button>
+              </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
-              {m.this_week ? <button className="btn-sm" style={{ background: 'var(--sageL)', borderColor: 'var(--sage)55', color: 'var(--sage)' }} onClick={() => removeFromThisWeek(m.id)}>This week ✓</button> : <button className="btn-sm" onClick={() => addToThisWeek(m.id)}>Add to week</button>}
-              <button className="btn-sm" style={{ background: 'none', borderColor: 'var(--border)' }} onClick={() => generateRecipe(m)}>Recipe</button>
-              <button onClick={() => deleteSavedMeal(m.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--muted2)', padding: '4px 0' }}>Remove</button>
+          ))}
+        </>)}
+
+        {/* ── NUTRIQ'S FAVORITES TAB ── */}
+        {cookbookTab === 'favorites' && (<>
+          <div style={{ background: 'linear-gradient(135deg, #f7edd7, #fdf5e6)', border: '1px solid #e8d5a0', borderRadius: 14, padding: '12px 14px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ fontSize: 20, flexShrink: 0 }}>⭐</span>
+            <div style={{ fontSize: 13, color: '#7a5c1e', lineHeight: 1.5 }}>
+              <strong>Hand-picked by Nutriq</strong> — 48 of the most loved home recipes, curated for real families. Add any to your cookbook to rate, reuse, and send to pickup.
             </div>
           </div>
-        ))}
+          {filteredFavs.map(fav => {
+            const alreadySaved = savedMeals.some(m => m.name === fav.name)
+            const isAdding = addingFav === fav.id
+            return (
+              <div key={fav.id} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, marginBottom: 8, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <div style={{ fontSize: 10, color: 'var(--rose)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1 }}>{fav.meal_type.replace(/_/g, ' ')}</div>
+                    <span style={{ fontSize: 9, fontWeight: 600, color: '#b07d24', background: '#f7edd7', borderRadius: 5, padding: '1px 6px' }}>NUTRIQ ★</span>
+                  </div>
+                  <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 17, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>{fav.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4, lineHeight: 1.4 }}>{fav.description}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)' }}>{fav.calories} cal · P {fav.protein}g · C {fav.carbs}g · F {fav.fat}g</div>
+                  <div style={{ fontSize: 11, color: '#b07d24', marginTop: 3 }}>★★★★★ Community favorite</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
+                  <button className="btn-sm" onClick={() => generateRecipe(fav)} style={{ background: 'none', borderColor: 'var(--border)' }}>Recipe</button>
+                  <button className="btn-sm"
+                    disabled={alreadySaved || isAdding}
+                    onClick={() => addFavoriteToMyCookbook(fav)}
+                    style={{ background: alreadySaved ? 'var(--sageL)' : 'var(--plumL)', borderColor: alreadySaved ? 'var(--sage)55' : 'var(--plum3)', color: alreadySaved ? 'var(--sage)' : 'var(--plum2)', opacity: isAdding ? 0.6 : 1 }}>
+                    {isAdding ? '…' : alreadySaved ? 'Saved ✓' : '+ My cookbook'}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </>)}
       </div>
     )
   }
