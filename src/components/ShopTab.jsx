@@ -351,8 +351,8 @@ OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no ex
     const lines = shop.map((item, i) => {
       const m = matchedProducts[i]
       if (!m) return `• "${item.item}" → searched "${cleanIngredient(item.item)}" → NO RESULTS`
-      const picked = m.noMatch ? 'NO MATCH (flagged)' : (m.options[m.selected]?.name || '?')
-      const opts = m.options.map(o => `${o.name}${o.brand ? ` [${o.brand}]` : ''}`).join(' | ')
+      const picked = m.noMatch ? 'NO MATCH (flagged)' : (m.options?.[m.selected]?.name || '?')
+      const opts = (m.options || []).map(o => `${o.name}${o.brand ? ` [${o.brand}]` : ''}`).join(' | ')
       return `• "${item.item}" → searched "${m.term || cleanIngredient(item.item)}" → picked: ${picked}\n    options: ${opts}`
     }).join('\n')
     const report = `NUTRIQ MATCH REPORT\nstore: ${krogerStore?.name || 'default'}\n\n${lines}\n\n--- AI matcher raw output ---\n${lastAiRaw.current || '(none)'}`
@@ -367,7 +367,7 @@ OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no ex
       const items = shop.map((item, i) => {
         const m = matchedProducts[i]
         if (!m || m.noMatch) return null
-        const prod = m.options[m.selected]
+        const prod = m.options?.[m.selected]
         return prod ? { upc: prod.upc, quantity: 1 } : null
       }).filter(Boolean)
       if (items.length === 0) { notify('No matched products to order', 'err'); setPlacingOrder(false); return }
@@ -514,7 +514,7 @@ OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no ex
                       </div>
                     </div>
                   ) : (() => {
-                    const prod = matched.options[matched.selected]
+                    const prod = matched.options?.[matched.selected]
                     return prod ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                         {prod.image && <img src={prod.image} alt={prod.name} style={{ width: 58, height: 58, objectFit: 'contain', borderRadius: 8, background: 'white', flexShrink: 0, border: '1px solid var(--border)' }} />}
@@ -538,10 +538,13 @@ OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no ex
                     // Only show real alternatives the AI deemed the same food. For
                     // no-match items we show all (closest results); for AI matches
                     // we show only the valid set, so no Mentos/Listerine for mint.
+                    // `options` can be absent when an item had zero Kroger results
+                    // and the substitute search also came up empty — guard it.
+                    const opts = matched.options || []
                     const swapIdx = (matched.validIndices && matched.validIndices.length > 0)
                       ? matched.validIndices
-                      : matched.options.map((_, oi) => oi)
-                    if (!(swapIdx.length > 1 || matched.noMatch)) return null
+                      : opts.map((_, oi) => oi)
+                    if (!(swapIdx.length > 1 || (matched.noMatch && opts.length > 0))) return null
                     return (
                       <>
                         <div style={{ fontSize: 10, color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 4 }}>{matched.noMatch ? 'Closest results · tap if one fits' : `Swap · ${swapIdx.length} option${swapIdx.length !== 1 ? 's' : ''}`}</div>
