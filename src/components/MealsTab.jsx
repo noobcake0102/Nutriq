@@ -32,6 +32,7 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
   const [historyRating, setHistoryRating] = useState('all') // all | 5 | 4 | unrated
   const [cookbookTab, setCookbookTab] = useState('mine') // 'mine' | 'favorites'
   const [addingFav, setAddingFav] = useState(null) // id of favorite being saved
+  const [cookbookSearch, setCookbookSearch] = useState('') // search cookbook by name/ingredient
   const [cookForm, setCookForm] = useState({ name: '', meal_type: 'dinner', servings: '', ingredients: '', steps: '', calories: '', protein: '', carbs: '', fat: '' })
   const [savingCustom, setSavingCustom] = useState(false)
   const [importUrl, setImportUrl] = useState('')
@@ -70,8 +71,34 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
   const loadSavedMeals = async () => {
     setLoadingMeals(true)
     const { data } = await supa.from('saved_meals').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false })
-    if (data) { setSavedMeals(data); setThisWeek(data.filter(m => m.this_week)) }
+    if (data) {
+      const kept = await pruneStaleMeals(data)
+      setSavedMeals(kept); setThisWeek(kept.filter(m => m.this_week))
+    }
     setLoadingMeals(false)
+  }
+
+  // Auto-cleanup: delete AI-generated meals that are unrated, never cooked, not
+  // on this week's plan, and older than 60 days. Recipes the user intentionally
+  // added (custom, import, Nutriq favorites) are NEVER touched. Explained in the
+  // tutorial so users know unrated, unused generated meals expire.
+  const pruneStaleMeals = async (meals) => {
+    const SIXTY_DAYS_MS = 60 * 864e5
+    const cutoff = Date.now() - SIXTY_DAYS_MS
+    const isStale = m => {
+      if (m.source) return false            // custom / import / nutriq_favorite — keep
+      if (m.this_week) return false           // on the current plan — keep
+      if (m.rating) return false              // rated — keep
+      if (m.times_made > 0) return false       // cooked at least once — keep
+      const created = m.created_at ? new Date(m.created_at).getTime() : Date.now()
+      return created < cutoff                  // older than 60 days — prune
+    }
+    const staleIds = meals.filter(isStale).map(m => m.id)
+    if (staleIds.length === 0) return meals
+    try {
+      await supa.from('saved_meals').delete().in('id', staleIds)
+    } catch (e) { logError(e, { where: 'pruneStaleMeals', count: staleIds.length }) }
+    return meals.filter(m => !staleIds.includes(m.id))
   }
 
   const loadRatings = async () => {
@@ -596,16 +623,25 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
   if (view === 'history') {
     const types = ['all', ...new Set(savedMeals.map(m => m.meal_type).filter(Boolean))]
     const ratingMatch = m => historyRating === 'all' ? true : historyRating === 'unrated' ? !m.rating : m.rating >= +historyRating
+    // Search by recipe name OR any ingredient (e.g. "salmon", "beef", "orzo")
+    const q = cookbookSearch.trim().toLowerCase()
+    const searchMatch = m => {
+      if (!q) return true
+      if (m.name?.toLowerCase().includes(q)) return true
+      const ings = Array.isArray(m.ingredients) ? m.ingredients : []
+      return ings.some(ing => (typeof ing === 'string' ? ing : ing?.name || '').toLowerCase().includes(q))
+    }
     const filtered = savedMeals
       .filter(m => historyFilter === 'all' || m.meal_type === historyFilter)
       .filter(ratingMatch)
+      .filter(searchMatch)
       .sort((a, b) => (b.rating || 0) - (a.rating || 0))
 
-    // Nutriq Favorites filtered by type
+    // Nutriq Favorites filtered by type + search
     const favTypes = ['all', ...new Set(NUTRIQ_FAVORITES.map(f => f.meal_type))]
-    const filteredFavs = historyFilter === 'all'
-      ? NUTRIQ_FAVORITES
-      : NUTRIQ_FAVORITES.filter(f => f.meal_type === historyFilter)
+    const filteredFavs = NUTRIQ_FAVORITES
+      .filter(f => historyFilter === 'all' || f.meal_type === historyFilter)
+      .filter(searchMatch)
 
     return (
       <div className="page">
@@ -626,6 +662,20 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
             style={{ flex: 1, padding: '9px 0', borderRadius: 12, border: `1.5px solid ${cookbookTab === 'favorites' ? 'var(--plum3)' : 'var(--border)'}`, background: cookbookTab === 'favorites' ? 'var(--plumL)' : 'var(--card)', color: cookbookTab === 'favorites' ? 'var(--plum2)' : 'var(--muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',system-ui,sans-serif", transition: 'all .15s' }}>
             ⭐ Nutriq's Favorites
           </button>
+        </div>
+
+        {/* Search by name or ingredient (e.g. "salmon", "beef", "orzo") */}
+        <div style={{ position: 'relative', marginBottom: 12 }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2" strokeLinecap="round" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input
+            value={cookbookSearch}
+            onChange={e => setCookbookSearch(e.target.value)}
+            placeholder="Search by food — salmon, beef, orzo…"
+            style={{ paddingLeft: 36, fontSize: 14 }}
+          />
+          {cookbookSearch && (
+            <button onClick={() => setCookbookSearch('')} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--muted2)', lineHeight: 1, padding: 4 }}>×</button>
+          )}
         </div>
 
         {/* Type filter — shared across both tabs */}
@@ -650,7 +700,9 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
             ))}
           </div>
           {filtered.length === 0 ? (
-            <EmptyState emoji="📖" title="Your recipe book is empty" sub="Generate your first plan and every meal lands here — ready to reuse, rate, and cook again." cta="Plan this week" onCta={startFreshWeek} />
+            q
+              ? <EmptyState emoji="🔍" title={`No recipes match "${cookbookSearch}"`} sub="Try a different ingredient, or check Nutriq's Favorites for new ideas." />
+              : <EmptyState emoji="📖" title="Your recipe book is empty" sub="Generate your first plan and every meal lands here — ready to reuse, rate, and cook again." cta="Plan this week" onCta={startFreshWeek} />
           ) : filtered.map(m => (
             <div key={m.id} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 14, marginBottom: 8, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -682,6 +734,9 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
               <strong>Hand-picked by Nutriq</strong> — 48 of the most loved home recipes, curated for real families. Add any to your cookbook to rate, reuse, and send to pickup.
             </div>
           </div>
+          {filteredFavs.length === 0 && (
+            <EmptyState emoji="🔍" title={`No favorites match "${cookbookSearch}"`} sub="Try a different ingredient or clear the search." />
+          )}
           {filteredFavs.map(fav => {
             const alreadySaved = savedMeals.some(m => m.name === fav.name)
             const isAdding = addingFav === fav.id

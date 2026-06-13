@@ -206,6 +206,7 @@ export default function App() {
                   <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'white', position: 'absolute', top: 3, left: pantryEnabled ? 23 : 3, transition: 'left .2s' }} />
                 </button>
               </div>
+              <button className="acct-menu-item" onClick={() => { setShowAcctMenu(false); setTab('home'); setShowTour(true) }}>🧭 Replay tutorial</button>
               <a href="https://nutriqai.com/privacy" target="_blank" rel="noreferrer" className="acct-menu-item" style={{ textDecoration: 'none', color: 'var(--muted)' }}>📄 Privacy policy</a>
               <a href="https://nutriqai.com/terms" target="_blank" rel="noreferrer" className="acct-menu-item" style={{ textDecoration: 'none', color: 'var(--muted)' }}>📋 Terms of service</a>
               <div className="acct-divider" />
@@ -218,7 +219,7 @@ export default function App() {
 
       <AccountModals acctModal={acctModal} setAcctModal={setAcctModal} session={session} userName={userName} setUserName={setUserName} notify={notify} />
       {showPaywall && <PaywallModal generationsUsed={generationsUsed} onClose={() => setShowPaywall(false)} onSuccess={() => { setIsPaid(true); notify('Welcome to Nutriq Premium! 🎉') }} />}
-      {showTour && <WelcomeTour onClose={() => { setShowTour(false); DB.set('nq_seen_tour', true) }} />}
+      {showTour && <WelcomeTour onNavigate={setTab} onClose={() => { setShowTour(false); DB.set('nq_seen_tour', true) }} />}
 
       {tab === 'home'   && <HomeTab    pantry={pantry} goals={goals} weights={weights} meal={meal} macros={macros} setTab={setTab} userName={userName} notify={notify} />}
       {tab === 'scan'   && <ScannerTab pantry={pantry} setPantry={setPantry} savePantryItem={savePantryItem} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify} setTab={setTab} />}
