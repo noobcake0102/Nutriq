@@ -101,10 +101,11 @@ export async function buildRecipePdf(recipe) {
   })
 
   // ── Chef's tip ──
-  if (recipe.tip) {
+  const chefTip = recipe.tip || recipe.chef_tip
+  if (chefTip) {
     if (y > H - 120) { doc.addPage(); y = M }
     y += 6
-    const tipLines = doc.splitTextToSize(String(recipe.tip), W - M * 2 - 24)
+    const tipLines = doc.splitTextToSize(String(chefTip), W - M * 2 - 24)
     const boxH = tipLines.length * 13 + 34
     doc.setFillColor(243, 235, 253)
     doc.roundedRect(M, y, W - M * 2, boxH, 8, 8, 'F')

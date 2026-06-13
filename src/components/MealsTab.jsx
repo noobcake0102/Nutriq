@@ -474,8 +474,12 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
           <div className="card-title">Ingredients</div>
           {(activeRecipe.ingredients || []).map((ing, i) => (
             <div key={i} style={{ display: 'flex', gap: 12, padding: '7px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
-              <span style={{ fontWeight: 500, color: 'var(--plum2)', minWidth: 80, flexShrink: 0 }}>{ing.amount}</span>
-              <span style={{ color: 'var(--text)' }}>{ing.name}</span>
+              {typeof ing === 'string'
+                ? <span style={{ color: 'var(--text)' }}>{ing}</span>
+                : <>
+                    <span style={{ fontWeight: 500, color: 'var(--plum2)', minWidth: 80, flexShrink: 0 }}>{ing.amount}</span>
+                    <span style={{ color: 'var(--text)' }}>{ing.name}</span>
+                  </>}
             </div>
           ))}
         </div>
@@ -488,13 +492,13 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
             </div>
           ))}
         </div>
-        {activeRecipe.tip && (
+        {(activeRecipe.tip || activeRecipe.chef_tip) && (
           <div className="card" style={{ marginBottom: 14, background: 'var(--plumLL)', border: '1px solid var(--plum3)22' }}>
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
               <span style={{ fontSize: 20 }}>👨‍🍳</span>
               <div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--plum2)', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 3 }}>Chef's tip</div>
-                <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6 }}>{activeRecipe.tip}</div>
+                <div style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.6 }}>{activeRecipe.tip || activeRecipe.chef_tip}</div>
               </div>
             </div>
           </div>
