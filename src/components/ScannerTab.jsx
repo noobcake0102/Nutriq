@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { lookupBarcode, FD } from '../lib/barcode.js'
 import { CAT_ICON, I } from './Icons.jsx'
 
-export default function ScannerTab({ pantry, setPantry, savePantryItem, deletePantryItem, updatePantryQty, notify, setTab }) {
+export default function ScannerTab({ pantry, setPantry, savePantryItem, deletePantryItem, updatePantryQty, notify, onBack }) {
   const [mode, setMode] = useState('add')
   const [scanning, setScanning] = useState(false)
   const [code, setCode] = useState('')
@@ -91,7 +91,7 @@ export default function ScannerTab({ pantry, setPantry, savePantryItem, deletePa
 
   return (
     <div className="page">
-      <button className="btn-sm" onClick={() => setTab && setTab('pantry')} style={{ marginBottom: 14, background: 'none', border: '1px solid var(--border)', color: 'var(--muted)' }}>← Back to pantry</button>
+      <button className="btn-sm" onClick={onBack} style={{ marginBottom: 14, background: 'none', border: '1px solid var(--border)', color: 'var(--muted)' }}>← Back to pantry</button>
       <div className="page-label">Scanner</div>
       <h1 className="page-title">Add or use items</h1>
       <div className="seg">

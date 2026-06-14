@@ -1,6 +1,6 @@
 import { du } from '../constants.js'
 
-export default function HomeTab({ pantry, goals, weights, weekMeals = [], macros, setTab, userName, notify }) {
+export default function HomeTab({ pantry, goals, weights, weekMeals = [], macros, setTab, onScan, userName, notify }) {
   const latest = weights.length > 0 ? weights[weights.length - 1].weight : null
   const startWeight = weights.length > 0 ? weights[0].weight : null
   const weightChange = latest && startWeight ? (latest - startWeight).toFixed(1) : null
@@ -107,7 +107,7 @@ export default function HomeTab({ pantry, goals, weights, weekMeals = [], macros
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
         <button className="btn-full" onClick={() => setTab('meals')} style={{ padding: 14, fontSize: 14 }}>Generate meal plan</button>
-        <button className="btn-full blue" onClick={() => setTab('scan')} style={{ padding: 14, fontSize: 14 }}>Scan item</button>
+        <button className="btn-full blue" onClick={onScan} style={{ padding: 14, fontSize: 14 }}>Scan item</button>
       </div>
 
       {!hasMeal && (
