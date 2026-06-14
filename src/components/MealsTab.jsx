@@ -882,7 +882,7 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
       {celebrate && <Celebration message="Your week is planned! 🌸" onDone={() => setCelebrate(false)} />}
       <div className="page-label">AI Planner</div>
       <h1 className="page-title">Meals</h1>
-      <div className="seg" style={{ marginBottom: 20 }}>
+      <div className="seg" data-tour="meals-seg" style={{ marginBottom: 20 }}>
         <button className="seg-btn on">This week</button>
         <button className="seg-btn" onClick={() => setView('history')}>Cookbook {savedMeals.length > 0 && `(${savedMeals.length})`}</button>
       </div>
@@ -924,7 +924,7 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
         <EmptyState emoji="🌸" title="A fresh week awaits" sub="Tell us what you're craving and we'll build a week of meals around your pantry and goals — then send it to grocery pickup." />
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-        <button className="btn-full" onClick={startFreshWeek}>
+        <button className="btn-full" data-tour="plan-week" onClick={startFreshWeek}>
           {thisWeek.length > 0 ? 'Plan a fresh week →' : 'Plan this week →'}
         </button>
         {thisWeek.length > 0 && (

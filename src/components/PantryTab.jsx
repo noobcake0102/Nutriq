@@ -29,7 +29,7 @@ export default function PantryTab({ pantry, setPantry, deletePantryItem, updateP
           <div className="page-label">Inventory</div>
           <h1 className="page-title">Your pantry</h1>
         </div>
-        <button className="btn-sm" onClick={() => setTab && setTab('scan')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', marginTop: 4 }}>
+        <button className="btn-sm" data-tour="pantry-scan" onClick={() => setTab && setTab('scan')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', marginTop: 4 }}>
           <span style={{ width: 15, height: 15, display: 'inline-block' }}>{I.scan('#6b2fa0')}</span> Scan
         </button>
       </div>

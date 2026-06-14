@@ -187,7 +187,7 @@ export default function App() {
         </div>
         <div className="hdr-right" style={{ position: 'relative' }}>
           {exp.length > 0 && <div className="expiry-chip" onClick={() => setTab('pantry')} style={{ cursor: 'pointer' }}><div className="expiry-dot" />{exp.length} expiring</div>}
-          <button className="acct-btn" onClick={() => setShowAcctMenu(m => !m)}>{userName ? userName[0].toUpperCase() : '?'}</button>
+          <button className="acct-btn" data-tour="acct-btn" onClick={() => setShowAcctMenu(m => !m)}>{userName ? userName[0].toUpperCase() : '?'}</button>
           {showAcctMenu && (<>
             <div className="acct-overlay" onClick={() => setShowAcctMenu(false)} />
             <div className="acct-dropdown">
@@ -229,7 +229,7 @@ export default function App() {
       {tab === 'goals'  && <GoalsTab   goals={goals} setGoals={setGoals} weights={weights} setWeights={setWeights} macros={macros} tdee={tdee} bmr={bmr} logWeight={logWeight} saveGoals={saveGoals} notify={notify} />}
 
       <div className="nav">
-        {TABS.map(t => <button key={t.id} className={`nb${navActive === t.id ? ' on' : ''}`} onClick={() => setTab(t.id)}>{t.icon(navActive === t.id)}<span>{t.label}</span></button>)}
+        {TABS.map(t => <button key={t.id} data-tour={`nav-${t.id}`} className={`nb${navActive === t.id ? ' on' : ''}`} onClick={() => setTab(t.id)}>{t.icon(navActive === t.id)}<span>{t.label}</span></button>)}
       </div>
 
       {toast && <div className={`toast${toast.type === 'err' ? ' err' : ''}`}>{toast.msg}</div>}
