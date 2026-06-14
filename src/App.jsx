@@ -167,6 +167,12 @@ export default function App() {
   // Highlight the Pantry nav item while the Scan sub-view is open
   const navActive = tab === 'scan' ? 'pantry' : tab
 
+  // Preview hook: open the standalone tour with ?tour=1 (no login needed). The
+  // tour is fully self-contained (mock screens), so it renders anywhere.
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tour') === '1') {
+    return <WelcomeTour onClose={() => { window.history.replaceState({}, '', '/'); window.location.reload() }} />
+  }
+
   if (session === undefined) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--cream)' }}>
       <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}><BloomLogo size={72} /><div style={{ color: 'var(--muted)', fontSize: 14 }}>Loading...</div></div>
