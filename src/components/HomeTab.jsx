@@ -1,15 +1,13 @@
 import { du } from '../constants.js'
 
-export default function HomeTab({ pantry, goals, weights, meal, macros, setTab, userName, notify }) {
+export default function HomeTab({ pantry, goals, weights, weekMeals = [], macros, setTab, userName, notify }) {
   const latest = weights.length > 0 ? weights[weights.length - 1].weight : null
   const startWeight = weights.length > 0 ? weights[0].weight : null
   const weightChange = latest && startWeight ? (latest - startWeight).toFixed(1) : null
   const toGoal = latest && goals.goalWeight ? (latest - goals.goalWeight).toFixed(1) : null
   const expiring = pantry.filter(i => { const d = du(i.expiry); return d !== null && d <= 3 })
-  const hasMeal = meal && meal.days && meal.days.length > 0
-  const todayMeals = hasMeal ? meal.days[0] : null
-  const mealsPlanned = hasMeal ? meal.days.length * 4 : 0
-  const estimatedSavings = mealsPlanned * 8
+  const hasMeal = weekMeals.length > 0
+  const estimatedSavings = weekMeals.length * 8
   const greeting = () => { const h = new Date().getHours(); if (h < 12) return 'Good morning'; if (h < 17) return 'Good afternoon'; return 'Good evening' }
 
   return (
@@ -33,7 +31,7 @@ export default function HomeTab({ pantry, goals, weights, meal, macros, setTab, 
         <div className="card" style={{ margin: 0, cursor: 'pointer' }} onClick={() => setTab('meals')}>
           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Meal plan</div>
           {hasMeal ? (<>
-            <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 28, fontWeight: 600, color: 'var(--plum)', lineHeight: 1 }}>{meal.days.length}<span style={{ fontSize: 13, fontWeight: 400, color: 'var(--muted)' }}> days</span></div>
+            <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 28, fontWeight: 600, color: 'var(--plum)', lineHeight: 1 }}>{weekMeals.length}<span style={{ fontSize: 13, fontWeight: 400, color: 'var(--muted)' }}> meals</span></div>
             <div style={{ fontSize: 12, color: 'var(--sage)', marginTop: 4, fontWeight: 500 }}>Plan ready</div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{macros.calories} kcal target</div>
           </>) : (<>
@@ -55,16 +53,16 @@ export default function HomeTab({ pantry, goals, weights, meal, macros, setTab, 
         </div>
       </div>
 
-      {todayMeals && (
+      {hasMeal && (
         <div className="card" style={{ marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div className="card-title" style={{ margin: 0 }}>Today's meals</div>
+            <div className="card-title" style={{ margin: 0 }}>This week's meals</div>
             <button className="btn-sm" onClick={() => setTab('meals')} style={{ fontSize: 11, padding: '4px 10px' }}>Full plan</button>
           </div>
-          {Object.entries(todayMeals.meals || {}).map(([type, m]) => (
-            <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+          {weekMeals.slice(0, 4).map((m, idx) => (
+            <div key={m.id || idx} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
               <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--plumLL)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <div style={{ fontSize: 9, fontWeight: 500, color: 'var(--plum2)', textTransform: 'uppercase', letterSpacing: .5, textAlign: 'center', lineHeight: 1.3 }}>{type}</div>
+                <div style={{ fontSize: 9, fontWeight: 500, color: 'var(--plum2)', textTransform: 'uppercase', letterSpacing: .5, textAlign: 'center', lineHeight: 1.3 }}>{(m.meal_type || 'meal').replace(/_/g, ' ')}</div>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 15, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</div>
@@ -72,6 +70,7 @@ export default function HomeTab({ pantry, goals, weights, meal, macros, setTab, 
               </div>
             </div>
           ))}
+          {weekMeals.length > 4 && <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center', paddingTop: 10 }}>+{weekMeals.length - 4} more this week</div>}
         </div>
       )}
 

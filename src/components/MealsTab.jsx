@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supa } from '../lib/supabase.js'
 import { streamClaude } from '../lib/claude.js'
 import { CUISINES, MEAL_TYPES, MEAL_TYPE_LABELS } from '../constants.js'
@@ -11,7 +11,7 @@ import { buildRecipePdf } from '../lib/recipePdf.js'
 import { shareRecipePdf } from '../lib/share.js'
 import { NUTRIQ_FAVORITES } from '../data/nutriqFavorites.js'
 
-export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop, setTab, notify, session, isPaid, generationsUsed, onShowPaywall, onGenerate }) {
+export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop, setTab, notify, session, isPaid, generationsUsed, onShowPaywall, onGenerate, onWeekChange }) {
   const [view, setView] = useState('plan')
   const [phase, setPhase] = useState('prefs')
   const [showPrefs, setShowPrefs] = useState(false)
@@ -67,6 +67,14 @@ export default function MealsTab({ pantry, goals, macros, meal, setMeal, setShop
     loadSavedMeals()
     loadRatings()
   }, [session])
+
+  // Keep the Home dashboard in sync with this week's plan. Skip the initial
+  // mount (thisWeek is still empty then) so we don't clobber App's loaded value.
+  const didMountWeek = useRef(false)
+  useEffect(() => {
+    if (!didMountWeek.current) { didMountWeek.current = true; return }
+    onWeekChange?.(thisWeek)
+  }, [thisWeek])
 
   const loadSavedMeals = async () => {
     setLoadingMeals(true)

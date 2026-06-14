@@ -30,6 +30,7 @@ export default function App() {
   const [goals, setGoals] = useState(() => DB.get('nq_g', DG))
   const [weights, setWeights] = useState(() => DB.get('nq_w', []))
   const [meal, setMeal] = useState(() => DB.get('nq_m', null))
+  const [weekMeals, setWeekMeals] = useState(() => DB.get('nq_week', [])) // this week's planned meals (shared by Home + Meals)
   const [shop, setShop] = useState(() => DB.get('nq_s', []))
   const [toast, setToast] = useState(null)
   const [showAcctMenu, setShowAcctMenu] = useState(false)
@@ -114,7 +115,18 @@ export default function App() {
     if (g) setGoals({ weight: g.weight, goalWeight: g.goal_weight, height: g.height, age: g.age, sex: g.sex, activity: g.activity, goalType: g.goal_type, diet: g.diet, allergies: g.allergies || [], householdSize: g.household_size, meal_cuisines: g.meal_cuisines || [], meal_preferences: g.meal_preferences || {} })
     if (data.household_id) loadPantry(data.household_id)
     loadWeights(uid)
+    loadWeekMeals(uid)
   }
+
+  // This week's plan — the SAME source the Meals tab uses (saved_meals flagged
+  // this_week), so the Home dashboard always reflects what you've actually planned.
+  const loadWeekMeals = async uid => {
+    const { data } = await supa.from('saved_meals').select('*').eq('user_id', uid).eq('this_week', true)
+    if (data) { setWeekMeals(data); DB.set('nq_week', data) }
+  }
+
+  // Called by the Meals tab whenever the week changes, keeping Home in sync.
+  const syncWeekMeals = list => { setWeekMeals(list); DB.set('nq_week', list) }
 
   const loadPantry = async hid => {
     const { data } = await supa.from('pantry_items').select('*').eq('household_id', hid).order('created_at', { ascending: false })
@@ -227,10 +239,10 @@ export default function App() {
       {showPaywall && <PaywallModal generationsUsed={generationsUsed} onClose={() => setShowPaywall(false)} onSuccess={() => { setIsPaid(true); notify('Welcome to Nutriq Premium! 🎉') }} />}
       {showTour && <WelcomeTour onNavigate={setTab} onClose={() => { setShowTour(false); DB.set('nq_seen_tour', true) }} />}
 
-      {tab === 'home'   && <HomeTab    pantry={pantry} goals={goals} weights={weights} meal={meal} macros={macros} setTab={setTab} userName={userName} notify={notify} />}
+      {tab === 'home'   && <HomeTab    pantry={pantry} goals={goals} weights={weights} weekMeals={weekMeals} macros={macros} setTab={setTab} userName={userName} notify={notify} />}
       {tab === 'scan'   && <ScannerTab pantry={pantry} setPantry={setPantry} savePantryItem={savePantryItem} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify} setTab={setTab} />}
       {tab === 'pantry' && <PantryTab  pantry={pantry} setPantry={setPantry} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify} setTab={setTab} />}
-      {tab === 'meals'  && <MealsTab   pantry={pantry} goals={goals} macros={macros} meal={meal} setMeal={setMeal} setShop={setShop} setTab={setTab} notify={notify} session={session} isPaid={isPaid} generationsUsed={generationsUsed} onShowPaywall={() => setShowPaywall(true)} onGenerate={incrementGenerations} />}
+      {tab === 'meals'  && <MealsTab   pantry={pantry} goals={goals} macros={macros} meal={meal} setMeal={setMeal} setShop={setShop} setTab={setTab} notify={notify} session={session} isPaid={isPaid} generationsUsed={generationsUsed} onShowPaywall={() => setShowPaywall(true)} onGenerate={incrementGenerations} onWeekChange={syncWeekMeals} />}
       {tab === 'shop'   && <ShopTab    shop={shop} notify={notify} session={session} preferredStore={preferredStore} setTab={setTab} />}
       {tab === 'goals'  && <GoalsTab   goals={goals} setGoals={setGoals} weights={weights} setWeights={setWeights} macros={macros} tdee={tdee} bmr={bmr} logWeight={logWeight} saveGoals={saveGoals} notify={notify} />}
 
