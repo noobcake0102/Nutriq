@@ -579,7 +579,7 @@ OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no ex
           )
         })}
         {/* ── Manual / staple items ── */}
-        <div style={{ marginTop: 20, marginBottom: 4 }}>
+        <div data-tour="shop-add" style={{ marginTop: 20, marginBottom: 4 }}>
           <div className="section-label" style={{ marginBottom: 10 }}>Add to list</div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
             <input

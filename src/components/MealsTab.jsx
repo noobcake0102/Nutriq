@@ -618,7 +618,7 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
               <input type="number" value={cookForm.fat} onChange={e => cf('fat', e.target.value)} placeholder="Fat g" />
             </div>
           </div>
-          <button className="btn-full" style={{ marginTop: 16 }} onClick={saveCustomRecipe} disabled={savingCustom}>{savingCustom ? 'Saving…' : 'Save to my cookbook'}</button>
+          <button className="btn-full" data-tour="save-recipe" style={{ marginTop: 16 }} onClick={saveCustomRecipe} disabled={savingCustom}>{savingCustom ? 'Saving…' : 'Save to my cookbook'}</button>
         </div>
       </div>
     )
@@ -695,7 +695,7 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
         {cookbookTab === 'mine' && (<>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div style={{ fontSize: 13, color: 'var(--muted)' }}>{savedMeals.length} saved meal{savedMeals.length !== 1 ? 's' : ''}</div>
-            <button className="btn-sm" onClick={() => setView('createRecipe')}>+ Add your own</button>
+            <button className="btn-sm" data-tour="add-own" onClick={() => setView('createRecipe')}>+ Add your own</button>
           </div>
           {/* Rating filter */}
           <div className="chips" style={{ marginBottom: 16 }}>
@@ -794,7 +794,7 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
               <div className="section-label" style={{ marginBottom: 8 }}>Cuisine preferences</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>{CUISINES.map(c => <button key={c} className={`chip${cuisines.includes(c) ? ' on' : ''}`} onClick={() => toggleCuisine(c)}>{c}</button>)}</div>
               <div className="section-label" style={{ marginBottom: 8 }}>What do you need this week?</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div data-tour="meal-types" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {MEAL_TYPES.map(t => (
                   <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <button className={`chip${mealPrefs[t] ? ' on' : ''}`} style={{ flex: 1, textAlign: 'left', borderRadius: 10 }} onClick={() => toggleMealType(t)}>{t}</button>
@@ -816,7 +816,7 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
             {generationsUsed >= FREE_GENERATION_LIMIT && <span style={{ color: 'var(--plum2)', fontWeight: 500, cursor: 'pointer' }} onClick={onShowPaywall}>Upgrade →</span>}
           </div>
         )}
-        <button className="btn-generate" onClick={() => { setReuseSelected([]); setPhase('reuse') }} disabled={!hasMealPrefs}>
+        <button className="btn-generate" data-tour="prefs-next" onClick={() => { setReuseSelected([]); setPhase('reuse') }} disabled={!hasMealPrefs}>
           Next: reuse your saved meals →
         </button>
         {!hasMealPrefs && <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', marginTop: 8 }}>Set preferences above to get started</p>}
@@ -869,7 +869,7 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
           <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', marginBottom: 8 }}>
             Reusing {reuseSelected.length} · generating {totalRemaining} more
           </div>
-          <button className="btn-generate" style={{ marginBottom: 0 }} onClick={generate} disabled={!hasMealPrefs}>
+          <button className="btn-generate" data-tour="generate-btn" style={{ marginBottom: 0 }} onClick={generate} disabled={!hasMealPrefs}>
             {totalRemaining === 0 ? 'Finish week — all reused →' : (!isPaid && generationsUsed >= FREE_GENERATION_LIMIT ? '🔒 Upgrade to generate' : `Generate ${totalRemaining} new meal${totalRemaining !== 1 ? 's' : ''} →`)}
           </button>
         </div>
@@ -884,12 +884,12 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
       <h1 className="page-title">Meals</h1>
       <div className="seg" data-tour="meals-seg" style={{ marginBottom: 20 }}>
         <button className="seg-btn on">This week</button>
-        <button className="seg-btn" onClick={() => setView('history')}>Cookbook {savedMeals.length > 0 && `(${savedMeals.length})`}</button>
+        <button className="seg-btn" data-tour="open-cookbook" onClick={() => setView('history')}>Cookbook {savedMeals.length > 0 && `(${savedMeals.length})`}</button>
       </div>
       {thisWeek.length > 0 ? (<>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ fontSize: 13, color: 'var(--muted)' }}>{thisWeek.length} meal{thisWeek.length !== 1 ? 's' : ''} planned</div>
-          <button className="btn-sm" onClick={() => { buildShoppingList(thisWeek); setTab('shop') }}>Order ingredients</button>
+          <button className="btn-sm" data-tour="order-ingredients" onClick={() => { buildShoppingList(thisWeek); setTab('shop') }}>Order ingredients</button>
         </div>
         {thisWeek.filter(m => !m.rating).length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'var(--sageL)', border: '1px solid var(--sage)33', borderRadius: 12, marginBottom: 12 }}>
