@@ -172,11 +172,11 @@ export default function App() {
   // Bottom nav. Scan is reachable from inside Pantry (it's how you add items),
   // so it isn't a top-level tab — keeps the bar to a clean 5.
   const TABS = [
-    { id: 'home', label: 'Home', icon: on => <svg viewBox="0 0 24 24" fill="none" stroke={on ? '#4a1a6e' : '#c0b0d0'} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg> },
-    { id: 'pantry', label: 'Pantry', icon: on => I.pantry(on ? '#4a1a6e' : '#c0b0d0') },
-    { id: 'meals', label: 'Meals', icon: on => I.meals(on ? '#4a1a6e' : '#c0b0d0') },
-    { id: 'shop', label: 'Shop', icon: on => I.shop(on ? '#4a1a6e' : '#c0b0d0') },
-    { id: 'goals', label: 'Goals', icon: on => I.goals(on ? '#4a1a6e' : '#c0b0d0') },
+    { id: 'home', label: 'Home', icon: on => <svg viewBox="0 0 24 24" fill="none" stroke={on ? '#C9BEEA' : '#7C79A0'} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg> },
+    { id: 'pantry', label: 'Pantry', icon: on => I.pantry(on ? '#C9BEEA' : '#7C79A0') },
+    { id: 'meals', label: 'Meals', icon: on => I.meals(on ? '#C9BEEA' : '#7C79A0') },
+    { id: 'shop', label: 'Shop', icon: on => I.shop(on ? '#C9BEEA' : '#7C79A0') },
+    { id: 'goals', label: 'Goals', icon: on => I.goals(on ? '#C9BEEA' : '#7C79A0') },
   ]
   // Highlight the Pantry nav item while the Scan sub-view is open
   const navActive = tab

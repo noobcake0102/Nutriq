@@ -501,7 +501,7 @@ OUTPUT: ONLY a raw JSON object, nothing else — no prose, no code fences, no ex
                 {item.priority === 'high' && !checked[i] && <span className="urgent-tag">urgent</span>}
               </div>
               {matched && !checked[i] && (
-                <div style={{ background: matched.noMatch ? '#fef7ed' : 'var(--warm)', borderTop: '1px solid var(--border)', padding: '8px 14px 10px' }}>
+                <div style={{ background: matched.noMatch ? '#33291a' : 'var(--warm)', borderTop: '1px solid var(--border)', padding: '8px 14px 10px' }}>
                   {matched.noMatch ? (
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
                       <span style={{ fontSize: 16, lineHeight: 1.2 }}>⚠️</span>

@@ -61,7 +61,7 @@ export default function PaywallModal({ onClose, onSuccess, generationsUsed = 0 }
         {/* Paid plans */}
         {PLANS.map((plan, i) => (
           <div key={plan.id} style={{ background: i === 0 ? 'var(--plumLL)' : 'var(--card)', border: `1.5px solid ${i === 0 ? 'var(--plum2)' : 'var(--border)'}`, borderRadius: 14, padding: '14px 16px', marginBottom: 10, position: 'relative' }}>
-            {plan.badge && <div style={{ position: 'absolute', top: -10, left: 16, background: 'var(--plum2)', color: '#fff', fontSize: 10, fontWeight: 600, padding: '2px 10px', borderRadius: 20, letterSpacing: .5 }}>{plan.badge}</div>}
+            {plan.badge && <div style={{ position: 'absolute', top: -10, left: 16, background: 'var(--plum3)', color: '#1E1C35', fontSize: 10, fontWeight: 600, padding: '2px 10px', borderRadius: 20, letterSpacing: .5 }}>{plan.badge}</div>}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <div>
                 <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)' }}>{plan.name}</div>
@@ -81,7 +81,7 @@ export default function PaywallModal({ onClose, onSuccess, generationsUsed = 0 }
             <button
               onClick={() => handlePurchase(plan.id)}
               disabled={!!loading}
-              style={{ width: '100%', background: i === 0 ? 'linear-gradient(135deg,var(--plum2),var(--plum))' : 'var(--warm)', border: i === 0 ? 'none' : '1px solid var(--border)', borderRadius: 10, padding: '11px', color: i === 0 ? '#fff' : 'var(--plum2)', fontSize: 14, fontWeight: 500, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans',system-ui,sans-serif", opacity: loading && loading !== plan.id ? 0.5 : 1, transition: 'opacity .15s' }}>
+              style={{ width: '100%', background: i === 0 ? 'var(--grad)' : 'var(--warm)', border: i === 0 ? 'none' : '1px solid var(--border)', borderRadius: 10, padding: '11px', color: i === 0 ? '#fff' : 'var(--plum2)', fontSize: 14, fontWeight: 500, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans',system-ui,sans-serif", opacity: loading && loading !== plan.id ? 0.5 : 1, transition: 'opacity .15s' }}>
               {loading === plan.id ? <span className="spin" style={i === 0 ? {} : { borderTopColor: 'var(--plum)', borderColor: 'var(--plum3)44' }} /> : `Get ${plan.name}`}
             </button>
           </div>

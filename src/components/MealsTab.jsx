@@ -564,7 +564,7 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
                 <div className="opt-card-desc">{opt.description}</div>
                 <div className="opt-macros">{[`${opt.calories} cal`, `P ${opt.protein}g`, `C ${opt.carbs}g`, `F ${opt.fat}g`].map(t => <span key={t} className="opt-macro">{t}</span>)}</div>
                 {opt.uses_pantry?.length > 0 && <div className="opt-pantry">Uses: {opt.uses_pantry.slice(0, 3).join(', ')}</div>}
-                {isSelected && <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--plum2)', fontSize: 12, fontWeight: 500 }}><div style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--plum2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: 'white' }}>✓</div>Selected</div>}
+                {isSelected && <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--plum2)', fontSize: 12, fontWeight: 500 }}><div style={{ width: 16, height: 16, borderRadius: '50%', background: 'var(--plum2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#1E1C35' }}>✓</div>Selected</div>}
               </div>
             )
           })}
@@ -722,7 +722,7 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
                   <div style={{ fontSize: 10, color: 'var(--rose)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1 }}>{(m.meal_type || '').replace(/_/g, ' ')}</div>
                   {m.source === 'custom' && <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--plum2)', background: 'var(--plumL)', borderRadius: 5, padding: '1px 6px' }}>YOURS</span>}
                   {m.source === 'import' && <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--sage)', background: 'var(--sageL)', borderRadius: 5, padding: '1px 6px' }}>IMPORTED</span>}
-                  {m.source === 'nutriq_favorite' && <span style={{ fontSize: 9, fontWeight: 600, color: '#b07d24', background: '#f7edd7', borderRadius: 5, padding: '1px 6px' }}>NUTRIQ ★</span>}
+                  {m.source === 'nutriq_favorite' && <span style={{ fontSize: 9, fontWeight: 600, color: '#E0C050', background: '#33301a', borderRadius: 5, padding: '1px 6px' }}>NUTRIQ ★</span>}
                 </div>
                 <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 17, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>{m.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>{m.calories} cal · P {m.protein}g · C {m.carbs}g · F {m.fat}g</div>
@@ -740,9 +740,9 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
 
         {/* ── NUTRIQ'S FAVORITES TAB ── */}
         {cookbookTab === 'favorites' && (<>
-          <div style={{ background: 'linear-gradient(135deg, #f7edd7, #fdf5e6)', border: '1px solid #e8d5a0', borderRadius: 14, padding: '12px 14px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <div style={{ background: 'linear-gradient(135deg, #33301a, #2a2718)', border: '1px solid #6b5a2455', borderRadius: 14, padding: '12px 14px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
             <span style={{ fontSize: 20, flexShrink: 0 }}>⭐</span>
-            <div style={{ fontSize: 13, color: '#7a5c1e', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 13, color: '#d8c98a', lineHeight: 1.5 }}>
               <strong>Hand-picked by Nutriq</strong> — 48 of the most loved home recipes, curated for real families. Add any to your cookbook to rate, reuse, and send to pickup.
             </div>
           </div>
@@ -757,12 +757,12 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                     <div style={{ fontSize: 10, color: 'var(--rose)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1 }}>{fav.meal_type.replace(/_/g, ' ')}</div>
-                    <span style={{ fontSize: 9, fontWeight: 600, color: '#b07d24', background: '#f7edd7', borderRadius: 5, padding: '1px 6px' }}>NUTRIQ ★</span>
+                    <span style={{ fontSize: 9, fontWeight: 600, color: '#E0C050', background: '#33301a', borderRadius: 5, padding: '1px 6px' }}>NUTRIQ ★</span>
                   </div>
                   <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 17, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>{fav.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4, lineHeight: 1.4 }}>{fav.description}</div>
                   <div style={{ fontSize: 11, color: 'var(--muted)' }}>{fav.calories} cal · P {fav.protein}g · C {fav.carbs}g · F {fav.fat}g</div>
-                  <div style={{ fontSize: 11, color: '#b07d24', marginTop: 3 }}>★★★★★ Community favorite</div>
+                  <div style={{ fontSize: 11, color: '#E0C050', marginTop: 3 }}>★★★★★ Community favorite</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flexShrink: 0 }}>
                   <button className="btn-sm" onClick={() => generateRecipe(fav)} style={{ background: 'none', borderColor: 'var(--border)' }}>Recipe</button>
@@ -786,7 +786,7 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
       <div className="page">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 20 }} onClick={() => setView('plan')}>←</button>
-          <div><div className="page-label">New meals</div><h1 className="page-title" style={{ marginBottom: 0 }}>Generate options</h1></div>
+          <div><div className="page-label">New meals</div><h1 className="page-title" style={{ marginBottom: 0 }}>Plan your week</h1></div>
         </div>
         {savedRatings.length > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', background: 'var(--sageL)', borderRadius: 10, marginBottom: 12, fontSize: 12, color: 'var(--sage)' }}><span>★</span><span>Using {savedRatings.length} ratings to personalize your options</span></div>}
         <div className="card" style={{ marginBottom: 14 }}>
@@ -818,69 +818,55 @@ Ingredient "name" must be grocery-specific (the exact phrase a shopper searches)
             </div>
           )}
         </div>
+        {/* Reuse from cookbook — inline + optional, only for returning users who
+            actually have saved meals matching the types they picked. */}
+        {savedMeals.length > 0 && hasMealPrefs && mealTypeKeys.some(l => savedMeals.some(m => m.meal_type === typeKeyFor(l))) && (
+          <div style={{ marginBottom: 14 }}>
+            <div className="section-label" style={{ marginBottom: 8 }}>Reuse from your cookbook <span style={{ color: 'var(--muted2)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· optional, we'll only generate what's left</span></div>
+            {mealTypeKeys.map(label => {
+              const key = typeKeyFor(label)
+              const pool = savedMeals.filter(m => m.meal_type === key)
+              const filled = reusedCountForType(label)
+              const needed = mealPrefs[label] || 0
+              if (pool.length === 0) return null
+              return (
+                <div key={label} className="card" style={{ marginBottom: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <div style={{ fontWeight: 500, fontSize: 14, color: 'var(--plum)' }}>{label}</div>
+                    <div style={{ fontSize: 12, color: filled >= needed ? 'var(--sage)' : 'var(--muted)' }}>{filled} of {needed} filled</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {pool.map(m => {
+                      const on = reuseSelected.includes(m.id)
+                      const blocked = !on && filled >= needed
+                      return (
+                        <button key={m.id} disabled={blocked} onClick={() => toggleReuse(m.id)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, background: on ? 'var(--plumLL)' : 'var(--card)', border: `1px solid ${on ? 'var(--plum3)' : 'var(--border)'}`, borderRadius: 12, padding: '10px 12px', cursor: blocked ? 'not-allowed' : 'pointer', opacity: blocked ? 0.4 : 1, textAlign: 'left', fontFamily: "'DM Sans',system-ui,sans-serif" }}>
+                          <div style={{ width: 18, height: 18, borderRadius: '50%', border: `1.5px solid ${on ? 'var(--plum2)' : 'var(--border2)'}`, background: on ? 'var(--plum2)' : 'transparent', color: '#1E1C35', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{on ? '✓' : ''}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{m.name}</div>
+                            <div style={{ fontSize: 11, color: 'var(--muted)' }}>{m.calories} cal · P {m.protein}g{m.rating ? ` · ${'★'.repeat(m.rating)}` : ''}</div>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
         {!isPaid && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8, fontSize: 12, color: generationsUsed >= FREE_GENERATION_LIMIT ? 'var(--red)' : 'var(--muted)' }}>
             <span>{generationsUsed}/{FREE_GENERATION_LIMIT} free plans used this month</span>
             {generationsUsed >= FREE_GENERATION_LIMIT && <span style={{ color: 'var(--plum2)', fontWeight: 500, cursor: 'pointer' }} onClick={onShowPaywall}>Upgrade →</span>}
           </div>
         )}
-        <button className="btn-generate" data-tour="prefs-next" onClick={() => { setReuseSelected([]); setPhase('reuse') }} disabled={!hasMealPrefs}>
-          Next: reuse your saved meals →
+        {reuseSelected.length > 0 && <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>Reusing {reuseSelected.length} · generating {totalRemaining} new</div>}
+        <button className="btn-generate" data-tour="generate-btn" onClick={generate} disabled={!hasMealPrefs}>
+          {!hasMealPrefs ? 'Generate my week →' : totalRemaining === 0 ? 'Finish week — all reused →' : (!isPaid && generationsUsed >= FREE_GENERATION_LIMIT ? '🔒 Upgrade to generate' : `Generate ${totalRemaining} meal${totalRemaining !== 1 ? 's' : ''} →`)}
         </button>
-        {!hasMealPrefs && <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', marginTop: 8 }}>Set preferences above to get started</p>}
-      </div>
-    )
-  }
-
-  // ── REUSE SAVED MEALS VIEW (step 2 of the weekly flow) ──
-  if (view === 'generate' && phase === 'reuse') {
-    return (
-      <div className="page">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 20 }} onClick={() => setPhase('prefs')}>←</button>
-          <div><div className="page-label">Step 2 of 3</div><h1 className="page-title" style={{ marginBottom: 0 }}>Reuse saved meals</h1></div>
-        </div>
-        <p className="page-sub">Fill this week from meals you've saved. We'll only generate what's left.</p>
-        {savedMeals.length === 0 && <div style={{ background: 'var(--plumLL)', border: '1px solid var(--plum3)22', borderRadius: 12, padding: 14, fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>No saved meals yet — your first generated meals will land here for reuse next week.</div>}
-        {mealTypeKeys.map(label => {
-          const key = typeKeyFor(label)
-          const pool = savedMeals.filter(m => m.meal_type === key)
-          const filled = reusedCountForType(label)
-          const needed = mealPrefs[label] || 0
-          if (pool.length === 0) return null
-          return (
-            <div key={label} className="card" style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <div style={{ fontWeight: 500, fontSize: 14, color: 'var(--plum)' }}>{label}</div>
-                <div style={{ fontSize: 12, color: filled >= needed ? 'var(--sage)' : 'var(--muted)' }}>{filled} of {needed} filled</div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {pool.map(m => {
-                  const on = reuseSelected.includes(m.id)
-                  const blocked = !on && filled >= needed
-                  return (
-                    <button key={m.id} disabled={blocked} onClick={() => toggleReuse(m.id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, background: on ? 'var(--plumLL)' : 'var(--card)', border: `1px solid ${on ? 'var(--plum3)' : 'var(--border)'}`, borderRadius: 12, padding: '10px 12px', cursor: blocked ? 'not-allowed' : 'pointer', opacity: blocked ? 0.4 : 1, textAlign: 'left', fontFamily: "'DM Sans',system-ui,sans-serif" }}>
-                      <div style={{ width: 18, height: 18, borderRadius: '50%', border: `1.5px solid ${on ? 'var(--plum2)' : 'var(--border2)'}`, background: on ? 'var(--plum2)' : 'transparent', color: '#fff', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{on ? '✓' : ''}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{m.name}</div>
-                        <div style={{ fontSize: 11, color: 'var(--muted)' }}>{m.calories} cal · P {m.protein}g{m.rating ? ` · ${'★'.repeat(m.rating)}` : ''}</div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })}
-        <div style={{ position: 'sticky', bottom: 84, background: 'linear-gradient(transparent, var(--cream) 24%)', paddingTop: 12 }}>
-          <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', marginBottom: 8 }}>
-            Reusing {reuseSelected.length} · generating {totalRemaining} more
-          </div>
-          <button className="btn-generate" data-tour="generate-btn" style={{ marginBottom: 0 }} onClick={generate} disabled={!hasMealPrefs}>
-            {totalRemaining === 0 ? 'Finish week — all reused →' : (!isPaid && generationsUsed >= FREE_GENERATION_LIMIT ? '🔒 Upgrade to generate' : `Generate ${totalRemaining} new meal${totalRemaining !== 1 ? 's' : ''} →`)}
-          </button>
-        </div>
+        {!hasMealPrefs && <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', marginTop: 8 }}>Pick what you need above to get started</p>}
       </div>
     )
   }

@@ -114,16 +114,16 @@ export default function ScannerTab({ pantry, setPantry, savePantryItem, deletePa
           <button className="vf-stop" onClick={stopCamera}>✕ Stop</button>
         </>) : (
           <div className="vf-placeholder">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6b2f9a66" strokeWidth="1.5" strokeLinecap="round"><path d="M3 8V5a2 2 0 012-2h2M19 3h2a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M8 21H5a2 2 0 01-2-2v-3"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#9B8EC466" strokeWidth="1.5" strokeLinecap="round"><path d="M3 8V5a2 2 0 012-2h2M19 3h2a2 2 0 012 2v3M21 16v3a2 2 0 01-2 2h-3M8 21H5a2 2 0 01-2-2v-3"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>
             <button className="btn-full" style={{ width: 'auto', padding: '13px 28px', fontSize: 15 }} onClick={startCamera}>Tap to scan barcode</button>
-            {camErr && <p style={{ fontSize: 12, color: '#c2780a', marginTop: 8, textAlign: 'center', padding: '0 16px' }}>{camErr}</p>}
+            {camErr && <p style={{ fontSize: 12, color: 'var(--orange)', marginTop: 8, textAlign: 'center', padding: '0 16px' }}>{camErr}</p>}
           </div>
         )}
       </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
         <input style={{ flex: 1, fontFamily: 'monospace' }} placeholder="Or type barcode number..." value={code} onChange={e => setCode(e.target.value)} onKeyDown={e => e.key === 'Enter' && doLookup(code)} />
         <button className="btn-sm" style={{ padding: '0 18px', height: 46, display: 'flex', alignItems: 'center', gap: 6, borderRadius: 12 }} onClick={() => doLookup(code)} disabled={loading}>
-          {loading ? <span className="spin" style={{ width: 12, height: 12, borderTopColor: '#6b2f9a', borderColor: '#d4a0e8' }} /> : 'Look up'}
+          {loading ? <span className="spin" style={{ width: 12, height: 12, borderTopColor: '#C9BEEA', borderColor: '#9B8EC4' }} /> : 'Look up'}
         </button>
       </div>
       <p className="section-label" style={{ marginBottom: 8 }}>Sample items to test</p>

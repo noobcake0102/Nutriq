@@ -30,7 +30,7 @@ export default function PantryTab({ pantry, setPantry, deletePantryItem, updateP
           <h1 className="page-title">Your pantry</h1>
         </div>
         <button className="btn-sm" data-tour="pantry-scan" onClick={onScan} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', marginTop: 4 }}>
-          <span style={{ width: 15, height: 15, display: 'inline-block' }}>{I.scan('#6b2fa0')}</span> Scan
+          <span style={{ width: 15, height: 15, display: 'inline-block' }}>{I.scan('#9B8EC4')}</span> Scan
         </button>
       </div>
       <div className="stat-row">

@@ -30,4 +30,4 @@ export const MEAL_TYPE_LABELS = {
 }
 
 export const du = d => d ? Math.ceil((d - Date.now()) / 864e5) : null
-export const uc = d => d === null ? null : d <= 2 ? '#b5344a' : d <= 5 ? '#c2780a' : d <= 10 ? '#c9a227' : '#7a9e6e'
+export const uc = d => d === null ? null : d <= 2 ? '#E8657A' : d <= 5 ? '#E0A84E' : d <= 10 ? '#E0C050' : '#9DBE93'

@@ -20,7 +20,7 @@ function MealCard({ tag, name, macros, fav }) {
     <div className="card" style={{ marginBottom: 8, padding: 13 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
         <div style={{ fontSize: 10, color: 'var(--rose)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1 }}>{tag}</div>
-        {fav && <span style={{ fontSize: 9, fontWeight: 600, color: '#b07d24', background: '#f7edd7', borderRadius: 5, padding: '1px 6px' }}>NUTRIQ ★</span>}
+        {fav && <span style={{ fontSize: 9, fontWeight: 600, color: '#E0C050', background: '#33301a', borderRadius: 5, padding: '1px 6px' }}>NUTRIQ ★</span>}
       </div>
       <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 16, fontWeight: 500, color: 'var(--text)' }}>{name}</div>
       <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{macros}</div>
@@ -133,7 +133,7 @@ export default function WelcomeTour({ onClose }) {
           <Title>Your options</Title>
           {[['Garlic Butter Chicken Thighs', '480 cal · 38g protein', true], ['Chicken Stir Fry', '440 cal · 38g protein', true], ['Tuscan Salmon Bowl', '500 cal · 40g protein', false]].map(([n, m, on]) => (
             <div key={n} className="card" style={{ marginBottom: 8, padding: 13, display: 'flex', alignItems: 'center', gap: 12, border: on ? '1px solid var(--plum3)' : '1px solid var(--border)', background: on ? 'var(--plumLL)' : 'var(--card)' }}>
-              <div style={{ width: 20, height: 20, borderRadius: '50%', border: `1.5px solid ${on ? 'var(--plum2)' : 'var(--border2)'}`, background: on ? 'var(--plum2)' : 'transparent', color: '#fff', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{on ? '✓' : ''}</div>
+              <div style={{ width: 20, height: 20, borderRadius: '50%', border: `1.5px solid ${on ? 'var(--plum2)' : 'var(--border2)'}`, background: on ? 'var(--plum2)' : 'transparent', color: '#1E1C35', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{on ? '✓' : ''}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{n}</div>
                 <div style={{ fontSize: 11, color: 'var(--muted)' }}>{m}</div>

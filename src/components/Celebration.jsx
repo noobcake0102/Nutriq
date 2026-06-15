@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
+import BloomLogo from './BloomLogo.jsx'
 
-const COLORS = ['#7b2fd6', '#ef4d8a', '#9d5cf0', '#5fb37a', '#e0b020', '#b13fd0']
+const COLORS = ['#9B8EC4', '#C9BEEA', '#A8C5A0', '#6B8F6B', '#D98AB5', '#E0C050']
 
 export default function Celebration({ message = 'Your week is planned!', onDone }) {
   useEffect(() => {
@@ -21,7 +22,7 @@ export default function Celebration({ message = 'Your week is planned!', onDone 
       {confetti.map((c, i) => (
         <div key={i} className="confetti" style={{ left: `${c.left}%`, width: c.w, height: c.w, background: c.color, animationDelay: `${c.delay}s` }} />
       ))}
-      <img src="/logo.png" alt="" className="celebrate-bloom" style={{ borderRadius: 28 }} />
+      <BloomLogo size={120} className="celebrate-bloom" />
       <div className="celebrate-text">{message}</div>
     </div>
   )

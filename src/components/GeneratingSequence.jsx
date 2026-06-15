@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import BloomLogo from './BloomLogo.jsx'
 
 const STEPS = [
   { t: 'Checking your pantry', e: '🧺' },
@@ -16,7 +17,7 @@ export default function GeneratingSequence() {
 
   return (
     <div className="page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '62vh', textAlign: 'center', gap: 22 }}>
-      <img src="/logo.png" alt="" style={{ width: 96, height: 96, borderRadius: 24, animation: 'genBloom 1.6s ease-in-out infinite, genGlow 1.6s ease-in-out infinite' }} />
+      <BloomLogo size={96} style={{ animation: 'genBloom 1.6s ease-in-out infinite, genGlow 1.6s ease-in-out infinite', borderRadius: 24 }} />
       <div style={{ minHeight: 70 }}>
         <div key={i} style={{ animation: 'pop .45s cubic-bezier(.34,1.56,.64,1)' }}>
           <div style={{ fontSize: 36, marginBottom: 8 }}>{STEPS[i].e}</div>

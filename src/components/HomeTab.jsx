@@ -75,9 +75,9 @@ export default function HomeTab({ pantry, goals, weights, weekMeals = [], macros
       )}
 
       {expiring.length > 0 && (
-        <div style={{ background: '#fef7ed', border: '1px solid #e8c97066', borderRadius: 12, padding: '12px 14px', marginBottom: 12, cursor: 'pointer' }} onClick={() => setTab('pantry')}>
-          <div style={{ fontSize: 13, fontWeight: 500, color: '#8a5a0a', marginBottom: 4 }}>Use these soon</div>
-          <div style={{ fontSize: 12, color: '#8a5a0a' }}>{expiring.map(i => i.name).join(', ')}</div>
+        <div style={{ background: '#33291a', border: '1px solid #e0a84e55', borderRadius: 12, padding: '12px 14px', marginBottom: 12, cursor: 'pointer' }} onClick={() => setTab('pantry')}>
+          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--orange)', marginBottom: 4 }}>Use these soon</div>
+          <div style={{ fontSize: 12, color: 'var(--orange)' }}>{expiring.map(i => i.name).join(', ')}</div>
         </div>
       )}
 
