@@ -1,50 +1,24 @@
-// Nutriq mark — a whole head of lettuce.
-// Layered green leaves (dark outer ruffle → pale furled heart) with leaf-vein
-// ribs, so it reads as real, leafy, whole food rather than an abstract bloom.
+// Nutriq mark — the bloom.
 // size: pixels (default 34 for header, pass larger for hero contexts).
-// className/style pass through so callers can animate it (e.g. generating / celebration).
+// className/style pass through so callers can animate it (generating / celebration).
 export default function BloomLogo({ size = 34, className, style }) {
+  const radius = Math.round(size * 0.22) // iOS icon corner radius ~22%
   return (
-    <svg
+    <img
+      src="/logo.png"
+      alt="Nutriq"
       width={size}
       height={size}
-      viewBox="0 0 48 48"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
       className={className}
-      style={{ display: 'block', flexShrink: 0, ...style }}
-      role="img"
-      aria-label="Nutriq"
-    >
-      {/* Outer ruffled leaves — the frilly crown that reads as lettuce */}
-      <path
-        d="M24 7C25.5 4 29 4.5 29 8C31.5 5.5 35 6.5 35 10C38 8 42 11 41 15C44 17 44 23 41 25C42 32 37 40 30 43C26 45 22 45 18 43C11 40 6 32 7 25C4 23 4 17 7 15C6 11 10 8 13 10C13 6.5 16.5 5.5 19 8C19 4.5 22.5 4 24 7Z"
-        fill="#3D6B3D"
-      />
-      {/* Mid leaf layer */}
-      <path
-        d="M24 12C26 9.5 30 10 30 13C33 11 37 13.5 36 17.5C39 19 39 24 36 26C37 32 32 39 24 40C16 39 11 32 12 26C9 24 9 19 12 17.5C11 13.5 15 11 18 13C18 10 22 9.5 24 12Z"
-        fill="#6B8F6B"
-      />
-      {/* Inner leaves */}
-      <path
-        d="M24 17C28 17 31.5 20 31.5 24.5C31.5 30 28 35 24 35.5C20 35 16.5 30 16.5 24.5C16.5 20 20 17 24 17Z"
-        fill="#8BB88B"
-      />
-      {/* Furled pale heart (the tightly curled center) */}
-      <path
-        d="M24 21C21.5 21 20 23.5 20.5 26.5C21 30 23 32.5 24 32.5C25 32.5 27 30 27.5 26.5C28 23.5 26.5 21 24 21Z"
-        fill="#C2DEC2"
-      />
-      {/* Leaf-vein ribs */}
-      <g stroke="#3D6B3D" strokeWidth="0.85" strokeLinecap="round" opacity="0.45" fill="none">
-        <path d="M24 39C24 32 24 26 24 21" />
-        <path d="M18 38C19 32 20 28 22 23.5" />
-        <path d="M30 38C29 32 28 28 26 23.5" />
-      </g>
-      {/* Highlight */}
-      <ellipse cx="23.2" cy="24.5" rx="1.9" ry="1.5" fill="#E0EFE0" />
-      <circle cx="22.6" cy="24" r="0.7" fill="#F2EFE8" opacity="0.9" />
-    </svg>
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius,
+        flexShrink: 0,
+        display: 'block',
+        objectFit: 'cover',
+        ...style,
+      }}
+    />
   )
 }
