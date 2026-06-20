@@ -7,7 +7,7 @@
   },
   "ios": {
     "contentInset": "automatic",
-    "backgroundColor": "#faf8f5"
+    "backgroundColor": "#1E1C35"
   },
   "plugins": {
     "PushNotifications": {
@@ -16,7 +16,7 @@
     "SplashScreen": {
       "launchShowDuration": 1500,
       "launchAutoHide": true,
-      "backgroundColor": "#faf8f5",
+      "backgroundColor": "#1E1C35",
       "showSpinner": false
     }
   }
