@@ -1,8 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { lookupBarcode, FD } from '../lib/barcode.js'
 import { CAT_ICON, I } from './Icons.jsx'
+import { insertFoodLog } from '../lib/foodLog.js'
 
-export default function ScannerTab({ pantry, setPantry, savePantryItem, deletePantryItem, updatePantryQty, notify, onBack }) {
+const MEALS = ['breakfast','lunch','dinner','snack']
+const MEAL_LABEL = { breakfast:'Breakfast', lunch:'Lunch', dinner:'Dinner', snack:'Snack' }
+function defaultMeal() {
+  const h = new Date().getHours()
+  if (h < 11) return 'breakfast'
+  if (h < 15) return 'lunch'
+  if (h < 18) return 'snack'
+  return 'dinner'
+}
+
+export default function ScannerTab({ pantry, setPantry, savePantryItem, deletePantryItem, updatePantryQty, notify, onBack, session }) {
   const [mode, setMode] = useState('add')
   const [scanning, setScanning] = useState(false)
   const [code, setCode] = useState('')
@@ -15,6 +26,12 @@ export default function ScannerTab({ pantry, setPantry, savePantryItem, deletePa
   const [mf, setMf] = useState({ name: '', brand: '', calories: '', protein: '', carbs: '', fat: '', category: 'Other' })
   const [camErr, setCamErr] = useState('')
   const [scanStatus, setScanStatus] = useState('Point camera at a barcode')
+  // Food log sheet
+  const [logSheet, setLogSheet] = useState(false)
+  const [logMeal, setLogMeal] = useState(defaultMeal)
+  const [logQty, setLogQty] = useState('1')
+  const [logUnit, setLogUnit] = useState('serving')
+  const [loggingFood, setLoggingFood] = useState(false)
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const rafRef = useRef(null)
@@ -89,6 +106,34 @@ export default function ScannerTab({ pantry, setPantry, savePantryItem, deletePa
     setResult(null); setCode(''); setExpiry(''); setQty(1)
   }
 
+  const openLogSheet = () => {
+    setLogMeal(defaultMeal()); setLogQty('1'); setLogUnit('serving'); setLogSheet(true)
+  }
+
+  const confirmLog = async () => {
+    if (!result || !session) return
+    setLoggingFood(true)
+    try {
+      const q = parseFloat(logQty) || 1
+      await insertFoodLog(session.user.id, {
+        log_date:     new Date().toISOString().split('T')[0],
+        meal:         logMeal,
+        source:       'barcode',
+        barcode:      code || null,
+        name:         result.name,
+        serving_qty:  q,
+        serving_unit: logUnit,
+        calories:     result.calories,
+        protein_g:    result.protein,
+        carbs_g:      result.carbs,
+        fat_g:        result.fat,
+      })
+      notify('Logged: ' + result.name)
+      setLogSheet(false)
+    } catch { notify('Log failed', 'err') }
+    setLoggingFood(false)
+  }
+
   return (
     <div className="page">
       <button className="btn-sm" onClick={onBack} style={{ marginBottom: 14, background: 'none', border: '1px solid var(--border)', color: 'var(--muted)' }}>← Back to pantry</button>
@@ -153,7 +198,48 @@ export default function ScannerTab({ pantry, setPantry, savePantryItem, deletePa
             <input style={{ flex: 1 }} value={unit} onChange={e => setUnit(e.target.value)} placeholder="unit" />
           </div>
           {mode === 'add' && <div style={{ marginBottom: 12 }}><label className="input-label">Expiry date (optional)</label><input type="date" value={expiry} onChange={e => setExpiry(e.target.value)} /></div>}
-          <button className={`btn-full${mode === 'use' ? ' red' : ''}`} onClick={confirm}>{mode === 'add' ? 'Add to pantry' : 'Mark as used'}</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className={`btn-full${mode === 'use' ? ' red' : ''}`} onClick={confirm} style={{ flex: 1 }}>
+              {mode === 'add' ? 'Add to pantry' : 'Mark as used'}
+            </button>
+            {session && (
+              <button className="btn-sm" onClick={openLogSheet} style={{ whiteSpace: 'nowrap', padding: '0 16px', borderRadius: 14, fontSize: 14 }}>
+                Log food
+              </button>
+            )}
+          </div>
+          {logSheet && (
+            <div style={{ marginTop: 14, background: 'var(--warm)', border: '1.5px solid var(--plum3)', borderRadius: 16, padding: '14px 16px' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--plum)', marginBottom: 10 }}>Log to food diary</div>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <label className="input-label">Servings</label>
+                  <input type="number" value={logQty} onChange={e => setLogQty(e.target.value)} min="0.25" step="0.25" />
+                </div>
+                <div style={{ flex: 2 }}>
+                  <label className="input-label">Unit</label>
+                  <input value={logUnit} onChange={e => setLogUnit(e.target.value)} placeholder="serving, cup, oz…" />
+                </div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <label className="input-label">Meal</label>
+                <div className="seg" style={{ marginBottom: 0 }}>
+                  {MEALS.map(m => (
+                    <button key={m} className={`seg-btn${logMeal === m ? ' on' : ''}`} onClick={() => setLogMeal(m)} style={{ fontSize: 11 }}>
+                      {MEAL_LABEL[m]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
+                {Math.round(result.calories * (parseFloat(logQty)||1))} cal · P {Math.round(result.protein * (parseFloat(logQty)||1))}g · C {Math.round(result.carbs * (parseFloat(logQty)||1))}g · F {Math.round(result.fat * (parseFloat(logQty)||1))}g
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn-full" onClick={confirmLog} disabled={loggingFood}>{loggingFood ? 'Logging…' : 'Log it'}</button>
+                <button className="btn-sm" onClick={() => setLogSheet(false)} style={{ padding: '0 16px' }}>Cancel</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
       <button className="btn-ghost" onClick={() => setManual(!manual)}>{manual ? 'Hide manual entry' : 'Add item manually'}</button>

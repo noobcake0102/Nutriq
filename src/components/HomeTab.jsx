@@ -1,6 +1,18 @@
+import { useState, useEffect } from 'react'
 import { du } from '../constants.js'
+import { loadFoodLogs } from '../lib/foodLog.js'
 
-export default function HomeTab({ pantry, goals, weights, weekMeals = [], macros, setTab, onScan, userName, notify }) {
+export default function HomeTab({ pantry, goals, weights, weekMeals = [], macros, setTab, onScan, userName, notify, session, onViewLog }) {
+  const [todayCal, setTodayCal] = useState(null)
+
+  useEffect(() => {
+    if (!session) return
+    const d = new Date().toISOString().split('T')[0]
+    loadFoodLogs(session.user.id, d).then(logs => {
+      setTodayCal(Math.round(logs.reduce((s, l) => s + (l.calories || 0), 0)))
+    })
+  }, [session])
+
   const latest = weights.length > 0 ? weights[weights.length - 1].weight : null
   const startWeight = weights.length > 0 ? weights[0].weight : null
   const weightChange = latest && startWeight ? (latest - startWeight).toFixed(1) : null
@@ -45,6 +57,18 @@ export default function HomeTab({ pantry, goals, weights, weekMeals = [], macros
           <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 28, fontWeight: 600, color: 'var(--plum)', lineHeight: 1 }}>{pantry.length}<span style={{ fontSize: 13, fontWeight: 400, color: 'var(--muted)' }}> items</span></div>
           {expiring.length > 0 ? <div style={{ fontSize: 12, color: 'var(--orange)', marginTop: 4, fontWeight: 500 }}>{expiring.length} expiring soon</div> : <div style={{ fontSize: 12, color: 'var(--sage)', marginTop: 4, fontWeight: 500 }}>All fresh</div>}
         </div>
+
+        {session && (
+          <div className="card" style={{ margin: 0, cursor: 'pointer' }} onClick={onViewLog}>
+            <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Today's calories</div>
+            {todayCal !== null ? (<>
+              <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 28, fontWeight: 600, color: todayCal > macros.calories ? 'var(--orange)' : 'var(--plum)', lineHeight: 1 }}>{todayCal.toLocaleString()}<span style={{ fontSize: 13, fontWeight: 400, color: 'var(--muted)' }}> kcal</span></div>
+              <div style={{ fontSize: 12, marginTop: 4, fontWeight: 500, color: todayCal > macros.calories ? 'var(--orange)' : 'var(--sage)' }}>
+                {todayCal > macros.calories ? `+${todayCal - macros.calories} over` : `${macros.calories - todayCal} left`}
+              </div>
+            </>) : <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>Tap to log</div>}
+          </div>
+        )}
 
         <div className="card" style={{ margin: 0 }}>
           <div style={{ fontSize: 10, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Est. savings</div>

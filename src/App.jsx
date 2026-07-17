@@ -28,6 +28,8 @@ export default function App() {
   const [tab, setTab] = useState('home')
   const [pantryView, setPantryView] = useState('list') // 'list' | 'scan' — scanner is a sub-view of Pantry
   const openScanner = () => { setTab('pantry'); setPantryView('scan') }
+  const [goalsView, setGoalsView] = useState('goals') // 'goals' | 'log'
+  const openLog = () => { setGoalsView('log'); setTab('goals') }
   const [pantry, setPantry] = useState(() => DB.get('nq_p', SP))
   const [goals, setGoals] = useState(() => DB.get('nq_g', DG))
   const [weights, setWeights] = useState(() => DB.get('nq_w', []))
@@ -183,6 +185,7 @@ export default function App() {
   // Leaving the Pantry tab returns it to the list (closes the scanner) so you
   // never come back to a stuck camera.
   useEffect(() => { if (tab !== 'pantry') setPantryView('list') }, [tab])
+  useEffect(() => { if (tab !== 'goals') setGoalsView('goals') }, [tab])
 
   // Preview hook: open the standalone tour with ?tour=1 (no login needed). The
   // tour is fully self-contained (mock screens), so it renders anywhere.
@@ -244,14 +247,14 @@ export default function App() {
       {showPaywall && <PaywallModal generationsUsed={generationsUsed} onClose={() => setShowPaywall(false)} onSuccess={() => { setIsPaid(true); notify('Welcome to Nutriq Premium! 🎉') }} />}
       {showTour && <WelcomeTour onNavigate={setTab} onClose={() => { setShowTour(false); DB.set('nq_seen_tour', true) }} />}
 
-      {tab === 'home'   && <HomeTab    pantry={pantry} goals={goals} weights={weights} weekMeals={weekMeals} macros={macros} setTab={setTab} onScan={openScanner} userName={userName} notify={notify} />}
+      {tab === 'home'   && <HomeTab    pantry={pantry} goals={goals} weights={weights} weekMeals={weekMeals} macros={macros} setTab={setTab} onScan={openScanner} userName={userName} notify={notify} session={session} onViewLog={openLog} />}
       {tab === 'pantry' && (pantryView === 'scan'
-        ? <ScannerTab pantry={pantry} setPantry={setPantry} savePantryItem={savePantryItem} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify} onBack={() => setPantryView('list')} />
+        ? <ScannerTab pantry={pantry} setPantry={setPantry} savePantryItem={savePantryItem} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify} onBack={() => setPantryView('list')} session={session} />
         : <PantryTab  pantry={pantry} setPantry={setPantry} deletePantryItem={deletePantryItem} updatePantryQty={updatePantryQty} notify={notify} onScan={() => setPantryView('scan')} />
       )}
       {tab === 'meals'  && <MealsTab   pantry={pantry} goals={goals} macros={macros} meal={meal} setMeal={setMeal} setShop={setShop} setTab={setTab} notify={notify} session={session} isPaid={isPaid} generationsUsed={generationsUsed} onShowPaywall={() => setShowPaywall(true)} onGenerate={incrementGenerations} onWeekChange={syncWeekMeals} />}
       {tab === 'shop'   && <ShopTab    shop={shop} notify={notify} session={session} preferredStore={preferredStore} setTab={setTab} />}
-      {tab === 'goals'  && <GoalsTab   goals={goals} setGoals={setGoals} weights={weights} setWeights={setWeights} macros={macros} tdee={tdee} bmr={bmr} logWeight={logWeight} saveGoals={saveGoals} notify={notify} />}
+      {tab === 'goals'  && <GoalsTab   goals={goals} setGoals={setGoals} weights={weights} setWeights={setWeights} macros={macros} tdee={tdee} bmr={bmr} logWeight={logWeight} saveGoals={saveGoals} notify={notify} session={session} initialView={goalsView} />}
 
       <div className="nav">
         {TABS.map(t => <button key={t.id} data-tour={`nav-${t.id}`} className={`nb${navActive === t.id ? ' on' : ''}`} onClick={() => setTab(t.id)}>{t.icon(navActive === t.id)}<span>{t.label}</span></button>)}
