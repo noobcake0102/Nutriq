@@ -20,6 +20,15 @@ export default function GoalsTab({ goals, setGoals, weights, setWeights, macros,
   const change = weights.length > 1 ? (weights[weights.length - 1].weight - weights[0].weight).toFixed(1) : null
   const toGoal = latest && goals.goalWeight ? (latest - goals.goalWeight).toFixed(1) : null
 
+  const lbsPerWeek = goals.goalType === 'lose' ? 1 : goals.goalType === 'gain' ? 0.6 : null
+  const lbsToGoal = lbsPerWeek && goals.weight && goals.goalWeight
+    ? Math.abs(goals.weight - goals.goalWeight) : null
+  const weeksToGoal = lbsToGoal && lbsPerWeek ? Math.ceil(lbsToGoal / lbsPerWeek) : null
+  const projDate = weeksToGoal ? (() => {
+    const d = new Date(); d.setDate(d.getDate() + weeksToGoal * 7)
+    return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  })() : null
+
   return (
     <div className="page">
       <div className="page-label">Nutrition</div>
@@ -30,7 +39,7 @@ export default function GoalsTab({ goals, setGoals, weights, setWeights, macros,
         <button className={`seg-btn${view === 'log' ? ' on' : ''}`} onClick={() => setView('log')}>Log</button>
       </div>
 
-      {view === 'log' && <LogTab session={session} macros={macros} notify={notify} />}
+      {view === 'log' && <LogTab session={session} macros={macros} notify={notify} tdee={tdee} goalType={goals.goalType} />}
 
       {view === 'goals' && (<>
         <div className="bmr-card">
@@ -44,6 +53,40 @@ export default function GoalsTab({ goals, setGoals, weights, setWeights, macros,
             ))}
           </div>
           <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>Mifflin-St Jeor · {goals.diet} · {goals.goalType === 'lose' ? '-500 kcal deficit' : goals.goalType === 'gain' ? '+300 kcal surplus' : 'maintenance'}</p>
+        </div>
+
+        <div className="card">
+          <div className="card-title">Your daily plan</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontSize: 13, color: 'var(--muted)' }}>Maintenance (TDEE)</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{Math.round(tdee).toLocaleString()} kcal</span>
+          </div>
+          {goals.goalType !== 'maintain' && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: 13, color: 'var(--muted)' }}>{goals.goalType === 'lose' ? 'Daily deficit' : 'Daily surplus'}</span>
+              <span style={{ fontSize: 13, fontWeight: 500, color: goals.goalType === 'lose' ? 'var(--sage)' : 'var(--plum2)' }}>
+                {goals.goalType === 'lose' ? '−500' : '+300'} kcal/day
+              </span>
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10, borderTop: '1px solid var(--border)', marginBottom: lbsToGoal ? 14 : 0 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Daily target</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--rose)' }}>{macros.calories.toLocaleString()} kcal</span>
+          </div>
+          {lbsToGoal && (
+            <div style={{ background: 'var(--warm)', borderRadius: 12, padding: '12px 14px' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+                ~{lbsPerWeek} lb / week {goals.goalType === 'lose' ? 'loss' : 'gain'}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
+                {lbsToGoal.toFixed(1)} lbs to go
+                {projDate && <> · estimated <span style={{ color: 'var(--plum2)', fontWeight: 500 }}>{projDate}</span></>}
+              </div>
+            </div>
+          )}
+          {goals.goalType === 'maintain' && (
+            <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0 }}>Eating at maintenance — no weight change expected.</p>
+          )}
         </div>
 
         <div className="card">

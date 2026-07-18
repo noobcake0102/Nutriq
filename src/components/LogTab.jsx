@@ -15,7 +15,7 @@ function addDays(d, n) {
 }
 const emptyForm = meal => ({ name: '', meal, calories: '', protein_g: '', carbs_g: '', fat_g: '' })
 
-export default function LogTab({ session, macros, notify }) {
+export default function LogTab({ session, macros, notify, tdee, goalType }) {
   const [date, setDate]               = useState(today)
   const [logs, setLogs]               = useState([])
   const [targets, setTargets]         = useState(null)
@@ -116,6 +116,11 @@ export default function LogTab({ session, macros, notify }) {
               {Math.round(totals.cal).toLocaleString()}
             </div>
             <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 3 }}>of {target.calories.toLocaleString()} kcal</div>
+            {goalType && goalType !== 'maintain' && (
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                {goalType === 'lose' ? '−500 kcal deficit · ~1 lb/week loss' : '+300 kcal surplus · ~0.6 lb/week gain'}
+              </div>
+            )}
           </div>
           <div style={{ textAlign: 'right', paddingBottom: 6 }}>
             <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 30, fontWeight: 600, color: isOver ? 'var(--orange)' : 'var(--sage)' }}>
