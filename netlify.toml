@@ -3,6 +3,12 @@
   publish = "dist"
   functions = "netlify/functions"
 
+[functions]
+  node_bundler = "esbuild"
+
+[functions."claude"]
+  timeout = 26
+
 [[redirects]]
   from = "/api/claude"
   to = "/.netlify/functions/claude"
