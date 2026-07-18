@@ -61,20 +61,39 @@ export default function AccountModals({ acctModal, setAcctModal, session, userNa
         </>}
         {acctModal === 'subscription' && <>
           <div className="modal-title">Manage subscription</div>
-          <div className="modal-sub">Your current plan</div>
-          <div style={{ background: 'var(--plumLL)', border: '1px solid var(--plum3)22', borderRadius: 14, padding: 16, marginBottom: 16 }}>
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 4 }}>Current plan</div>
+          <div className="modal-sub">All features are free — Plus removes the AI generation limit.</div>
+
+          <div style={{ background: 'var(--warm)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, marginBottom: 12 }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Current plan</div>
             <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 22, color: 'var(--plum)', fontWeight: 600 }}>Free</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>3 meal plan generations per month</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>3 AI meal plan generations per month · all other features included</div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-            {[['Core','$4.99/mo','Unlimited plans · Full pantry'],['Family','$8.99/mo','Everything + household sharing'],['Premium','$12.99/mo','Everything + grocery ordering + AI images']].map(([n, price, desc]) => (
-              <div key={n} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div><div style={{ fontWeight: 500, fontSize: 14, color: 'var(--text)' }}>{n}</div><div style={{ fontSize: 12, color: 'var(--muted)' }}>{desc}</div></div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}><div style={{ fontWeight: 500, color: 'var(--plum2)' }}>{price}</div><button className="btn-sm" style={{ fontSize: 10, padding: '3px 8px', marginTop: 4 }}>Upgrade</button></div>
+
+          <div style={{ background: 'var(--plumLL)', border: '1.5px solid var(--plum2)', borderRadius: 14, padding: 16, marginBottom: 8, position: 'relative' }}>
+            <div style={{ position: 'absolute', top: -10, left: 14, background: 'var(--plum3)', color: '#1E1C35', fontSize: 10, fontWeight: 700, padding: '2px 10px', borderRadius: 20, letterSpacing: .5 }}>BEST VALUE · SAVE 40%</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)' }}>Plus — Yearly</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Just $4/mo, billed yearly</div>
               </div>
-            ))}
+              <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 18, fontWeight: 600, color: 'var(--plum)' }}>$49/yr</div>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>✓ Unlimited AI meal plans &nbsp; ✓ Unlimited workout plans</div>
+            <button className="btn-sm" style={{ width: '100%', textAlign: 'center', padding: '9px' }} onClick={() => setAcctModal(null)}>Get Plus Yearly</button>
           </div>
+
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14, padding: 16, marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)' }}>Plus — Monthly</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>7-day free trial, cancel anytime</div>
+              </div>
+              <div style={{ fontFamily: "'Fraunces',Georgia,serif", fontSize: 18, fontWeight: 600, color: 'var(--plum)' }}>$6.99/mo</div>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10 }}>✓ Unlimited AI meal plans &nbsp; ✓ Unlimited workout plans</div>
+            <button className="btn-sm" style={{ width: '100%', textAlign: 'center', padding: '9px' }} onClick={() => setAcctModal(null)}>Get Plus Monthly</button>
+          </div>
+
           <div style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center', marginBottom: 16 }}>Billing managed securely via the App Store</div>
           <button className="btn-ghost" onClick={() => setAcctModal(null)}>Close</button>
         </>}

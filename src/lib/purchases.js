@@ -23,7 +23,7 @@ export const PLANS = [
     price: '$49/yr',
     sub: 'Just $4/mo, billed yearly',
     badge: 'BEST VALUE · SAVE 40%',
-    features: ['Unlimited AI meal planning', 'Kroger cart integration', 'Learns your taste & brands', 'Pantry + expiry tracking'],
+    features: ['Unlimited AI meal plans', 'Unlimited AI workout plans', 'Priority AI responses'],
   },
   {
     id: PRODUCTS.PLUS_MONTHLY,
@@ -31,7 +31,7 @@ export const PLANS = [
     name: 'Plus — Monthly',
     price: '$6.99/mo',
     sub: '7-day free trial, cancel anytime',
-    features: ['Everything in Plus', 'Billed monthly'],
+    features: ['Unlimited AI meal plans', 'Unlimited AI workout plans'],
   },
 ]
 

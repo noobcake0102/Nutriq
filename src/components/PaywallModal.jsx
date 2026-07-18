@@ -43,9 +43,9 @@ export default function PaywallModal({ onClose, onSuccess, generationsUsed = 0 }
           </div>
           <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
             {generationsUsed >= FREE_GENERATION_LIMIT
-              ? `You've used all ${FREE_GENERATION_LIMIT} free meal plans this month.`
-              : `${FREE_GENERATION_LIMIT - generationsUsed} free plan${FREE_GENERATION_LIMIT - generationsUsed !== 1 ? 's' : ''} remaining this month.`}
-            {' '}Upgrade for unlimited access.
+              ? `You've used your ${FREE_GENERATION_LIMIT} free AI plans this month.`
+              : `${FREE_GENERATION_LIMIT - generationsUsed} free AI plan${FREE_GENERATION_LIMIT - generationsUsed !== 1 ? 's' : ''} left this month.`}
+            {' '}All other features are always free — Plus removes the limit.
           </div>
         </div>
 
