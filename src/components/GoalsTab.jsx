@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ACT, calcBMR, calcMacros, PACE } from '../lib/nutrition.js'
 import WeightChart from './WeightChart.jsx'
 import LogTab from './LogTab.jsx'
+import WorkoutTab from './WorkoutTab.jsx'
 
 export default function GoalsTab({ goals, setGoals, weights, setWeights, macros, tdee, bmr, logWeight, saveGoals, notify, session, initialView, weekMeals, onScan }) {
   const [view, setView] = useState(initialView || 'goals')
@@ -32,15 +33,17 @@ export default function GoalsTab({ goals, setGoals, weights, setWeights, macros,
 
   return (
     <div className="page">
-      <div className="page-label">Nutrition</div>
-      <h1 className="page-title">{view === 'log' ? 'Food diary' : 'Goals and body'}</h1>
+      <div className="page-label">{view === 'train' ? 'Fitness' : 'Nutrition'}</div>
+      <h1 className="page-title">{view === 'log' ? 'Food diary' : view === 'train' ? 'Training' : 'Goals and body'}</h1>
 
       <div className="seg" style={{ marginBottom: 20 }}>
         <button className={`seg-btn${view === 'goals' ? ' on' : ''}`} onClick={() => setView('goals')}>Goals</button>
         <button className={`seg-btn${view === 'log' ? ' on' : ''}`} onClick={() => setView('log')}>Log</button>
+        <button className={`seg-btn${view === 'train' ? ' on' : ''}`} onClick={() => setView('train')}>Train</button>
       </div>
 
       {view === 'log' && <LogTab session={session} macros={macros} notify={notify} tdee={tdee} goalType={goals.goalType} pace={paceKey} weekMeals={weekMeals} onScan={onScan} />}
+      {view === 'train' && <WorkoutTab session={session} goals={goals} notify={notify} />}
 
       {view === 'goals' && (<>
         <div className="bmr-card">
