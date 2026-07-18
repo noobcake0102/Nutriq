@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { loadFoodLogs, insertFoodLog, deleteFoodLog, loadDailyTargets, saveDailyTargets } from '../lib/foodLog.js'
+import { PACE } from '../lib/nutrition.js'
 
 const MEALS = ['breakfast', 'lunch', 'dinner', 'snack']
 const MEAL_LABEL = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snack' }
@@ -15,7 +16,7 @@ function addDays(d, n) {
 }
 const emptyForm = meal => ({ name: '', meal, calories: '', protein_g: '', carbs_g: '', fat_g: '' })
 
-export default function LogTab({ session, macros, notify, tdee, goalType }) {
+export default function LogTab({ session, macros, notify, tdee, goalType, pace = 'recommended', weekMeals = [], onScan }) {
   const [date, setDate]               = useState(today)
   const [logs, setLogs]               = useState([])
   const [targets, setTargets]         = useState(null)
@@ -116,9 +117,15 @@ export default function LogTab({ session, macros, notify, tdee, goalType }) {
               {Math.round(totals.cal).toLocaleString()}
             </div>
             <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 3 }}>of {target.calories.toLocaleString()} kcal</div>
-            {goalType && goalType !== 'maintain' && (
+            {goalType && goalType !== 'maintain' && PACE[goalType]?.[pace] && (
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                {goalType === 'lose' ? '−500 kcal deficit · ~1 lb/week loss' : '+300 kcal surplus · ~0.6 lb/week gain'}
+                {(() => {
+                  const p = PACE[goalType][pace]
+                  const off = Math.abs(p.offset)
+                  return goalType === 'lose'
+                    ? `−${off} kcal deficit · ~${p.lbsPerWeek} lb/week loss`
+                    : `+${off} kcal surplus · ~${p.lbsPerWeek} lb/week gain`
+                })()}
               </div>
             )}
           </div>
@@ -219,6 +226,27 @@ export default function LogTab({ session, macros, notify, tdee, goalType }) {
               {/* Inline add form */}
               {isOpen && (
                 <div style={{ padding: '14px 16px', background: 'var(--warm)' }}>
+                  {/* Scan barcode */}
+                  {onScan && (
+                    <button onClick={onScan} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 500, color: 'var(--plum2)', cursor: 'pointer', width: '100%', marginBottom: 12 }}>
+                      <span style={{ fontSize: 16 }}>📷</span> Scan barcode
+                    </button>
+                  )}
+                  {/* Pick from meal plan */}
+                  {weekMeals.length > 0 && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>From this week's plan</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 160, overflowY: 'auto' }}>
+                        {weekMeals.map(m => (
+                          <button key={m.id} onClick={() => setForm(f => ({ ...f, name: m.name, calories: m.calories || '', protein_g: m.protein || '', carbs_g: m.carbs || '', fat_g: m.fat || '' }))}
+                            style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px', textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '75%' }}>{m.name}</div>
+                            <div style={{ fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>{m.calories} cal</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div style={{ marginBottom: 10 }}>
                     <label className="input-label">Food name *</label>
                     <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Chicken breast" autoFocus />

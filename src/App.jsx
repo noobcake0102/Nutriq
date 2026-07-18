@@ -169,7 +169,7 @@ export default function App() {
 
   const notify = (msg, type = 'ok') => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000) }
   const exp = pantry.filter(i => { const d = du(i.expiry); return d !== null && d <= 5 })
-  const bmr = calcBMR(goals), tdee = Math.round(bmr * (ACT[goals.activity]?.mult || 1.55)), macros = calcMacros(tdee, goals.diet, goals.goalType)
+  const bmr = calcBMR(goals), tdee = Math.round(bmr * (ACT[goals.activity]?.mult || 1.55)), macros = calcMacros(tdee, goals.diet, goals.goalType, goals.pace || 'recommended')
 
   // Bottom nav. Scan is reachable from inside Pantry (it's how you add items),
   // so it isn't a top-level tab — keeps the bar to a clean 5.
@@ -254,7 +254,7 @@ export default function App() {
       )}
       {tab === 'meals'  && <MealsTab   pantry={pantry} goals={goals} macros={macros} meal={meal} setMeal={setMeal} setShop={setShop} setTab={setTab} notify={notify} session={session} isPaid={isPaid} generationsUsed={generationsUsed} onShowPaywall={() => setShowPaywall(true)} onGenerate={incrementGenerations} onWeekChange={syncWeekMeals} />}
       {tab === 'shop'   && <ShopTab    shop={shop} notify={notify} session={session} preferredStore={preferredStore} setTab={setTab} />}
-      {tab === 'goals'  && <GoalsTab   goals={goals} setGoals={setGoals} weights={weights} setWeights={setWeights} macros={macros} tdee={tdee} bmr={bmr} logWeight={logWeight} saveGoals={saveGoals} notify={notify} session={session} initialView={goalsView} />}
+      {tab === 'goals'  && <GoalsTab   goals={goals} setGoals={setGoals} weights={weights} setWeights={setWeights} macros={macros} tdee={tdee} bmr={bmr} logWeight={logWeight} saveGoals={saveGoals} notify={notify} session={session} initialView={goalsView} weekMeals={weekMeals} onScan={openScanner} />}
 
       <div className="nav">
         {TABS.map(t => <button key={t.id} data-tour={`nav-${t.id}`} className={`nb${navActive === t.id ? ' on' : ''}`} onClick={() => setTab(t.id)}>{t.icon(navActive === t.id)}<span>{t.label}</span></button>)}

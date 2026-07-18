@@ -14,7 +14,7 @@ export const SP = [
 
 export const DG = {
   weight: 150, goalWeight: 135, height: 65, age: 34, sex: 'female',
-  activity: 'moderate', goalType: 'lose', diet: 'balanced',
+  activity: 'moderate', goalType: 'lose', diet: 'balanced', pace: 'recommended',
   allergies: [], householdSize: 2, meal_cuisines: [], meal_preferences: {},
 }
 

@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { ACT, calcBMR, calcMacros } from '../lib/nutrition.js'
+import { ACT, calcBMR, calcMacros, PACE } from '../lib/nutrition.js'
 import WeightChart from './WeightChart.jsx'
 import LogTab from './LogTab.jsx'
 
-export default function GoalsTab({ goals, setGoals, weights, setWeights, macros, tdee, bmr, logWeight, saveGoals, notify, session, initialView }) {
+export default function GoalsTab({ goals, setGoals, weights, setWeights, macros, tdee, bmr, logWeight, saveGoals, notify, session, initialView, weekMeals, onScan }) {
   const [view, setView] = useState(initialView || 'goals')
   const [wt, setWt] = useState('')
   const [wd, setWd] = useState(new Date().toISOString().split('T')[0])
@@ -20,7 +20,8 @@ export default function GoalsTab({ goals, setGoals, weights, setWeights, macros,
   const change = weights.length > 1 ? (weights[weights.length - 1].weight - weights[0].weight).toFixed(1) : null
   const toGoal = latest && goals.goalWeight ? (latest - goals.goalWeight).toFixed(1) : null
 
-  const lbsPerWeek = goals.goalType === 'lose' ? 1 : goals.goalType === 'gain' ? 0.6 : null
+  const paceKey = goals.pace || 'recommended'
+  const lbsPerWeek = goals.goalType !== 'maintain' ? (PACE[goals.goalType]?.[paceKey]?.lbsPerWeek ?? null) : null
   const lbsToGoal = lbsPerWeek && goals.weight && goals.goalWeight
     ? Math.abs(goals.weight - goals.goalWeight) : null
   const weeksToGoal = lbsToGoal && lbsPerWeek ? Math.ceil(lbsToGoal / lbsPerWeek) : null
@@ -39,7 +40,7 @@ export default function GoalsTab({ goals, setGoals, weights, setWeights, macros,
         <button className={`seg-btn${view === 'log' ? ' on' : ''}`} onClick={() => setView('log')}>Log</button>
       </div>
 
-      {view === 'log' && <LogTab session={session} macros={macros} notify={notify} tdee={tdee} goalType={goals.goalType} />}
+      {view === 'log' && <LogTab session={session} macros={macros} notify={notify} tdee={tdee} goalType={goals.goalType} pace={paceKey} weekMeals={weekMeals} onScan={onScan} />}
 
       {view === 'goals' && (<>
         <div className="bmr-card">
@@ -61,14 +62,17 @@ export default function GoalsTab({ goals, setGoals, weights, setWeights, macros,
             <span style={{ fontSize: 13, color: 'var(--muted)' }}>Maintenance (TDEE)</span>
             <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{Math.round(tdee).toLocaleString()} kcal</span>
           </div>
-          {goals.goalType !== 'maintain' && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ fontSize: 13, color: 'var(--muted)' }}>{goals.goalType === 'lose' ? 'Daily deficit' : 'Daily surplus'}</span>
-              <span style={{ fontSize: 13, fontWeight: 500, color: goals.goalType === 'lose' ? 'var(--sage)' : 'var(--plum2)' }}>
-                {goals.goalType === 'lose' ? '−500' : '+300'} kcal/day
-              </span>
-            </div>
-          )}
+          {goals.goalType !== 'maintain' && (() => {
+            const off = PACE[goals.goalType]?.[paceKey]?.offset ?? 0
+            return (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ fontSize: 13, color: 'var(--muted)' }}>{goals.goalType === 'lose' ? 'Daily deficit' : 'Daily surplus'} · {PACE[goals.goalType][paceKey].label}</span>
+                <span style={{ fontSize: 13, fontWeight: 500, color: goals.goalType === 'lose' ? 'var(--sage)' : 'var(--plum2)' }}>
+                  {off > 0 ? '+' : '−'}{Math.abs(off)} kcal/day
+                </span>
+              </div>
+            )
+          })()}
           <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10, borderTop: '1px solid var(--border)', marginBottom: lbsToGoal ? 14 : 0 }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Daily target</span>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--rose)' }}>{macros.calories.toLocaleString()} kcal</span>
@@ -142,11 +146,37 @@ export default function GoalsTab({ goals, setGoals, weights, setWeights, macros,
 
         <div className="card">
           <div className="card-title">Goal</div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: goals.goalType !== 'maintain' ? 14 : 0 }}>
             {[['lose', 'Lose weight'], ['maintain', 'Maintain'], ['gain', 'Build muscle']].map(([k, l]) => (
               <button key={k} className={`goal-btn${goals.goalType === k ? ' on' : ''}`} onClick={() => up('goalType', k)}>{l}</button>
             ))}
           </div>
+          {goals.goalType !== 'maintain' && (
+            <div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>
+                {goals.goalType === 'lose' ? 'Loss pace' : 'Gain pace'}
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {(['conservative', 'recommended', 'aggressive']).map(k => {
+                  const p = PACE[goals.goalType][k]
+                  return (
+                    <button
+                      key={k}
+                      onClick={() => up('pace', k)}
+                      style={{
+                        flex: 1, border: `1.5px solid ${paceKey === k ? 'var(--plum2)' : 'var(--border)'}`,
+                        borderRadius: 12, padding: '10px 4px', background: paceKey === k ? 'var(--plumLL)' : 'var(--warm)',
+                        cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3
+                      }}
+                    >
+                      <div style={{ fontSize: 12, fontWeight: 600, color: paceKey === k ? 'var(--plum2)' : 'var(--text)' }}>{p.label}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>{p.lbsPerWeek} lb/wk</div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="card">
