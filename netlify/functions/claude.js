@@ -23,10 +23,10 @@ exports.handler = async function (event) {
   // meal/recipe generation. Client sends a tier name; never a raw model id.
   const MODELS = {
     haiku: "claude-haiku-4-5-20251001",
-    sonnet: "claude-sonnet-4-5-20250929",
+    sonnet: "claude-sonnet-5",
   };
   const model = MODELS[body.model] || MODELS.haiku;
-  const maxTokens = body.model === "sonnet" ? 4000 : 3000;
+  const maxTokens = body.model === "sonnet" ? 8000 : 3000;
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
